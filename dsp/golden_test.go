@@ -21,7 +21,7 @@ type vectorMeta struct {
 // and runs check on it as a subtest named after the file
 func runGolden[T any](t *testing.T, category string, check func(t *testing.T, v T)) {
 	t.Helper()
-	files, err := filepath.Glob(filepath.Join("testdata", category, "*.json"))
+	files, err := filepath.Glob(filepath.Join("..", "testdata", category, "*.json"))
 	require.NoError(t, err)
 	require.NotEmpty(t, files, "no %s golden vectors; run `just fixtures`", category)
 
