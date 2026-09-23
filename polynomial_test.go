@@ -1,12 +1,13 @@
 package dsp
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
+
+// the cases use small integer roots, so results should be exact to rounding
+var polyTolerance = tolerance{rel: 1e-12, abs: 1e-12}
 
 func TestPolyFromRoots(t *testing.T) {
 	cases := []struct {
@@ -26,12 +27,7 @@ func TestPolyFromRoots(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := polyFromRoots(c.roots)
-			require.Len(t, got, len(c.want))
-			for i := range c.want {
-				assert.LessOrEqual(t, math.Hypot(real(got[i]-c.want[i]), imag(got[i]-c.want[i])), 1e-9,
-					"coeff %d: got %v, want %v", i, got[i], c.want[i])
-			}
+			assertAllClose(t, "coeffs", polyFromRoots(c.roots), c.want, polyTolerance)
 		})
 	}
 }
@@ -40,8 +36,7 @@ func TestRealCoeffs(t *testing.T) {
 	t.Run("clean values pass through", func(t *testing.T) {
 		in := []complex128{complex(1, 0), complex(-2, 1e-15), complex(5, -1e-14)}
 		want := []float64{1, -2, 5}
-		got := realCoeffs(in)
-		assert.InDeltaSlice(t, want, got, 1e-9)
+		assertAllClose(t, "coeffs", realCoeffs(in), want, polyTolerance)
 	})
 
 	t.Run("non-negligible imaginary part panics", func(t *testing.T) {
