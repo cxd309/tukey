@@ -2,4 +2,6 @@ module github.com/cxd309/godsp
 
 go 1.27.1
 
-require gonum.org/v1/gonum v0.17.0 // indirect
+require github.com/stretchr/testify v1.12.1
+
+require go.yaml.in/yaml/v3 v3.0.5 // indirect
