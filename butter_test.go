@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,30 +63,18 @@ func bandFromVector(btype string, wn []float64) (band Band, err error) {
 var butterTolerance = tolerance{rel: 1e-13, abs: 1e-13}
 
 func TestButterGoldenVectors(t *testing.T) {
-	files, err := filepath.Glob("testdata/butter/*.json")
-	require.NoError(t, err)
-	require.NotEmpty(t, files, "no golden vectors found — run `just fixtures`")
+	runGolden(t, "butter", func(t *testing.T, v butterVector) {
+		wn, err := parseWn(v.Params.Wn)
+		require.NoError(t, err)
+		band, err := bandFromVector(v.Params.BType, wn)
+		require.NoError(t, err)
 
-	for _, f := range files {
-		t.Run(filepath.Base(f), func(t *testing.T) {
-			data, err := os.ReadFile(f)
-			require.NoError(t, err)
+		gotB, gotA, err := Butter(v.Params.Order, band)
+		require.NoError(t, err, v.Description)
 
-			var v butterVector
-			require.NoError(t, json.Unmarshal(data, &v), "decoding %s", f)
-
-			wn, err := parseWn(v.Params.Wn)
-			require.NoError(t, err)
-			band, err := bandFromVector(v.Params.BType, wn)
-			require.NoError(t, err)
-
-			gotB, gotA, err := Butter(v.Params.Order, band)
-			require.NoError(t, err, v.Description)
-
-			assertAllClose(t, "b", gotB, v.Output.B, butterTolerance)
-			assertAllClose(t, "a", gotA, v.Output.A, butterTolerance)
-		})
-	}
+		assertAllClose(t, "b", gotB, v.Output.B, butterTolerance)
+		assertAllClose(t, "a", gotA, v.Output.A, butterTolerance)
+	})
 }
 
 func TestButterRejectsInvalidInput(t *testing.T) {
