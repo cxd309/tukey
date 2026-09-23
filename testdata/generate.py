@@ -33,7 +33,7 @@ def write_vector(
     }
     path = out_dir / f"{name}.json"
     path.write_text(json.dumps(payload, indent=2) + "\n")
-    print(f"wrote {path.relative_to(OUTPUT_ROOT)}")
+    # print(f"wrote {path.relative_to(OUTPUT_ROOT)}")
 
 
 def generate_butter() -> None:
@@ -133,4 +133,6 @@ def generate_filter() -> None:
 
 if __name__ == "__main__":
     generate_butter()
+    print("wrote butter/")
     generate_filter()
+    print("wrote filter/")

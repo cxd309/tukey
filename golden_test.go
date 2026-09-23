@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -28,8 +29,10 @@ func runGolden[T any](t *testing.T, category string, check func(t *testing.T, v 
 		t.Run(filepath.Base(f), func(t *testing.T) {
 			data, err := os.ReadFile(f)
 			require.NoError(t, err)
+			dec := json.NewDecoder(bytes.NewReader(data))
+			dec.DisallowUnknownFields()
 			var v T
-			require.NoError(t, json.Unmarshal(data, &v), "decoding %s", f)
+			require.NoError(t, dec.Decode(&v), "decoding %s", f)
 			check(t, v)
 		})
 	}

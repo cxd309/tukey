@@ -7,4 +7,5 @@ fixtures:
     cd testdata && uv run generate.py
 
 test: fixtures
-    go test ./... -v
+    go vet ./...
+    go test ./...
