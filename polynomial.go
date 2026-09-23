@@ -3,6 +3,7 @@ package dsp
 import (
 	"fmt"
 	"math"
+	"slices"
 )
 
 // polyFromRoots returns the coefficients [x^n, x^(n-1), ..., x^0]
@@ -34,5 +35,30 @@ func realCoeffs(complexCoeffs []complex128) (coeffs []float64) {
 		}
 		coeffs[i] = real(v)
 	}
+	return
+}
+
+// mapRoots applies fn to every root, returning a new slice
+func mapRoots(roots []complex128, fn func(complex128) complex128) (mapped []complex128) {
+	mapped = make([]complex128, len(roots))
+	for i, r := range roots {
+		mapped[i] = fn(r)
+	}
+	return
+}
+
+// prod returns the product of all values, or 1 for an empty slice
+func prod(values []complex128) (p complex128) {
+	p = 1
+	for _, v := range values {
+		p *= v
+	}
+	return
+}
+
+// appendRepeated returns roots followed by n copies of root, leaving roots unmodified
+// n < 0 panics, which flags a filter with more zeros than poles
+func appendRepeated(roots []complex128, root complex128, n int) (padded []complex128) {
+	padded = slices.Concat(roots, slices.Repeat([]complex128{root}, n))
 	return
 }

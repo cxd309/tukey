@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,6 +92,50 @@ func TestButterGoldenVectors(t *testing.T) {
 
 			assertAllClose(t, "b", gotB, v.Output.B, butterTolerance)
 			assertAllClose(t, "a", gotA, v.Output.A, butterTolerance)
+		})
+	}
+}
+
+func TestButterRejectsInvalidInput(t *testing.T) {
+	cases := []struct {
+		name    string
+		order   int
+		wn      float64
+		bt      BandType
+		wantErr string
+	}{
+		{"order 0", 0, 0.3, LowPass, "order must be >= 1"},
+		{"wn 0", 2, 0, LowPass, "wn must be in (0,1)"},
+		{"wn 1", 2, 1, LowPass, "wn must be in (0,1)"},
+		{"band type", 2, 0.3, BandPass, "use ButterBand"},
+		{"unknown band type", 2, 0.3, BandType(7), "unknown band type BandType(7)"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, _, err := Butter(c.order, c.wn, c.bt)
+			assert.ErrorContains(t, err, c.wantErr)
+		})
+	}
+}
+
+func TestButterBandRejectsInvalidInput(t *testing.T) {
+	cases := []struct {
+		name      string
+		order     int
+		low, high float64
+		bt        BandType
+		wantErr   string
+	}{
+		{"order 0", 0, 0.2, 0.5, BandPass, "order must be >= 1"},
+		{"low >= high", 2, 0.5, 0.2, BandPass, "require 0 < low < high < 1"},
+		{"high 1", 2, 0.2, 1, BandPass, "require 0 < low < high < 1"},
+		{"lowpass", 2, 0.2, 0.5, LowPass, "use Butter"},
+		{"unknown band type", 2, 0.2, 0.5, BandType(7), "unknown band type BandType(7)"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, _, err := ButterBand(c.order, c.low, c.high, c.bt)
+			assert.ErrorContains(t, err, c.wantErr)
 		})
 	}
 }
