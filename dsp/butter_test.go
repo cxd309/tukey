@@ -6,6 +6,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cxd309/godsp/internal/reference"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,10 +61,10 @@ func bandFromVector(btype string, wn []float64) (band Band, err error) {
 // most cases agree within a few ULPs (~1e-16), worst is bandstop 0.01-0.99
 // at ~7e-15, where prewarp near Nyquist makes the pole quadratic ill-conditioned.
 // Set ~10x above the worst for headroom across platforms.
-var butterTolerance = tolerance{rel: 1e-13, abs: 1e-13}
+var butterTolerance = reference.Tolerance{Rel: 1e-13, Abs: 1e-13}
 
 func TestButterGoldenVectors(t *testing.T) {
-	runGolden(t, "butter", func(t *testing.T, v butterVector) {
+	reference.Run(t, "butter", func(t *testing.T, v butterVector) {
 		wn, err := parseWn(v.Params.Wn)
 		require.NoError(t, err)
 		band, err := bandFromVector(v.Params.BType, wn)
@@ -72,8 +73,8 @@ func TestButterGoldenVectors(t *testing.T) {
 		gotB, gotA, err := Butter(v.Params.Order, band)
 		require.NoError(t, err, v.Description)
 
-		assertAllClose(t, "b", gotB, v.Output.B, butterTolerance)
-		assertAllClose(t, "a", gotA, v.Output.A, butterTolerance)
+		reference.AssertClose(t, "b", gotB, v.Output.B, butterTolerance)
+		reference.AssertClose(t, "a", gotA, v.Output.A, butterTolerance)
 	})
 }
 

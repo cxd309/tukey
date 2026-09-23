@@ -3,11 +3,12 @@ package dsp
 import (
 	"testing"
 
+	"github.com/cxd309/godsp/internal/reference"
 	"github.com/stretchr/testify/assert"
 )
 
 // the cases use small integer roots, so results should be exact to rounding
-var polyTolerance = tolerance{rel: 1e-12, abs: 1e-12}
+var polyTolerance = reference.Tolerance{Rel: 1e-12, Abs: 1e-12}
 
 func TestPolyFromRoots(t *testing.T) {
 	cases := []struct {
@@ -27,7 +28,7 @@ func TestPolyFromRoots(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assertAllClose(t, "coeffs", polyFromRoots(c.roots), c.want, polyTolerance)
+			reference.AssertClose(t, "coeffs", polyFromRoots(c.roots), c.want, polyTolerance)
 		})
 	}
 }
@@ -36,7 +37,7 @@ func TestRealCoeffs(t *testing.T) {
 	t.Run("clean values pass through", func(t *testing.T) {
 		in := []complex128{complex(1, 0), complex(-2, 1e-15), complex(5, -1e-14)}
 		want := []float64{1, -2, 5}
-		assertAllClose(t, "coeffs", realCoeffs(in), want, polyTolerance)
+		reference.AssertClose(t, "coeffs", realCoeffs(in), want, polyTolerance)
 	})
 
 	t.Run("non-negligible imaginary part panics", func(t *testing.T) {

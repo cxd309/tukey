@@ -4,12 +4,13 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/cxd309/godsp/internal/reference"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type filterVector struct {
-	vectorMeta
+	reference.Meta
 	Params struct {
 		B []float64 `json:"b"`
 		A []float64 `json:"a"`
@@ -24,13 +25,13 @@ type filterVector struct {
 // FIR and simple-coefficient cases are bit-identical; Butterworth cases agree
 // within ~3 ULPs (worst 6.6e-16), differing only in the order of additions.
 // Set ~10x above the worst for headroom across platforms.
-var filterTolerance = tolerance{rel: 1e-14, abs: 1e-14}
+var filterTolerance = reference.Tolerance{Rel: 1e-14, Abs: 1e-14}
 
 func TestFilterGoldenVectors(t *testing.T) {
-	runGolden(t, "filter", func(t *testing.T, v filterVector) {
+	reference.Run(t, "filter", func(t *testing.T, v filterVector) {
 		got, err := Filter(v.Params.B, v.Params.A, v.Params.X)
 		require.NoError(t, err, v.Description)
-		assertAllClose(t, "y", got, v.Output.Y, filterTolerance)
+		reference.AssertClose(t, "y", got, v.Output.Y, filterTolerance)
 	})
 }
 
