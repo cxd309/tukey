@@ -6,3 +6,5 @@ fmt:
 fixtures:
     cd testdata && uv run generate.py
 
+test: fixtures
+    go test ./... -v
