@@ -3,6 +3,7 @@ package dsp
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,19 +41,21 @@ func parseWn(raw json.RawMessage) (wn []float64, err error) {
 	return nil, fmt.Errorf("wn is neither a float nor a [low, high] pair: %s", raw)
 }
 
-func btypeFromString(s string) (bt BandType, err error) {
-	switch s {
+// bandFromVector builds the Band a golden vector describes
+func bandFromVector(btype string, wn []float64) (band Band, err error) {
+	switch btype {
 	case "lowpass":
-		return LowPass, nil
+		band = Lowpass(wn[0])
 	case "highpass":
-		return HighPass, nil
+		band = Highpass(wn[0])
 	case "bandpass":
-		return BandPass, nil
+		band = Bandpass(wn[0], wn[1])
 	case "bandstop":
-		return BandStop, nil
+		band = Bandstop(wn[0], wn[1])
 	default:
-		return 0, fmt.Errorf("unknown btype %q", s)
+		err = fmt.Errorf("unknown btype %q", btype)
 	}
+	return
 }
 
 // butterTolerance was measured against SciPy (see testdata/generate.py):
@@ -64,10 +67,9 @@ var butterTolerance = tolerance{rel: 1e-13, abs: 1e-13}
 func TestButterGoldenVectors(t *testing.T) {
 	files, err := filepath.Glob("testdata/butter/*.json")
 	require.NoError(t, err)
-	require.NotEmpty(t, files, "no golden vectors found — run `uv run --project testdata generate.py`")
+	require.NotEmpty(t, files, "no golden vectors found — run `just fixtures`")
 
 	for _, f := range files {
-		f := f
 		t.Run(filepath.Base(f), func(t *testing.T) {
 			data, err := os.ReadFile(f)
 			require.NoError(t, err)
@@ -77,18 +79,11 @@ func TestButterGoldenVectors(t *testing.T) {
 
 			wn, err := parseWn(v.Params.Wn)
 			require.NoError(t, err)
-			bt, err := btypeFromString(v.Params.BType)
+			band, err := bandFromVector(v.Params.BType, wn)
 			require.NoError(t, err)
 
-			var gotB, gotA []float64
-			if len(wn) == 1 {
-				gotB, gotA, err = Butter(v.Params.Order, wn[0], bt)
-			} else {
-				gotB, gotA, err = ButterBand(v.Params.Order, wn[0], wn[1], bt)
-			}
+			gotB, gotA, err := Butter(v.Params.Order, band)
 			require.NoError(t, err, v.Description)
-			require.Len(t, gotB, len(v.Output.B), "b length mismatch")
-			require.Len(t, gotA, len(v.Output.A), "a length mismatch")
 
 			assertAllClose(t, "b", gotB, v.Output.B, butterTolerance)
 			assertAllClose(t, "a", gotA, v.Output.A, butterTolerance)
@@ -100,41 +95,20 @@ func TestButterRejectsInvalidInput(t *testing.T) {
 	cases := []struct {
 		name    string
 		order   int
-		wn      float64
-		bt      BandType
+		band    Band
 		wantErr string
 	}{
-		{"order 0", 0, 0.3, LowPass, "order must be >= 1"},
-		{"wn 0", 2, 0, LowPass, "wn must be in (0,1)"},
-		{"wn 1", 2, 1, LowPass, "wn must be in (0,1)"},
-		{"band type", 2, 0.3, BandPass, "use ButterBand"},
-		{"unknown band type", 2, 0.3, BandType(7), "unknown band type BandType(7)"},
+		{"order 0", 0, Lowpass(0.3), "order must be >= 1"},
+		{"cutoff 0", 2, Lowpass(0), "Lowpass(0): frequencies must be in (0, 1)"},
+		{"cutoff 1", 2, Highpass(1), "Highpass(1): frequencies must be in (0, 1)"},
+		{"cutoff NaN", 2, Lowpass(math.NaN()), "frequencies must be in (0, 1)"},
+		{"high edge 1", 2, Bandstop(0.2, 1), "Bandstop(0.2, 1): frequencies must be in (0, 1)"},
+		{"low >= high", 2, Bandpass(0.5, 0.2), "Bandpass(0.5, 0.2): low edge must be below high edge"},
+		{"zero Band", 2, Band{}, "zero Band"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, _, err := Butter(c.order, c.wn, c.bt)
-			assert.ErrorContains(t, err, c.wantErr)
-		})
-	}
-}
-
-func TestButterBandRejectsInvalidInput(t *testing.T) {
-	cases := []struct {
-		name      string
-		order     int
-		low, high float64
-		bt        BandType
-		wantErr   string
-	}{
-		{"order 0", 0, 0.2, 0.5, BandPass, "order must be >= 1"},
-		{"low >= high", 2, 0.5, 0.2, BandPass, "require 0 < low < high < 1"},
-		{"high 1", 2, 0.2, 1, BandPass, "require 0 < low < high < 1"},
-		{"lowpass", 2, 0.2, 0.5, LowPass, "use Butter"},
-		{"unknown band type", 2, 0.2, 0.5, BandType(7), "unknown band type BandType(7)"},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			_, _, err := ButterBand(c.order, c.low, c.high, c.bt)
+			_, _, err := Butter(c.order, c.band)
 			assert.ErrorContains(t, err, c.wantErr)
 		})
 	}
