@@ -54,7 +54,11 @@ func btypeFromString(s string) (bt BandType, err error) {
 	}
 }
 
-var butterTolerance = tolerance{rel: 1e-9, abs: 1e-9}
+// butterTolerance was measured against SciPy (see testdata/generate.py):
+// most cases agree within a few ULPs (~1e-16), worst is bandstop 0.01-0.99
+// at ~7e-15, where prewarp near Nyquist makes the pole quadratic ill-conditioned.
+// Set ~10x above the worst for headroom across platforms.
+var butterTolerance = tolerance{rel: 1e-13, abs: 1e-13}
 
 func TestButterGoldenVectors(t *testing.T) {
 	files, err := filepath.Glob("testdata/butter/*.json")
