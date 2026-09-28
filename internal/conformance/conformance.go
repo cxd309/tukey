@@ -97,3 +97,16 @@ func compareFile[T any](name string, v T, tol reference.Tolerance, outputs func(
 	}
 	return
 }
+
+// Passed report whether the vector ran and every output was within tolerance
+func (r FileResult) Passed() (passed bool) {
+	if r.Err != nil {
+		return false
+	}
+	for _, o := range r.Outputs {
+		if len(o.Mismatches) > 0 {
+			return false
+		}
+	}
+	return true
+}

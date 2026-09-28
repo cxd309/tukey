@@ -9,3 +9,6 @@ fixtures:
 test: fixtures
     go vet ./...
     go test ./...
+
+tolerances:
+    go run ./cmd/tolerances
