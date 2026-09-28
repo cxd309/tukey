@@ -1,0 +1,20 @@
+{
+  "description": "scipy.signal.lfilter_zi(b,a) for butter1_lp0.3",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "b": [
+      0.33754015188354686,
+      0.33754015188354686
+    ],
+    "a": [
+      1.0,
+      -0.32491969623290634
+    ]
+  },
+  "output": {
+    "zi": [
+      0.6624598481164532
+    ]
+  }
+}

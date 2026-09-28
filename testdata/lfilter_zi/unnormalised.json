@@ -1,0 +1,20 @@
+{
+  "description": "scipy.signal.lfilter_zi(b,a) for unnormalised",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "b": [
+      2.0,
+      1.0
+    ],
+    "a": [
+      2.0,
+      -0.5
+    ]
+  },
+  "output": {
+    "zi": [
+      1.0
+    ]
+  }
+}

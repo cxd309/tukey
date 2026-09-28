@@ -1,0 +1,19 @@
+{
+  "description": "scipy.signal.lfilter_zi(b,a) for short_b",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "b": [
+      1.0
+    ],
+    "a": [
+      1.0,
+      -0.9
+    ]
+  },
+  "output": {
+    "zi": [
+      9.000000000000002
+    ]
+  }
+}
