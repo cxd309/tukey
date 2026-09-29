@@ -14,13 +14,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/cxd309/godsp/internal/conformance"
+	"github.com/cxd309/godsp/internal/reference"
 )
-
-// epsilon is the gap between 1.0 and the next float64 (2^-52)
-// used to express relative error in ELPs
-// it can undercount by up to 2x, sine the relative gap between neighbouring
-// flat64s varies between 2^-53 and 2^-52 within each power of two
-const epsilon = 0x1p-52
 
 func main() {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -42,7 +37,7 @@ func main() {
 			s.vectors,
 			s.failing,
 			s.worst,
-			s.worst/epsilon,
+			s.worst/reference.Epsilon,
 			suite.Tolerance.Abs,
 			headroom(suite.Tolerance.Abs, s.worst),
 			s.worstCase,

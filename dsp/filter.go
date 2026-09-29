@@ -1,6 +1,9 @@
 package dsp
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // digitalFilter is a validated IIR filter in transfter-function form
 // normalised so a[0] == 1, with b and a zero-padded to the same length
@@ -49,6 +52,42 @@ func (f digitalFilter) apply(x, initial []float64) (y []float64) {
 	return
 }
 
+// steadyState returns the state apply settles into after a long unit step input,
+// so starting from it (scaled by the first sample) avoids a startup transient
+//
+// once settled, the output is the DC gain g = sum(b)/sum(a); substituting x=1, y=g
+// into apply's state updates lets them be solved from the last one back:
+// zi[k] = b[k+1] - a[k+1]*g + zi[k+1]
+// equivalent to scipy.signal.lfilter_zi, which solves the same equations as a linear system
+func (f digitalFilter) steadyState() (zi []float64, err error) {
+	sumB, sumA := 0.0, 0.0
+	for i := range f.a {
+		sumB += f.b[i]
+		sumA += f.a[i]
+	}
+	if sumA == 0 {
+		return nil, errors.New("dsp: filter has a pole at z=1 (sum(a) == 0), so it has no steady state")
+	}
+	gain := sumB / sumA
+
+	n := len(f.a)
+	zi = make([]float64, n-1)
+	next := 0.0 // zi[k+1]; zero past the last state, like apply's spare slot
+	for k := n - 2; k >= 0; k-- {
+		zi[k] = f.b[k+1] - f.a[k+1]*gain + next
+		next = zi[k]
+	}
+	return
+}
+
+// Filter applies the IIR filter, b, a to x causally (one direction only)
+// start from rest, so the output is phase-shifted; use FiltFilt for zero phase
+//
+// a must describe a stable filter (all poles strictly inside the unit circle);
+// this isn't checked, matching scipy.signal.lfilter and MATLAB's filter,
+// and an unstable filter produces output that grows without bound
+//
+// equivalent to scipy.signal.lfilter(b, a, x) and MATLAB's filter(b, a, x)
 func Filter(b, a, x []float64) (y []float64, err error) {
 	f, err := newDigitalFilter(b, a)
 	if err != nil {

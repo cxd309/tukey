@@ -4,9 +4,24 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/cxd309/godsp/internal/reference"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type lfilterZiVector struct {
+	reference.Meta
+	Params struct {
+		B []float64 `json:"b"`
+		A []float64 `json:"a"`
+	} `json:"params"`
+	Output struct {
+		Zi []float64 `json:"zi"`
+	} `json:"output"`
+}
+
+// steadyStateTolerance is a placeholder: measure it, then replace this comment
+var steadyStateTolerance = reference.Tolerance{Rel: 1e-14, Abs: 1e-14}
 
 func TestFilterRejectsInvalidInput(t *testing.T) {
 	cases := []struct {
@@ -38,4 +53,42 @@ func TestFilterDoesNotModifyInputs(t *testing.T) {
 	assert.Equal(t, bBefore, b)
 	assert.Equal(t, aBefore, a)
 	assert.Equal(t, xBefore, x)
+}
+
+func TestSteadyStateMatchesLfilterZi(t *testing.T) {
+	reference.Run(t, "lfilter_zi", func(t *testing.T, v lfilterZiVector) {
+		f, err := newDigitalFilter(v.Params.B, v.Params.A)
+		require.NoError(t, err)
+		zi, err := f.steadyState()
+		require.NoError(t, err)
+		reference.AssertClose(t, "zi", zi, v.Output.Zi, steadyStateTolerance)
+	})
+}
+
+// the point of steadyState: a filter started there treats a constant input as
+// already settled, so the output is the input times the DC gain from the very first
+// sample, with none of the ramp and overshoot seen when starting from rest
+func TestSteadyStateRemovesStartupTransient(t *testing.T) {
+	b, a, err := Butter(2, Lowpass(0.3)) // unity DC gain
+	require.NoError(t, err)
+	f, err := newDigitalFilter(b, a)
+	require.NoError(t, err)
+	zi, err := f.steadyState()
+	require.NoError(t, err)
+
+	const level = 3.0
+	for i := range zi {
+		zi[i] *= level
+	}
+	x := slices.Repeat([]float64{level}, 50)
+
+	y := f.apply(x, zi)
+	reference.AssertClose(t, "y", y, x, reference.Tolerance{Rel: 1e-14, Abs: 1e-14})
+}
+
+func TestSteadyStateRejectsPoleAtDC(t *testing.T) {
+	f, err := newDigitalFilter([]float64{1}, []float64{1, -1}) // integrator
+	require.NoError(t, err)
+	_, err = f.steadyState()
+	assert.ErrorContains(t, err, "pole at z=1")
 }
