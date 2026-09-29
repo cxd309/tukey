@@ -1,6 +1,6 @@
 module github.com/cxd309/tukey
 
-go 1.27.1
+go 1.23
 
 require github.com/stretchr/testify v1.12.1
 
