@@ -1,7 +1,6 @@
 package dsp
 
 import (
-	"errors"
 	"fmt"
 	"math"
 )
@@ -73,15 +72,15 @@ func (band Band) String() (s string) {
 // 2. its edges must be ascending within (0, 1)
 func (band Band) validate() (err error) {
 	if band.btype == 0 {
-		return errors.New("dsp: zero Band; build one with Lowpass, Highpass, Bandpass or Bandstop")
+		return fmt.Errorf("%w: zero Band; build one with Lowpass, Highpass, Bandpass or Bandstop", ErrInvalidBand)
 	}
 	for i, edge := range band.edges {
 		// written as !(in range) rather than (out of range) so NaN is rejected
 		if !(edge > 0 && edge < 1) {
-			return fmt.Errorf("dsp: %v: frequencies must be in (0, 1), normalised to Nyquist", band)
+			return fmt.Errorf("%w: %v: frequencies must be in (0, 1), normalised to Nyquist", ErrInvalidBand, band)
 		}
 		if i > 0 && edge <= band.edges[i-1] {
-			return fmt.Errorf("dsp: %v: low edge must be below high edge", band)
+			return fmt.Errorf("%w: %v: low edge must be below high edge", ErrInvalidBand, band)
 		}
 	}
 	return

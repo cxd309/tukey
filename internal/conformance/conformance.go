@@ -8,6 +8,7 @@ package conformance
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/cxd309/godsp/internal/reference"
 )
@@ -16,6 +17,7 @@ import (
 var Suites = []Suite{
 	butterSuite,
 	filterSuite,
+	filtfiltSuite,
 }
 
 // Suite checks one dsp function against one category of reference vectors
@@ -30,6 +32,10 @@ type Suite struct {
 type Output struct {
 	Name      string // e.g. "b"
 	Got, Want []float64
+	// Scale, if set, is the smallest magnitude errors are measured against;
+	// filters set it to their input's, which their rounding error scales with
+	// even when the output itself cancels to ~0
+	Scale float64
 }
 
 // FileResult is how one reference vector file compared
@@ -88,7 +94,7 @@ func compareFile[T any](name string, v T, tol reference.Tolerance, outputs func(
 		return
 	}
 	for _, o := range outs {
-		c, err := reference.Compare(o.Got, o.Want, tol)
+		c, err := reference.CompareScaled(o.Got, o.Want, tol, o.Scale)
 		if err != nil {
 			r.Err = fmt.Errorf("%s: %w", o.Name, err)
 			return
@@ -109,4 +115,12 @@ func (r FileResult) Passed() (passed bool) {
 		}
 	}
 	return true
+}
+
+// maxAbs is the largest magnitude in v
+func maxAbs(v []float64) (m float64) {
+	for _, x := range v {
+		m = math.Max(m, math.Abs(x))
+	}
+	return
 }

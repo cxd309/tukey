@@ -27,7 +27,7 @@ type butterVector struct {
 // where prewarp near Nyquist makes the pole quadratic ill-conditioned;
 // set ~10x above the worst for headroom across platforms
 var butterSuite = newSuite("Butter", "butter",
-	reference.Tolerance{Rel: 1e-13, Abs: 1e-13},
+	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
 	func(v butterVector) (outputs []Output, err error) {
 		wn, err := parseWn(v.Params.Wn)
 		if err != nil {
@@ -41,7 +41,11 @@ var butterSuite = newSuite("Butter", "butter",
 		if err != nil {
 			return nil, err
 		}
-		outputs = []Output{{"b", b, v.Output.B}, {"a", a, v.Output.A}}
+		// no Scale: coefficients are their own scale
+		outputs = []Output{
+			{Name: "b", Got: b, Want: v.Output.B},
+			{Name: "a", Got: a, Want: v.Output.A},
+		}
 		return
 	})
 

@@ -7,17 +7,18 @@ import (
 	"testing"
 )
 
-// epsilon is the gap between 1.0 and the next float64 (2^-52)
-// used to express relative error in ELPs
-// it can undercount by up to 2x, sine the relative gap between neighbouring
-// flat64s varies between 2^-53 and 2^-52 within each power of two
+// Epsilon is the gap between 1.0 and the next float64 (2^-52)
+// used to express relative error in ULPs
+// it can undercount by up to 2x, since the relative gap between neighbouring
+// float64s varies between 2^-53 and 2^-52 within each power of two
 const Epsilon = 0x1p-52
 
 // Tolerance says how close got must be to want for a slice comparison
-// a value passes if |got-want| <= Abs*max|want| + Rel*|want|
+// a value passes if |got-want| <= Scaled*scale + Rel*|want|, where scale is
+// max|want|, or the floor given to CompareScaled if that's larger
 type Tolerance struct {
-	Rel float64 // relative to each expected value
-	Abs float64 // relative to the largest |want| in the slice, so small but valid slices are still checked
+	Rel    float64 // relative to each expected value
+	Scaled float64 // relative to the comparison's scale, so small but valid slices are still checked
 }
 
 // Number is the element types Compare can handle
@@ -33,20 +34,30 @@ type Mismatch struct {
 
 // Comparison is the outcome of comparing got against want
 type Comparison struct {
-	// Worst is the largest |got-want| relative to max|want|:
+	// Worst is the largest |got-want| relative to the comparison's scale:
 	// the measured error that tolerances are set from
 	Worst      float64
 	Mismatches []Mismatch
 }
 
-// Compare measures got against want element by element
-// NaN in the same posisiton of both counts as a match, as in numpy.allclose(equal_nan=True)
+// Compare measures got against want element by element,
+// with errors relative to max|want| (see Tolerance)
+// NaN in the same position of both counts as a match, as in numpy.allclose(equal_nan=True)
 // NaN in only one is always a mismatch
 func Compare[T Number](got, want []T, tol Tolerance) (c Comparison, err error) {
+	c, err = CompareScaled(got, want, tol, 0)
+	return
+}
+
+// CompareScaled is Compare with errors measured relative to max(max|want|, floor)
+// use it when want can legitimately be ~0 while the computation that produced it
+// handled much larger values, such as a filter rejecting its input: rounding error
+// then scales with those values, and relative to ~0 alone it would look enormous
+func CompareScaled[T Number](got, want []T, tol Tolerance, floor float64) (c Comparison, err error) {
 	if len(got) != len(want) {
 		return c, fmt.Errorf("length mismatch: got %d, want %d", len(got), len(want))
 	}
-	scale := 0.0
+	scale := floor
 	for _, w := range want {
 		if !isNaN(w) {
 			scale = math.Max(scale, magnitude(w))
@@ -57,7 +68,7 @@ func Compare[T Number](got, want []T, tol Tolerance) (c Comparison, err error) {
 			continue
 		}
 		diff := magnitude(got[i] - want[i])
-		allowed := tol.Abs*scale + tol.Rel*magnitude(want[i])
+		allowed := tol.Scaled*scale + tol.Rel*magnitude(want[i])
 
 		relative := diff
 		if scale > 0 {

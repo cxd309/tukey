@@ -22,12 +22,12 @@ type filterVector struct {
 // agree within ~3 ULPs (worst 6.6e-16), differing only in the order of additions;
 // set ~10x above the worst for headroom across platforms
 var filterSuite = newSuite("Filter", "filter",
-	reference.Tolerance{Rel: 1e-14, Abs: 1e-14},
+	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v filterVector) (outputs []Output, err error) {
 		y, err := dsp.Filter(v.Params.B, v.Params.A, v.Params.X)
 		if err != nil {
 			return nil, err
 		}
-		outputs = []Output{{"y", y, v.Output.Y}}
+		outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y, Scale: maxAbs(v.Params.X)}}
 		return
 	})

@@ -8,7 +8,7 @@ import (
 )
 
 // the cases use small integer roots, so results should be exact to rounding
-var polyTolerance = reference.Tolerance{Rel: 1e-12, Abs: 1e-12}
+var polyTolerance = reference.Tolerance{Rel: 1e-12, Scaled: 1e-12}
 
 func TestPolyFromRoots(t *testing.T) {
 	cases := []struct {

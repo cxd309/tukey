@@ -21,22 +21,22 @@ type lfilterZiVector struct {
 }
 
 // steadyStateTolerance is a placeholder: measure it, then replace this comment
-var steadyStateTolerance = reference.Tolerance{Rel: 1e-14, Abs: 1e-14}
+var steadyStateTolerance = reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}
 
 func TestFilterRejectsInvalidInput(t *testing.T) {
 	cases := []struct {
 		name    string
 		b, a    []float64
-		wantErr string
+		wantErr error
 	}{
-		{"empty b", nil, []float64{1}, "b and a must be non-empty"},
-		{"empty a", []float64{1}, nil, "b and a must be non-empty"},
-		{"a[0] zero", []float64{1}, []float64{0, 1}, "a[0] must be non-zero"},
+		{"empty b", nil, []float64{1}, ErrInvalidCoefficients},
+		{"empty a", []float64{1}, nil, ErrInvalidCoefficients},
+		{"a[0] zero", []float64{1}, []float64{0, 1}, ErrInvalidCoefficients},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := Filter(c.b, c.a, []float64{1, 2, 3})
-			assert.ErrorContains(t, err, c.wantErr)
+			assert.ErrorIs(t, err, c.wantErr)
 		})
 	}
 }
@@ -83,12 +83,12 @@ func TestSteadyStateRemovesStartupTransient(t *testing.T) {
 	x := slices.Repeat([]float64{level}, 50)
 
 	y := f.apply(x, zi)
-	reference.AssertClose(t, "y", y, x, reference.Tolerance{Rel: 1e-14, Abs: 1e-14})
+	reference.AssertClose(t, "y", y, x, reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
 }
 
 func TestSteadyStateRejectsPoleAtDC(t *testing.T) {
 	f, err := newDigitalFilter([]float64{1}, []float64{1, -1}) // integrator
 	require.NoError(t, err)
 	_, err = f.steadyState()
-	assert.ErrorContains(t, err, "pole at z=1")
+	assert.ErrorIs(t, err, ErrNoSteadyState)
 }

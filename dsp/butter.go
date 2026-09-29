@@ -32,10 +32,13 @@ func butterworthPrototype(order int) (proto zpk) {
 //	b, a, err := dsp.Butter(4, dsp.Lowpass(0.3))
 //	b, a, err := dsp.Butter(2, dsp.Bandpass(0.2, 0.5))
 //
+// returns ErrInvalidOrder if order < 1, and ErrInvalidBand if band is zero-valued,
+// has a frequency outside (0, 1), or has its low edge not below its high edge
+//
 // equivalent to scipy.signal.butter(order, wn, btype) and MATLAB's butter(order, wn, ftype)
 func Butter(order int, band Band) (b, a []float64, err error) {
 	if order < 1 {
-		return nil, nil, fmt.Errorf("dsp: order must be >= 1, got %d", order)
+		return nil, nil, fmt.Errorf("%w: order must be >= 1, got %d", ErrInvalidOrder, order)
 	}
 	if err = band.validate(); err != nil {
 		return nil, nil, err

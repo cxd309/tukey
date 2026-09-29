@@ -38,8 +38,8 @@ func main() {
 			s.failing,
 			s.worst,
 			s.worst/reference.Epsilon,
-			suite.Tolerance.Abs,
-			headroom(suite.Tolerance.Abs, s.worst),
+			suite.Tolerance.Scaled,
+			headroom(suite.Tolerance.Scaled, s.worst),
 			s.worstCase,
 		)
 	}

@@ -1,9 +1,6 @@
 package dsp
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
 // digitalFilter is a validated IIR filter in transfter-function form
 // normalised so a[0] == 1, with b and a zero-padded to the same length
@@ -15,10 +12,10 @@ type digitalFilter struct {
 // copies are taken, so the caller's slices are never modified
 func newDigitalFilter(b, a []float64) (f digitalFilter, err error) {
 	if len(b) == 0 || len(a) == 0 {
-		return f, fmt.Errorf("dsp: b and a must be non-empty, got len(b)=%d len(a)=%d", len(b), len(a))
+		return f, fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
 	}
 	if a[0] == 0 {
-		return f, fmt.Errorf("dsp: a[0] must be non-zero")
+		return f, fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
 	}
 	n := max(len(b), len(a))
 	f.b = make([]float64, n)
@@ -66,7 +63,7 @@ func (f digitalFilter) steadyState() (zi []float64, err error) {
 		sumA += f.a[i]
 	}
 	if sumA == 0 {
-		return nil, errors.New("dsp: filter has a pole at z=1 (sum(a) == 0), so it has no steady state")
+		return nil, fmt.Errorf("%w: it has a pole at z=1 (sum(a) == 0)", ErrNoSteadyState)
 	}
 	gain := sumB / sumA
 
@@ -86,6 +83,8 @@ func (f digitalFilter) steadyState() (zi []float64, err error) {
 // a must describe a stable filter (all poles strictly inside the unit circle);
 // this isn't checked, matching scipy.signal.lfilter and MATLAB's filter,
 // and an unstable filter produces output that grows without bound
+//
+// returns ErrInvalidCoefficients if b or a is empty, or a[0] is zero
 //
 // equivalent to scipy.signal.lfilter(b, a, x) and MATLAB's filter(b, a, x)
 func Filter(b, a, x []float64) (y []float64, err error) {
