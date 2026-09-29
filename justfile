@@ -6,11 +6,11 @@ fmt:
 fixtures:
     cd testdata && uv run generate.py
 
-test: fixtures
+test:
     go vet ./...
     go test ./...
 
-test-verbose: fixtures
+test-verbose:
     go vet ./...
     go test ./... -v
 
