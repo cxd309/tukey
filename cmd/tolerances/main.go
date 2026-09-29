@@ -4,8 +4,7 @@
 //
 // the measured numbers are what tolerances and the packaging doc are set from
 //
-// go run ./cmd/tolerances
-
+//	go run ./cmd/tolerances
 package main
 
 import (
