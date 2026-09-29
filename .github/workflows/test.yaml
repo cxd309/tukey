@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+    brances: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Go ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: minimum (go.mod)
+            go-version-file: go.mod
+          - name: latest
+            go-version: stable
+    env:
+      # file rather than download a newer toolchain
+      # prove go.mod version is enough
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.go-version-file }}
+          go-version: ${{ matrix.go-version }}
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go run ./cmd/tolerances

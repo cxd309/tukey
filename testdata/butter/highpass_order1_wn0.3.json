@@ -1,0 +1,20 @@
+{
+  "description": "scipy.signal.butter(1, 0.3, btype='highpass')",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "order": 1,
+    "wn": 0.3,
+    "btype": "highpass"
+  },
+  "output": {
+    "b": [
+      0.6624598481164532,
+      -0.6624598481164532
+    ],
+    "a": [
+      1.0,
+      -0.32491969623290634
+    ]
+  }
+}

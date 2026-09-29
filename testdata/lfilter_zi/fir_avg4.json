@@ -1,0 +1,23 @@
+{
+  "description": "scipy.signal.lfilter_zi(b,a) for fir_avg4",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "b": [
+      0.25,
+      0.25,
+      0.25,
+      0.25
+    ],
+    "a": [
+      1.0
+    ]
+  },
+  "output": {
+    "zi": [
+      0.75,
+      0.5,
+      0.25
+    ]
+  }
+}

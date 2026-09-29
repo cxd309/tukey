@@ -23,3 +23,10 @@ go.work.sum
 
 # env file
 .env
+
+# python specific
+**/.venv
+**/.ruff_cache
+
+# temp
+**/temp
