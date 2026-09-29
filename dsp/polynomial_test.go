@@ -3,7 +3,7 @@ package dsp
 import (
 	"testing"
 
-	"github.com/cxd309/godsp/internal/reference"
+	"github.com/cxd309/tukey/internal/reference"
 	"github.com/stretchr/testify/assert"
 )
 

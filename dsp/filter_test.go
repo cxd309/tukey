@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/cxd309/godsp/internal/reference"
+	"github.com/cxd309/tukey/internal/reference"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

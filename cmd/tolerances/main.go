@@ -1,4 +1,4 @@
-// Command tolerances reports the error godsp actually achieves
+// Command tolerances reports the error tukey actually achieves
 // compares against each SciPy refrence-vector suite
 // next to the tolerance its test enforce
 //
@@ -13,8 +13,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/cxd309/godsp/internal/conformance"
-	"github.com/cxd309/godsp/internal/reference"
+	"github.com/cxd309/tukey/internal/conformance"
+	"github.com/cxd309/tukey/internal/reference"
 )
 
 func main() {

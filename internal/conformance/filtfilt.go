@@ -3,8 +3,8 @@ package conformance
 import (
 	"fmt"
 
-	"github.com/cxd309/godsp/dsp"
-	"github.com/cxd309/godsp/internal/reference"
+	"github.com/cxd309/tukey/dsp"
+	"github.com/cxd309/tukey/internal/reference"
 )
 
 type filtfiltVector struct {

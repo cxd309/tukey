@@ -1,4 +1,4 @@
-// Package conformance checks godsp's public API against the SciPy reference
+// Package conformance checks tukey's public API against the SciPy reference
 // vectors in testdata/
 //
 // Each Suite pairs one dsp function with its vectors and measured tolerance
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cxd309/godsp/internal/reference"
+	"github.com/cxd309/tukey/internal/reference"
 )
 
 // Suites is every conformance suite, run by this package's tests and by cmd/tolerances

@@ -1,4 +1,4 @@
-module github.com/cxd309/godsp
+module github.com/cxd309/tukey
 
 go 1.27.1
 

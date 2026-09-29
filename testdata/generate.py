@@ -1,5 +1,5 @@
 """
-Generate golden-vector JSON fixtures for godsp's Go tests.
+Generate golden-vector JSON fixtures for tukey's Go tests.
 
 Run with `uv run generate.py` from the testdata/ directory (or `uv run
 testdata/generate.py` from the repo root). Requires the pinned scipy/numpy
@@ -21,7 +21,7 @@ OUTPUT_ROOT = Path(__file__).parent
 VERSIONS = {"scipy_version": scipy.__version__, "numpy_version": np.__version__}
 
 # -----------------------------------------------------------------------------
-# Reference cases: everything godsp is checked against
+# Reference cases: everything tukey is checked against
 # -----------------------------------------------------------------------------
 
 SIGNAL_LENGTH: Final = 200
