@@ -24,6 +24,8 @@ VERSIONS = {"scipy_version": scipy.__version__, "numpy_version": np.__version__}
 # Reference cases: everything godsp is checked against
 # -----------------------------------------------------------------------------
 
+SIGNAL_LENGTH: Final = 200
+
 # (order, wn, btype) for scipy.signal.butter with a single cutoff
 BUTTER_LOWHIGH_CASES: Final = [
     (1, 0.3, "lowpass"),  # simplest: one real pole, sanity check
@@ -66,7 +68,18 @@ FILTERS: Final = {
     "short_b": ([1.0], [1.0, -0.9]),  # len(b) < len(a)
 }
 
-SIGNAL_LENGTH: Final = 200
+# (name, padtype, padlen) variations of scipy.signal.filtfilt's edge handling,
+# each run on butter2_lp0.3; padlen None means SciPy's 3 * max(len(a), len(b))
+FILTFILT_PADDING_CASES = (
+    ("even", "even", None),  # mirrored edges: slope flips
+    ("constant", "constant", None),  # flat edges: slope drops to zero
+    ("none", None, None),  # no extension: transients land on the data
+    ("padlen0", "odd", 0),  # odd padtype but nothing added
+    ("padlen_matlab", "odd", 6),  # MATLAB's 3 * (nfilt - 1)
+    ("padlen50", "odd", 50),  # longer than the default 9
+    ("padlen_max", "odd", SIGNAL_LENGTH - 1),  # longest SciPy allows
+)
+
 
 # -----------------------------------------------------------------------------
 # Vector generators
@@ -163,6 +176,44 @@ def generate_lfilter_zi() -> None:
         )
 
 
+def generate_filtfilt() -> None:
+    """y from scipy.signal.filtfilt(b, a, x) aross filters, signals and edge handling."""
+    signals = synthetic_signals(SIGNAL_LENGTH)
+
+    # default edge handling, for every filter and signal
+    for fname, (b, a) in FILTERS.items():
+        for sname, x in signals.items():
+            write_filtfilt(f"{fname}_{sname}", b, a, x, "odd", None)
+    # each edge-handling variation, on one typical filter
+    b, a = FILTERS["butter2_lp0.3"]
+    for case, padtype, padlen in FILTFILT_PADDING_CASES:
+        for sname in ("sines", "step"):
+            write_filtfilt(
+                f"butter2_lp0.3_{sname}_{case}", b, a, signals[sname], padtype, padlen
+            )
+    # shortest signal the default padding allows: len(x) = padlen + 1 = 3*3 + 1
+    write_filtfilt("butter2_1p0.3_shortest", b, a, signals["sines"][:10], "odd", None)
+
+
+def write_filtfilt(
+    name: str, b, a, x: np.ndarray, padtype: str | None, padlen: int | None
+) -> None:
+    y = signal.filtfilt(b, a, x, padtype=padtype, padlen=padlen)
+    write_vector(
+        "filtfilt",
+        name,
+        f"scipy.signal.filtfilt(b, a, x, padtype={padtype!r}, padlen={padlen!r})",
+        {
+            "b": list(b),
+            "a": list(a),
+            "x": x.tolist(),
+            "padtype": padtype,
+            "padlen": padlen,
+        },
+        {"y": y.tolist()},
+    )
+
+
 # -----------------------------------------------------------------------------
 # Main function: run all the tests
 # -----------------------------------------------------------------------------
@@ -175,3 +226,5 @@ if __name__ == "__main__":
     print("wrote filter/")
     generate_lfilter_zi()
     print("wrote lfilter_zi/")
+    generate_filtfilt()
+    print("wrote filtfilt/")
