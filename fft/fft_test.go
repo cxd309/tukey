@@ -3,6 +3,7 @@ package fft
 import (
 	"math/rand/v2"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/cxd309/tukey/internal/reference"
@@ -10,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// radix2Tolerance was measured against scipy.fft on every power-of-two vector:
-// worst 4.1e-16 (2 ULP) forward and 3.6e-16 inverse, not growing with n up to
-// 4096; set ~10x above the worst
-var radix2Tolerance = reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}
+// transformTolerance was measured against scipy.fft:
+// radix-2 and mixed radix both within 2 ULP (worst 4.1e-16) on every length they handle,
+// not growing with n up to 4096; set ~10x above the worst
+var transformTolerance = reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}
 
 // randomSignal is a seeded random complex signal of length n
 func randomSignal(n int) (x []complex128) {
@@ -31,14 +32,14 @@ func checkAgainstSciPy(t *testing.T, category string, transform func([]complex12
 	reference.Run(t, category, func(t *testing.T, v transformVector) {
 		x, err := v.Params.X.Values()
 		require.NoError(t, err)
-		if !isPowerOfTwo(len(x)) {
-			t.Skip("only powers of two until mixed radix and Bluestein")
+		if largestPrimeFactor(len(x)) > maxRadix {
+			t.Skip("large prime factors wait for Bluestein")
 		}
 		want, err := v.Output.Y.Values()
 		require.NoError(t, err)
 		got, err := transform(x)
 		require.NoError(t, err)
-		reference.AssertClose(t, "y", got, want, radix2Tolerance)
+		reference.AssertClose(t, "y", got, want, transformTolerance)
 	})
 }
 
@@ -99,4 +100,27 @@ func TestForwardDoesNotModifyInput(t *testing.T) {
 	_, err := Forward(x)
 	require.NoError(t, err)
 	assert.Equal(t, before, x)
+}
+
+// mixed radix at lengths the SciPy vectors don't reach: every prime up to maxRadix,
+// as a factor, squared, and mixed with others
+func TestMixedRadixMatchesDFT(t *testing.T) {
+	for _, n := range []int{3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 21, 49, 77, 121, 143, 169, 210} {
+		t.Run(strconv.Itoa(n), func(t *testing.T) {
+			x := randomSignal(n)
+			y, err := Forward(x)
+			require.NoError(t, err)
+			reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
+		})
+	}
+}
+
+// the round trip and Parseval hold at a smooth, non-power-of-two length too
+func TestMixedRadixRoundTrip(t *testing.T) {
+	x := randomSignal(1000)
+	y, err := Forward(x)
+	require.NoError(t, err)
+	back, err := Inverse(y)
+	require.NoError(t, err)
+	reference.AssertClose(t, "x", back, x, reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
 }

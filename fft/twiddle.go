@@ -50,3 +50,14 @@ func twiddle(k, n int) (w complex128) {
 	w = complex(cos, -sin) // e^(-iθ) = cos θ - i sin θ
 	return
 }
+
+// twiddleTable returns e^(-2 pi i j/n) for j=0...n-1
+// every twiddle a transform of length n,
+// or of any length dividing n, needs, since w_m^j = w_n^(j n/m)
+func twiddleTable(n int) (table []complex128) {
+	table = make([]complex128, n)
+	for j := range table {
+		table[j] = twiddle(j, n)
+	}
+	return
+}
