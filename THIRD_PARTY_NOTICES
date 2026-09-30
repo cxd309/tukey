@@ -4,8 +4,8 @@ tukey includes code derived from SciPy (https://scipy.org)
     - ZPK.SOS -> scipy.signal.zpk2sos 
 - dsp/sospairing.go
     - ZPK.SOS supporting functions -> scipy.signal.zpk2sos 
-- dsp/polynomial.go
-    - collapseConjugates -> scipy.signal._filter_design._cplxreal
+- internal/poly/collapseconjugates.go
+    - CollapseConjugates -> scipy.signal._filter_design._cplxreal
 
 SciPy licence:
 

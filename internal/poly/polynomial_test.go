@@ -1,4 +1,4 @@
-package dsp
+package poly
 
 import (
 	"testing"
@@ -29,7 +29,7 @@ func TestPolyFromRoots(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			reference.AssertClose(t, "coeffs", polyFromRoots(c.roots), c.want, polyTolerance)
+			reference.AssertClose(t, "coeffs", FromRoots(c.roots), c.want, polyTolerance)
 		})
 	}
 }
@@ -38,13 +38,13 @@ func TestRealCoeffs(t *testing.T) {
 	t.Run("clean values pass through", func(t *testing.T) {
 		in := []complex128{complex(1, 0), complex(-2, 1e-15), complex(5, -1e-14)}
 		want := []float64{1, -2, 5}
-		got, err := realCoeffs(in)
+		got, err := RealCoeffs(in)
 		require.NoError(t, err)
 		reference.AssertClose(t, "coeffs", got, want, polyTolerance)
 	})
 
-	t.Run("non-negligible imaginary part panics", func(t *testing.T) {
-		_, err := realCoeffs([]complex128{complex(1, 0.5)})
-		assert.Error(t, err)
+	t.Run("non-negligible imaginary part is an error", func(t *testing.T) {
+		_, err := RealCoeffs([]complex128{complex(1, 0.5)})
+		assert.ErrorIs(t, err, ErrUnpairedConjugate)
 	})
 }

@@ -2,6 +2,8 @@ package dsp
 
 import (
 	"fmt"
+
+	"github.com/cxd309/tukey/internal/poly"
 )
 
 // ZPK is a digital filter described by its zeros, poles and gain
@@ -14,14 +16,14 @@ type ZPK struct {
 }
 
 func (f ZPK) BA() (b, a []float64, err error) {
-	bComplex := polyFromRoots(f.Zeros)
+	bComplex := poly.FromRoots(f.Zeros)
 	for i := range bComplex {
 		bComplex[i] *= complex(f.Gain, 0)
 	}
-	if b, err = realCoeffs(bComplex); err != nil {
+	if b, err = poly.RealCoeffs(bComplex); err != nil {
 		return nil, nil, fmt.Errorf("%w: zeros: %v", ErrInvalidZPK, err)
 	}
-	if a, err = realCoeffs(polyFromRoots(f.Poles)); err != nil {
+	if a, err = poly.RealCoeffs(poly.FromRoots(f.Poles)); err != nil {
 		return nil, nil, fmt.Errorf("%w: poles: %v", ErrInvalidZPK, err)
 	}
 	return

@@ -1,9 +1,14 @@
 package dsp
 
-import "math/cmplx"
+import (
+	"fmt"
+	"math/cmplx"
+
+	"github.com/cxd309/tukey/internal/poly"
+)
 
 // pairing holds the zeros and poles not yet placed in a section, with each
-// conjugate pair stored once (see collapseConjugates); follows the loop in
+// conjugate pair stored once (see poly.CollapseConjugates); follows the loop in
 // SciPy's zpk2sos
 type pairing struct {
 	zeros, poles []complex128
@@ -21,10 +26,12 @@ func newPairing(f ZPK) (pr pairing, sections int, err error) {
 		zeros, poles = append(zeros, 0), append(poles, 0)
 	}
 
-	if pr.zeros, err = collapseConjugates(zeros); err != nil {
-		return pr, 0, err
+	if pr.zeros, err = poly.CollapseConjugates(zeros); err != nil {
+		return pr, 0, fmt.Errorf("%w: zeros: %v", ErrInvalidZPK, err)
 	}
-	pr.poles, err = collapseConjugates(poles)
+	if pr.poles, err = poly.CollapseConjugates(poles); err != nil {
+		return pr, 0, fmt.Errorf("%w: poles: %v", ErrInvalidZPK, err)
+	}
 	return
 }
 

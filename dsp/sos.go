@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/cmplx"
 	"slices"
+
+	"github.com/cxd309/tukey/internal/poly"
 )
 
 // SOS is a filter as a cascade of second-order sections, applied in order
@@ -138,11 +140,11 @@ func padRoots(roots []complex128, n int) (padded []complex128) {
 // right-aligning each polynomial so a missing root leave a leading zero
 // same as SciPy _single_zpksos
 func section(zeros, poles []complex128) (s [6]float64, err error) {
-	b, err := realCoeffs(polyFromRoots(zeros))
+	b, err := poly.RealCoeffs(poly.FromRoots(zeros))
 	if err != nil {
 		return s, fmt.Errorf("%w: %v", ErrInvalidZPK, err)
 	}
-	a, err := realCoeffs(polyFromRoots(poles))
+	a, err := poly.RealCoeffs(poly.FromRoots(poles))
 	if err != nil {
 		return s, fmt.Errorf("%w: %v", ErrInvalidZPK, err)
 	}

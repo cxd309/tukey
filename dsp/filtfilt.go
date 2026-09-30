@@ -2,6 +2,8 @@ package dsp
 
 import (
 	"fmt"
+
+	"github.com/cxd309/tukey/internal/floats"
 )
 
 // FiltOption configures FiltFilt's edge handling
@@ -99,8 +101,8 @@ func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
 	}
 
 	extended := cfg.padding.extend(x, n)
-	forward := f.apply(extended, scaled(zi, extended[0]))
-	backward := f.apply(reversed(forward), scaled(zi, forward[len(forward)-1]))
-	y = reversed(backward)[n : len(backward)-n]
+	forward := f.apply(extended, floats.Scaled(zi, extended[0]))
+	backward := f.apply(floats.Reversed(forward), floats.Scaled(zi, forward[len(forward)-1]))
+	y = floats.Reversed(backward)[n : len(backward)-n]
 	return
 }
