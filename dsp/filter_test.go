@@ -9,20 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type lfilterZiVector struct {
-	reference.Meta
-	Params struct {
-		B []float64 `json:"b"`
-		A []float64 `json:"a"`
-	} `json:"params"`
-	Output struct {
-		Zi []float64 `json:"zi"`
-	} `json:"output"`
-}
-
-// steadyStateTolerance is a placeholder: measure it, then replace this comment
-var steadyStateTolerance = reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}
-
 func TestFilterRejectsInvalidInput(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -55,21 +41,13 @@ func TestFilterDoesNotModifyInputs(t *testing.T) {
 	assert.Equal(t, xBefore, x)
 }
 
-func TestSteadyStateMatchesLfilterZi(t *testing.T) {
-	reference.Run(t, "lfilter_zi", func(t *testing.T, v lfilterZiVector) {
-		f, err := newDigitalFilter(v.Params.B, v.Params.A)
-		require.NoError(t, err)
-		zi, err := f.steadyState()
-		require.NoError(t, err)
-		reference.AssertClose(t, "zi", zi, v.Output.Zi, steadyStateTolerance)
-	})
-}
-
 // the point of steadyState: a filter started there treats a constant input as
 // already settled, so the output is the input times the DC gain from the very first
 // sample, with none of the ramp and overshoot seen when starting from rest
 func TestSteadyStateRemovesStartupTransient(t *testing.T) {
-	b, a, err := Butter(2, Lowpass(0.3)) // unity DC gain
+	fButter, err := Butter(2, Lowpass(0.3)) // unity DC gain
+	require.NoError(t, err)
+	b, a, err := fButter.BA()
 	require.NoError(t, err)
 	f, err := newDigitalFilter(b, a)
 	require.NoError(t, err)
@@ -82,7 +60,7 @@ func TestSteadyStateRemovesStartupTransient(t *testing.T) {
 	}
 	x := slices.Repeat([]float64{level}, 50)
 
-	y := f.apply(x, zi)
+	y, _ := f.apply(x, zi)
 	reference.AssertClose(t, "y", y, x, reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
 }
 
@@ -91,4 +69,27 @@ func TestSteadyStateRejectsPoleAtDC(t *testing.T) {
 	require.NoError(t, err)
 	_, err = f.steadyState()
 	assert.ErrorIs(t, err, ErrNoSteadyState)
+}
+
+// as for SOSFilterState: two blocks with carried state must match one call exactly
+func TestFilterStateBlocksMatchWhole(t *testing.T) {
+	f, err := Butter(4, Bandpass(0.2, 0.5))
+	require.NoError(t, err)
+	b, a, err := f.BA()
+	require.NoError(t, err)
+	x := testSignal(200)
+
+	whole, err := Filter(b, a, x)
+	require.NoError(t, err)
+	first, zf, err := FilterState(b, a, x[:73], make([]float64, len(a)-1))
+	require.NoError(t, err)
+	second, _, err := FilterState(b, a, x[73:], zf)
+	require.NoError(t, err)
+
+	assert.Equal(t, whole, slices.Concat(first, second))
+}
+
+func TestFilterStateRejectsWrongStateLength(t *testing.T) {
+	_, _, err := FilterState([]float64{1, 1}, []float64{1, -0.5}, []float64{1, 2, 3}, []float64{0, 0})
+	assert.ErrorIs(t, err, ErrInvalidState, "two taps need one state value")
 }

@@ -2,6 +2,8 @@ package dsp
 
 import (
 	"fmt"
+
+	"github.com/cxd309/tukey/internal/floats"
 )
 
 // FiltOption configures FiltFilt's edge handling
@@ -16,8 +18,9 @@ type filtConfig struct {
 	padLen func(ntaps int) (n int)
 }
 
-// PadLen sets how many samples FiltFilt adds beyond each end of x
-// the default is SciPy's 3 * max(lan(a), len(b)), and x must be longer than n
+// PadLen sets how many samples FiltFilt and SOSFiltFilt add beyond each end of x
+// x must be longer than n
+// the default is SciPy's 3*ntaps: see each function for how it counts ntaps
 func PadLen(n int) (option FiltOption) {
 	option = func(c *filtConfig) {
 		c.padLen = func(int) int { return n }
@@ -71,36 +74,53 @@ func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
 	if err != nil {
 		return nil, err
 	}
-	var cfg filtConfig
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	if !(cfg.padding >= PaddingOdd && cfg.padding <= PaddingNone) {
-		return nil, fmt.Errorf("%w: unknown padding %v", ErrInvalidPadding, cfg.padding)
-	}
+	// len(f.a) is max(len(a), len(b)) after newDigitalFilter
+	y, err = cascade{f}.zeroPhase(x, len(f.a), opts)
+	return
+}
 
-	n := 3 * len(f.a) // SciPy's default, len(f.a) is max(len(a), len(b)) after newDigitalFilter
+// padLength resolves the padding length for a filter with ntaps coefficients
+// (3*ntaps by default, as SciPy) and checks it against the signal's length
+func (cfg filtConfig) padLength(ntaps, signalLen int) (n int, err error) {
+	if !(cfg.padding >= PaddingOdd && cfg.padding <= PaddingNone) {
+		return 0, fmt.Errorf("%w: unknown padding %v", ErrInvalidPadding, cfg.padding)
+	}
+	n = 3 * ntaps
 	if cfg.padLen != nil {
-		n = cfg.padLen(len(f.a))
+		n = cfg.padLen(ntaps)
 	}
 	if cfg.padding == PaddingNone {
 		n = 0 // as in SciPy, no padding means padlen is ignored
 	}
 	if n < 0 {
-		return nil, fmt.Errorf("%w: padding length must be >= 0, got %d", ErrInvalidPadding, n)
+		return 0, fmt.Errorf("%w: padding length must be >= 0, got %d", ErrInvalidPadding, n)
 	}
-	if len(x) <= n {
-		return nil, fmt.Errorf("%w: len(x) = %d must be greater than the padding length %d", ErrSignalTooShort, len(x), n)
+	if signalLen <= n {
+		return 0, fmt.Errorf("%w: len(x) = %d must be greater than the padding length %d", ErrSignalTooShort, signalLen, n)
 	}
+	return
+}
 
-	zi, err := f.steadyState()
+// zeroPhase runs the cascade forward over x padded per opts, then backward over the result,
+// each pass starting from the steady state scaled to its first sample, and trims the padding
+// ntaps sets the default padding length the pipeline shared by FiltFilt and SOSFiltFilt
+func (c cascade) zeroPhase(x []float64, ntaps int, opts []FiltOption) (y []float64, err error) {
+	var cfg filtConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	n, err := cfg.padLength(ntaps, len(x))
+	if err != nil {
+		return nil, err
+	}
+	zi, err := c.steadyState()
 	if err != nil {
 		return nil, err
 	}
 
 	extended := cfg.padding.extend(x, n)
-	forward := f.apply(extended, scaled(zi, extended[0]))
-	backward := f.apply(reversed(forward), scaled(zi, forward[len(forward)-1]))
-	y = reversed(backward)[n : len(backward)-n]
+	forward, _ := c.apply(extended, scaledState(zi, extended[0]))
+	backward, _ := c.apply(floats.Reversed(forward), scaledState(zi, forward[len(forward)-1]))
+	y = floats.Reversed(backward)[n : len(backward)-n]
 	return
 }

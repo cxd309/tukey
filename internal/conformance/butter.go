@@ -16,8 +16,9 @@ type butterVector struct {
 		BType string          `json:"btype"`
 	} `json:"params"`
 	Output struct {
-		B []float64 `json:"b"`
-		A []float64 `json:"a"`
+		B   []float64    `json:"b"`
+		A   []float64    `json:"a"`
+		Sos [][6]float64 `json:"sos"`
 	} `json:"output"`
 }
 
@@ -37,7 +38,11 @@ var butterSuite = newSuite("Butter", "butter",
 		if err != nil {
 			return nil, err
 		}
-		b, a, err := dsp.Butter(v.Params.Order, band)
+		f, err := dsp.Butter(v.Params.Order, band)
+		if err != nil {
+			return nil, err
+		}
+		b, a, err := f.BA()
 		if err != nil {
 			return nil, err
 		}

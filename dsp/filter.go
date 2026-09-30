@@ -11,11 +11,8 @@ type digitalFilter struct {
 // newDigitalFilter validates caller-supplied coefficients and normalises them
 // copies are taken, so the caller's slices are never modified
 func newDigitalFilter(b, a []float64) (f digitalFilter, err error) {
-	if len(b) == 0 || len(a) == 0 {
-		return f, fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
-	}
-	if a[0] == 0 {
-		return f, fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
+	if err = validateCoefficients(b, a); err != nil {
+		return f, err
 	}
 	n := max(len(b), len(a))
 	f.b = make([]float64, n)
@@ -31,8 +28,9 @@ func newDigitalFilter(b, a []float64) (f digitalFilter, err error) {
 
 // apply runs the filter over x in transposed direct form II, starting from
 // the internal state initial (length n-1), or at rest when initial is nil
+// returns the output and the state it finishes in
 // equivalent to scipy.signal.lfilter
-func (f digitalFilter) apply(x, initial []float64) (y []float64) {
+func (f digitalFilter) apply(x, initial []float64) (y, final []float64) {
 	n := len(f.a)
 	// one spare slot on the end stays 0, so the last state update needs no special case
 	state := make([]float64, n)
@@ -46,6 +44,7 @@ func (f digitalFilter) apply(x, initial []float64) (y []float64) {
 		}
 		y[i] = yi
 	}
+	final = state[:n-1]
 	return
 }
 
@@ -92,6 +91,62 @@ func Filter(b, a, x []float64) (y []float64, err error) {
 	if err != nil {
 		return nil, err
 	}
-	y = f.apply(x, nil)
+	y, _ = f.apply(x, nil)
+	return
+}
+
+// sums returns sum(b) and sum(a): the numerator and denominator at z = 1, which is DC
+func (f digitalFilter) sums() (sumB, sumA float64) {
+	for i := range f.a {
+		sumB += f.b[i]
+		sumA += f.a[i]
+	}
+	return
+}
+
+// FilterState is Filter starting from state zi, of length max(len(a), len(b)) - 1,
+// and also returns the final state zf. Passing each block's zf as the next block's zi
+// filters a long signal in blocks exactly as filtering it in one go would
+//
+// returns ErrInvalidCoefficients as Filter does, and ErrInvalidState if zi has the wrong length
+//
+// equivalent to scipy.signal.lfilter(b, a, x, zi=zi)
+func FilterState(b, a, x, zi []float64) (y, zf []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(zi) != len(f.a)-1 {
+		return nil, nil, fmt.Errorf("%w: zi has %d values; this filter needs max(len(a), len(b)) - 1 = %d",
+			ErrInvalidState, len(zi), len(f.a)-1)
+	}
+	y, zf = f.apply(x, zi)
+	return
+}
+
+// FilterZi returns the state the filter settles into after a long unit step input
+// scaled by a signal's first sample, it starts FilterState without a startup transient
+//
+// returns ErrInvalidCoefficients as Filter does,
+// ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
+//
+// equivalent to scipy.signal.lfilter_zi(b, a)
+func FilterZi(b, a []float64) (zi []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, err
+	}
+	zi, err = f.steadyState()
+	return
+}
+
+// validateCoefficients checks that b and a describe a filter: both non-empty, and a[0] non-zero
+func validateCoefficients(b, a []float64) (err error) {
+	if len(b) == 0 || len(a) == 0 {
+		return fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
+	}
+	if a[0] == 0 {
+		return fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
+	}
 	return
 }

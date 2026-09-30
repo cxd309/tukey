@@ -10,15 +10,9 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/cxd309/tukey/dsp"
 	"github.com/cxd309/tukey/internal/reference"
 )
-
-// Suites is every conformance suite, run by this package's tests and by cmd/tolerances
-var Suites = []Suite{
-	butterSuite,
-	filterSuite,
-	filtfiltSuite,
-}
 
 // Suite checks one dsp function against one category of reference vectors
 type Suite struct {
@@ -36,6 +30,32 @@ type Output struct {
 	// filters set it to their input's, which their rounding error scales with
 	// even when the output itself cancels to ~0
 	Scale float64
+	// GotComplex and WantComplex hold a complex-valued output, in place of Got and Want
+	GotComplex, WantComplex []complex128
+}
+
+// isComplex reports whether this output holds complex values
+func (o Output) isComplex() (ok bool) {
+	ok = o.GotComplex != nil || o.WantComplex != nil
+	return
+}
+
+// compare measures the output against SciPy's, real or complex
+func (o Output) compare(tol reference.Tolerance) (c reference.Comparison, err error) {
+	if o.isComplex() {
+		c, err = reference.CompareScaled(o.GotComplex, o.WantComplex, tol, o.Scale)
+	} else {
+		c, err = reference.CompareScaled(o.Got, o.Want, tol, o.Scale)
+	}
+	return
+}
+
+// values returns element i of got and want, real or complex, for messages
+func (o Output) values(i int) (got, want any) {
+	if o.isComplex() {
+		return o.GotComplex[i], o.WantComplex[i]
+	}
+	return o.Got[i], o.Want[i]
 }
 
 // FileResult is how one reference vector file compared
@@ -55,8 +75,9 @@ type OutputResult struct {
 // e.g. "b[2]: got 0.1, want 0.2 (diff 1.000e-01, allowed 2.000e-14)"
 func (o OutputResult) Failures() (messages []string) {
 	for _, m := range o.Mismatches {
+		got, want := o.values(m.Index)
 		messages = append(messages, fmt.Sprintf("%s[%d]: got %v, want %v (diff %.3e, allowed %.3e)",
-			o.Name, m.Index, o.Got[m.Index], o.Want[m.Index], m.Diff, m.Allowed))
+			o.Name, m.Index, got, want, m.Diff, m.Allowed))
 	}
 	return
 }
@@ -94,7 +115,7 @@ func compareFile[T any](name string, v T, tol reference.Tolerance, outputs func(
 		return
 	}
 	for _, o := range outs {
-		c, err := reference.CompareScaled(o.Got, o.Want, tol, o.Scale)
+		c, err := o.compare(tol)
 		if err != nil {
 			r.Err = fmt.Errorf("%s: %w", o.Name, err)
 			return
@@ -121,6 +142,24 @@ func (r FileResult) Passed() (passed bool) {
 func maxAbs(v []float64) (m float64) {
 	for _, x := range v {
 		m = math.Max(m, math.Abs(x))
+	}
+	return
+}
+
+// sosOutputs pairs got with want section by section
+// each section's b and a as a seperate output
+// the overall gain sits only in the first section's b
+// this can be many orders of magnitude smaller than the rest,
+// so one scale for the whole array would leave it effectively unchecked
+func sosOutputs(got dsp.SOS, want [][6]float64) (outputs []Output, err error) {
+	if len(got) != len(want) {
+		return nil, fmt.Errorf("got %d sections, want %d", len(got), len(want))
+	}
+	for i := range want {
+		outputs = append(outputs,
+			Output{Name: fmt.Sprintf("sos[%d].b", i), Got: got[i][:3], Want: want[i][:3]},
+			Output{Name: fmt.Sprintf("sos[%d].a", i), Got: got[i][3:], Want: want[i][3:]},
+		)
 	}
 	return
 }

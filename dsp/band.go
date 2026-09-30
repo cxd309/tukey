@@ -89,7 +89,7 @@ func (band Band) validate() (err error) {
 // transform prewarps the band edges and moves the lowpass prototype onto them,
 // giving the analog filter that bilinear will map onto this band
 // the band must already have passed validate
-func (band Band) transform(proto zpk) (analog zpk) {
+func (band Band) transform(proto analogZPK) (analog analogZPK) {
 	switch band.btype {
 	case lowpassType:
 		analog = proto.toLowpass(prewarp(band.edges[0]))

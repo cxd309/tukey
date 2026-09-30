@@ -24,7 +24,7 @@ func TestButterRejectsInvalidInput(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, _, err := Butter(c.order, c.band)
+			_, err := Butter(c.order, c.band)
 			assert.ErrorIs(t, err, c.wantErr)
 		})
 	}
