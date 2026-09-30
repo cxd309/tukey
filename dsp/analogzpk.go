@@ -3,6 +3,8 @@ package dsp
 import (
 	"math"
 	"math/cmplx"
+
+	"github.com/cxd309/tukey/internal/poly"
 )
 
 // analogZPK is a filter described by its zeros, poles and gain
@@ -39,8 +41,8 @@ func (f analogZPK) relativeDegree() (degree int) {
 // equivalent to scipy.signal.lp2lp_zpk
 func (f analogZPK) toLowpass(wo float64) (lowpass analogZPK) {
 	scale := func(r complex128) complex128 { return complex(wo, 0) * r }
-	lowpass.Zeros = mapRoots(f.Zeros, scale)
-	lowpass.Poles = mapRoots(f.Poles, scale)
+	lowpass.Zeros = poly.MapRoots(f.Zeros, scale)
+	lowpass.Poles = poly.MapRoots(f.Poles, scale)
 	lowpass.Gain = f.Gain * math.Pow(wo, float64(f.relativeDegree()))
 	return
 }
@@ -52,9 +54,9 @@ func (f analogZPK) toLowpass(wo float64) (lowpass analogZPK) {
 func (f analogZPK) toHighpass(wo float64) (highpass analogZPK) {
 	invert := func(r complex128) complex128 { return complex(wo, 0) / r }
 
-	highpass.Zeros = appendRepeated(mapRoots(f.Zeros, invert), 0, f.relativeDegree())
-	highpass.Poles = mapRoots(f.Poles, invert)
-	highpass.Gain = f.Gain * real(prod(mapRoots(f.Zeros, negate))/prod(mapRoots(f.Poles, negate)))
+	highpass.Zeros = poly.AppendRepeated(poly.MapRoots(f.Zeros, invert), 0, f.relativeDegree())
+	highpass.Poles = poly.MapRoots(f.Poles, invert)
+	highpass.Gain = f.Gain * real(poly.Prod(poly.MapRoots(f.Zeros, negate))/poly.Prod(poly.MapRoots(f.Poles, negate)))
 	return
 }
 
@@ -67,8 +69,8 @@ func (f analogZPK) toBandpass(wo, bw float64) (bandpass analogZPK) {
 	scale := func(r complex128) complex128 { return complex(bw/2, 0) * r }
 	degree := f.relativeDegree()
 
-	bandpass.Zeros = appendRepeated(splitRoots(mapRoots(f.Zeros, scale), wo), 0, degree)
-	bandpass.Poles = splitRoots(mapRoots(f.Poles, scale), wo)
+	bandpass.Zeros = poly.AppendRepeated(splitRoots(poly.MapRoots(f.Zeros, scale), wo), 0, degree)
+	bandpass.Poles = splitRoots(poly.MapRoots(f.Poles, scale), wo)
 	bandpass.Gain = f.Gain * math.Pow(bw, float64(degree))
 	return
 }
@@ -82,11 +84,11 @@ func (f analogZPK) toBandstop(wo, bw float64) (bandstop analogZPK) {
 	invert := func(r complex128) complex128 { return complex(bw/2, 0) / r }
 	degree := f.relativeDegree()
 
-	bandstop.Zeros = splitRoots(mapRoots(f.Zeros, invert), wo)
-	bandstop.Zeros = appendRepeated(bandstop.Zeros, complex(0, wo), degree)
-	bandstop.Zeros = appendRepeated(bandstop.Zeros, complex(0, -wo), degree)
-	bandstop.Poles = splitRoots(mapRoots(f.Poles, invert), wo)
-	bandstop.Gain = f.Gain * real(prod(mapRoots(f.Zeros, negate))/prod(mapRoots(f.Poles, negate)))
+	bandstop.Zeros = splitRoots(poly.MapRoots(f.Zeros, invert), wo)
+	bandstop.Zeros = poly.AppendRepeated(bandstop.Zeros, complex(0, wo), degree)
+	bandstop.Zeros = poly.AppendRepeated(bandstop.Zeros, complex(0, -wo), degree)
+	bandstop.Poles = splitRoots(poly.MapRoots(f.Poles, invert), wo)
+	bandstop.Gain = f.Gain * real(poly.Prod(poly.MapRoots(f.Zeros, negate))/poly.Prod(poly.MapRoots(f.Poles, negate)))
 	return
 }
 
@@ -97,9 +99,9 @@ func (f analogZPK) bilinear() (digital ZPK) {
 	toZ := func(r complex128) complex128 { return (fs2 + r) / (fs2 - r) }
 	distance := func(r complex128) complex128 { return fs2 - r }
 
-	digital.Zeros = appendRepeated(mapRoots(f.Zeros, toZ), -1, f.relativeDegree())
-	digital.Poles = mapRoots(f.Poles, toZ)
-	digital.Gain = f.Gain * real(prod(mapRoots(f.Zeros, distance))/prod(mapRoots(f.Poles, distance)))
+	digital.Zeros = poly.AppendRepeated(poly.MapRoots(f.Zeros, toZ), -1, f.relativeDegree())
+	digital.Poles = poly.MapRoots(f.Poles, toZ)
+	digital.Gain = f.Gain * real(poly.Prod(poly.MapRoots(f.Zeros, distance))/poly.Prod(poly.MapRoots(f.Poles, distance)))
 	return
 }
 

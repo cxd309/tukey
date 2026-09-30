@@ -101,6 +101,27 @@ FILTFILT_PADDING_CASES = (
     ("padlen_max", "odd", SIGNAL_LENGTH - 1),  # longest SciPy allows
 )
 
+# name -> sos: filters as second-order sections, for sosfilt, sosfilt_zi, sosfiltfilt
+SOS_FILTERS = {
+    "butter3_lp0.3": signal.butter(
+        3, 0.3, output="sos"
+    ),  # odd order: a first-order section
+    "butter4_bs0.2-0.5": signal.butter(
+        4, [0.2, 0.5], "bandstop", output="sos"
+    ),  # 4 sections
+    "butter8_lp0.01": signal.butter(
+        8, 0.01, output="sos"
+    ),  # overall gain ~1e-14 in section 0
+    "butter10_bp0.3-0.31": signal.butter(
+        10, [0.3, 0.31], "bandpass", output="sos"
+    ),  # order 20: (b, a) fails here
+}
+
+# filtfilt's padding variations, minus MATLAB's padlen, which was computed for 3 taps
+SOSFILTFILT_PADDING_CASES = tuple(
+    c for c in FILTFILT_PADDING_CASES if c[0] != "padlen_matlab"
+)
+
 
 # -----------------------------------------------------------------------------
 # Vector generators
@@ -268,6 +289,67 @@ def write_filtfilt(
     )
 
 
+def generate_sos_filtering() -> None:
+    """sosfilt, sosfilt_zi and sosfiltfilt on filters given as second-order sections."""
+    signals = synthetic_signals(SIGNAL_LENGTH)
+
+    for fname, sos in SOS_FILTERS.items():
+        zi = signal.sosfilt_zi(sos)
+        write_vector(
+            "sosfilt_zi",
+            fname,
+            f"scipy.signal.sosfilt_zi(sos) for {fname}",
+            {"sos": sos.tolist()},
+            {"zi": zi.tolist()},
+        )
+
+        for sname, x in signals.items():
+            write_vector(
+                "sosfilt",
+                f"{fname}_{sname}",
+                f"scipy.signal.sosfilt(sos, x) for {fname}, {sname}",
+                {"sos": sos.tolist(), "x": x.tolist(), "zi": None},
+                {"y": signal.sosfilt(sos, x).tolist(), "zf": None},
+            )
+            write_sosfiltfilt(f"{fname}_{sname}", sos, x, "odd", None)
+
+        # an arbitrary starting state, to exercise zi in and zf out
+        zi0 = 0.5 * zi
+        y, zf = signal.sosfilt(sos, signals["sines"], zi=zi0)
+        write_vector(
+            "sosfilt",
+            f"{fname}_sines_with_state",
+            f"scipy.signal.sosfilt(sos, x, zi=0.5*sosfilt_zi(sos)) for {fname}, sines",
+            {"sos": sos.tolist(), "x": signals["sines"].tolist(), "zi": zi0.tolist()},
+            {"y": y.tolist(), "zf": zf.tolist()},
+        )
+
+    # each edge-handling variation, on the filter with a first-order section
+    sos = SOS_FILTERS["butter3_lp0.3"]
+    for case, padtype, padlen in SOSFILTFILT_PADDING_CASES:
+        for sname in ("sines", "step"):
+            write_sosfiltfilt(
+                f"butter3_lp0.3_{sname}_{case}", sos, signals[sname], padtype, padlen
+            )
+
+    # shortest signal the default padding allows: 2 sections, one first-order,
+    # so ntaps = 2*2 + 1 - 1 = 4 and padlen = 12
+    write_sosfiltfilt("butter3_lp0.3_shortest", sos, signals["sines"][:13], "odd", None)
+
+
+def write_sosfiltfilt(
+    name: str, sos: np.ndarray, x: np.ndarray, padtype: str | None, padlen: int | None
+) -> None:
+    y = signal.sosfiltfilt(sos, x, padtype=padtype, padlen=padlen)
+    write_vector(
+        "sosfiltfilt",
+        name,
+        f"scipy.signal.sosfiltfilt(sos, x, padtype={padtype!r}, padlen={padlen!r})",
+        {"sos": sos.tolist(), "x": x.tolist(), "padtype": padtype, "padlen": padlen},
+        {"y": y.tolist()},
+    )
+
+
 # -----------------------------------------------------------------------------
 # Main function: run all the tests
 # -----------------------------------------------------------------------------
@@ -284,3 +366,5 @@ if __name__ == "__main__":
     print("wrote lfilter_zi/")
     generate_filtfilt()
     print("wrote filtfilt/")
+    generate_sos_filtering()
+    print("wrote sosfilt/, sosfilt_zi/ and sosfiltfilt")
