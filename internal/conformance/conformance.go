@@ -10,14 +10,17 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/cxd309/tukey/dsp"
 	"github.com/cxd309/tukey/internal/reference"
 )
 
 // Suites is every conformance suite, run by this package's tests and by cmd/tolerances
 var Suites = []Suite{
 	butterSuite,
+	butterSOSSuite,
 	filterSuite,
 	filtfiltSuite,
+	zpk2sosSuite,
 }
 
 // Suite checks one dsp function against one category of reference vectors
@@ -121,6 +124,24 @@ func (r FileResult) Passed() (passed bool) {
 func maxAbs(v []float64) (m float64) {
 	for _, x := range v {
 		m = math.Max(m, math.Abs(x))
+	}
+	return
+}
+
+// sosOutputs pairs got with want section by section
+// each section's b and a as a seperate output
+// the overall gain sits only in the first section's b
+// this can be many orders of magnitude smaller than the rest,
+// so one scale for the whole array would leave it effectively unchecked
+func sosOutputs(got dsp.SOS, want [][6]float64) (outputs []Output, err error) {
+	if len(got) != len(want) {
+		return nil, fmt.Errorf("got %d sections, want %d", len(got), len(want))
+	}
+	for i := range want {
+		outputs = append(outputs,
+			Output{Name: fmt.Sprintf("sos[%d].b", i), Got: got[i][:3], Want: want[i][:3]},
+			Output{Name: fmt.Sprintf("sos[%d].a", i), Got: got[i][3:], Want: want[i][3:]},
+		)
 	}
 	return
 }

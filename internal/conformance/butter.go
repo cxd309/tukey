@@ -16,8 +16,9 @@ type butterVector struct {
 		BType string          `json:"btype"`
 	} `json:"params"`
 	Output struct {
-		B []float64 `json:"b"`
-		A []float64 `json:"a"`
+		B   []float64    `json:"b"`
+		A   []float64    `json:"a"`
+		Sos [][6]float64 `json:"sos"`
 	} `json:"output"`
 }
 
