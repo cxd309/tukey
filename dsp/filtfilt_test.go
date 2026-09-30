@@ -50,7 +50,9 @@ func TestFiltFiltDoesNotModifyInputs(t *testing.T) {
 // transient anywhere, so a unity-DC-gain filter returns it unchanged at every
 // sample, ends included, to within rounding (SciPy's own output is 1 ULP off)
 func TestFiltFiltPreservesConstant(t *testing.T) {
-	b, a, err := Butter(2, Lowpass(0.3))
+	f, err := Butter(2, Lowpass(0.3))
+	require.NoError(t, err)
+	b, a, err := f.BA()
 	require.NoError(t, err)
 	x := slices.Repeat([]float64{3}, 50)
 
@@ -62,7 +64,9 @@ func TestFiltFiltPreservesConstant(t *testing.T) {
 // MATLABPadLen is only a padding length, so it must give exactly
 // what the equivalent explicit PadLen does: 3 * (3 taps - 1) = 6
 func TestMATLABPadLenMatchesExplicitPadLen(t *testing.T) {
-	b, a, err := Butter(2, Lowpass(0.3))
+	f, err := Butter(2, Lowpass(0.3))
+	require.NoError(t, err)
+	b, a, err := f.BA()
 	require.NoError(t, err)
 	x := []float64{0, 1, 3, 2, 5, 4, 6, 8, 7, 9, 10, 12}
 

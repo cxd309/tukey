@@ -10,10 +10,11 @@ import (
 
 func ExampleButter() {
 	// a 2nd-order lowpass at 150Hz, for a signal sampled at 1000 Hz
-	b, a, err := dsp.Butter(2, dsp.Lowpass(150.0/(1000.0/2)))
+	f, err := dsp.Butter(2, dsp.Lowpass(150.0/(1000.0/2)))
 	if err != nil {
 		log.Fatal(err)
 	}
+	b, a, err := f.BA()
 	fmt.Printf("b = %.4f\na = %.4f\n", b, a)
 	// Output:
 	// b = [0.1311 0.2622 0.1311]
@@ -25,7 +26,11 @@ func ExampleFiltFilt() {
 	x := make([]float64, 100)
 	x[50] = 1
 
-	b, a, err := dsp.Butter(2, dsp.Lowpass(0.1))
+	f, err := dsp.Butter(2, dsp.Lowpass(0.1))
+	if err != nil {
+		log.Fatal(err)
+	}
+	b, a, err := f.BA()
 	if err != nil {
 		log.Fatal(err)
 	}

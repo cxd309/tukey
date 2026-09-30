@@ -37,7 +37,11 @@ var butterSuite = newSuite("Butter", "butter",
 		if err != nil {
 			return nil, err
 		}
-		b, a, err := dsp.Butter(v.Params.Order, band)
+		f, err := dsp.Butter(v.Params.Order, band)
+		if err != nil {
+			return nil, err
+		}
+		b, a, err := f.BA()
 		if err != nil {
 			return nil, err
 		}

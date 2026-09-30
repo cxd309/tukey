@@ -5,7 +5,8 @@ Offline Digital Signal Processing (DSP) for GO, matching SciPy and MATLAB functi
 ```go
 import "github.com/cxd309/tukey/dsp"
 
-b, a, err := dsp.Butter(2, dsp.Lowpass(0.3))
+f, err := dsp.Butter(2, dsp.Lowpass(0.3))
+b, a, err := f.BA()
 y, err := dsp.FiltFilt(b, a, x)
 ```
 
@@ -47,14 +48,14 @@ go run ./cmd/tolerances
 
 Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, SciPy is chosen and the default with the option to implement MATLAB behaviour.
 
-| MATLAB                       | tukey                                                 |
-| ---------------------------- | ----------------------------------------------------- |
-| `[b, a] = butter(n, Wn)`     | `b, a, err := dsp.Butter(n, dsp.Lowpass(Wn))`         |
-| `butter(n, Wn, 'high')`      | `dsp.Butter(n, dsp.Highpass(Wn))`                     |
-| `butter(n, [W1 W2])`         | `dsp.Butter(n, dsp.Bandpass(W1, W2))`                 |
-| `butter(n, [W1 W2], 'stop')` | `dsp.Butter(n, dsp.Bandstop(W1, W2))`                 |
-| `y = filter(b, a, x)`        | `y, err := dsp.Filter(b, a, x)`                       |
-| `y = filtfilt(b, a, x)`      | `y, err := dsp.FiltFilt(b, a, x, dsp.MATLABPadLen())` |
+| MATLAB                       | tukey                                                             |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `[b, a] = butter(n, Wn)`     | `f, err := dsp.Butter(n, dsp.Lowpass(Wn))`, `b, a, err := f.BA()` |
+| `butter(n, Wn, 'high')`      | `dsp.Butter(n, dsp.Highpass(Wn))`                                 |
+| `butter(n, [W1 W2])`         | `dsp.Butter(n, dsp.Bandpass(W1, W2))`                             |
+| `butter(n, [W1 W2], 'stop')` | `dsp.Butter(n, dsp.Bandstop(W1, W2))`                             |
+| `y = filter(b, a, x)`        | `y, err := dsp.Filter(b, a, x)`                                   |
+| `y = filtfilt(b, a, x)`      | `y, err := dsp.FiltFilt(b, a, x, dsp.MATLABPadLen())`             |
 
 Frequencies are normalised to Nyquist in both: for a frequency `fHz` at sample rate `fs`, use `f / (fs/2)`.
 

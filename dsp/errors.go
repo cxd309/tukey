@@ -12,4 +12,5 @@ var (
 	ErrInvalidPadding      = errors.New("dsp: invalid padding")
 	ErrSignalTooShort      = errors.New("dsp: signal too short")
 	ErrNoSteadyState       = errors.New("dsp: filter has no steady state")
+	ErrInvalidZPK          = errors.New("dsp: invalid zeros, poles and gain")
 )

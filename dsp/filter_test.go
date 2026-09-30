@@ -69,7 +69,9 @@ func TestSteadyStateMatchesLfilterZi(t *testing.T) {
 // already settled, so the output is the input times the DC gain from the very first
 // sample, with none of the ramp and overshoot seen when starting from rest
 func TestSteadyStateRemovesStartupTransient(t *testing.T) {
-	b, a, err := Butter(2, Lowpass(0.3)) // unity DC gain
+	fButter, err := Butter(2, Lowpass(0.3)) // unity DC gain
+	require.NoError(t, err)
+	b, a, err := fButter.BA()
 	require.NoError(t, err)
 	f, err := newDigitalFilter(b, a)
 	require.NoError(t, err)

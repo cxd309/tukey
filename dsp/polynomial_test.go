@@ -5,6 +5,7 @@ import (
 
 	"github.com/cxd309/tukey/internal/reference"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // the cases use small integer roots, so results should be exact to rounding
@@ -37,12 +38,13 @@ func TestRealCoeffs(t *testing.T) {
 	t.Run("clean values pass through", func(t *testing.T) {
 		in := []complex128{complex(1, 0), complex(-2, 1e-15), complex(5, -1e-14)}
 		want := []float64{1, -2, 5}
-		reference.AssertClose(t, "coeffs", realCoeffs(in), want, polyTolerance)
+		got, err := realCoeffs(in)
+		require.NoError(t, err)
+		reference.AssertClose(t, "coeffs", got, want, polyTolerance)
 	})
 
 	t.Run("non-negligible imaginary part panics", func(t *testing.T) {
-		assert.Panics(t, func() {
-			realCoeffs([]complex128{complex(1, 0.5)})
-		})
+		_, err := realCoeffs([]complex128{complex(1, 0.5)})
+		assert.Error(t, err)
 	})
 }
