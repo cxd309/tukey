@@ -31,8 +31,9 @@ func newDigitalFilter(b, a []float64) (f digitalFilter, err error) {
 
 // apply runs the filter over x in transposed direct form II, starting from
 // the internal state initial (length n-1), or at rest when initial is nil
+// returns the output and the state it finishes in
 // equivalent to scipy.signal.lfilter
-func (f digitalFilter) apply(x, initial []float64) (y []float64) {
+func (f digitalFilter) apply(x, initial []float64) (y, final []float64) {
 	n := len(f.a)
 	// one spare slot on the end stays 0, so the last state update needs no special case
 	state := make([]float64, n)
@@ -46,6 +47,7 @@ func (f digitalFilter) apply(x, initial []float64) (y []float64) {
 		}
 		y[i] = yi
 	}
+	final = state[:n-1]
 	return
 }
 
@@ -92,6 +94,15 @@ func Filter(b, a, x []float64) (y []float64, err error) {
 	if err != nil {
 		return nil, err
 	}
-	y = f.apply(x, nil)
+	y, _ = f.apply(x, nil)
+	return
+}
+
+// sums returns sum(b) and sum(a): the numerator and denominator at z = 1, which is DC
+func (f digitalFilter) sums() (sumB, sumA float64) {
+	for i := range f.a {
+		sumB += f.b[i]
+		sumA += f.a[i]
+	}
 	return
 }

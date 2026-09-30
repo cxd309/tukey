@@ -84,7 +84,7 @@ func TestSteadyStateRemovesStartupTransient(t *testing.T) {
 	}
 	x := slices.Repeat([]float64{level}, 50)
 
-	y := f.apply(x, zi)
+	y, _ := f.apply(x, zi)
 	reference.AssertClose(t, "y", y, x, reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
 }
 
