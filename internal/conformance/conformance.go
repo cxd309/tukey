@@ -20,6 +20,9 @@ var Suites = []Suite{
 	butterSOSSuite,
 	filterSuite,
 	filtfiltSuite,
+	sosFilterSuite,
+	sosFilterZiSuite,
+	sosFiltFiltSuite,
 	zpk2sosSuite,
 }
 

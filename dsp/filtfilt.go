@@ -18,8 +18,9 @@ type filtConfig struct {
 	padLen func(ntaps int) (n int)
 }
 
-// PadLen sets how many samples FiltFilt adds beyond each end of x
-// the default is SciPy's 3 * max(lan(a), len(b)), and x must be longer than n
+// PadLen sets how many samples FiltFilt and SOSFiltFilt add beyond each end of x
+// x must be longer than n
+// the default is SciPy's 3*ntaps: see each function for how it counts ntaps
 func PadLen(n int) (option FiltOption) {
 	option = func(c *filtConfig) {
 		c.padLen = func(int) int { return n }
