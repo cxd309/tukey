@@ -30,6 +30,32 @@ type Output struct {
 	// filters set it to their input's, which their rounding error scales with
 	// even when the output itself cancels to ~0
 	Scale float64
+	// GotComplex and WantComplex hold a complex-valued output, in place of Got and Want
+	GotComplex, WantComplex []complex128
+}
+
+// isComplex reports whether this output holds complex values
+func (o Output) isComplex() (ok bool) {
+	ok = o.GotComplex != nil || o.WantComplex != nil
+	return
+}
+
+// compare measures the output against SciPy's, real or complex
+func (o Output) compare(tol reference.Tolerance) (c reference.Comparison, err error) {
+	if o.isComplex() {
+		c, err = reference.CompareScaled(o.GotComplex, o.WantComplex, tol, o.Scale)
+	} else {
+		c, err = reference.CompareScaled(o.Got, o.Want, tol, o.Scale)
+	}
+	return
+}
+
+// values returns element i of got and want, real or complex, for messages
+func (o Output) values(i int) (got, want any) {
+	if o.isComplex() {
+		return o.GotComplex[i], o.WantComplex[i]
+	}
+	return o.Got[i], o.Want[i]
 }
 
 // FileResult is how one reference vector file compared
@@ -49,8 +75,9 @@ type OutputResult struct {
 // e.g. "b[2]: got 0.1, want 0.2 (diff 1.000e-01, allowed 2.000e-14)"
 func (o OutputResult) Failures() (messages []string) {
 	for _, m := range o.Mismatches {
+		got, want := o.values(m.Index)
 		messages = append(messages, fmt.Sprintf("%s[%d]: got %v, want %v (diff %.3e, allowed %.3e)",
-			o.Name, m.Index, o.Got[m.Index], o.Want[m.Index], m.Diff, m.Allowed))
+			o.Name, m.Index, got, want, m.Diff, m.Allowed))
 	}
 	return
 }
@@ -88,7 +115,7 @@ func compareFile[T any](name string, v T, tol reference.Tolerance, outputs func(
 		return
 	}
 	for _, o := range outs {
-		c, err := reference.CompareScaled(o.Got, o.Want, tol, o.Scale)
+		c, err := o.compare(tol)
 		if err != nil {
 			r.Err = fmt.Errorf("%s: %w", o.Name, err)
 			return

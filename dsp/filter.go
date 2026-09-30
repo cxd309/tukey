@@ -11,11 +11,8 @@ type digitalFilter struct {
 // newDigitalFilter validates caller-supplied coefficients and normalises them
 // copies are taken, so the caller's slices are never modified
 func newDigitalFilter(b, a []float64) (f digitalFilter, err error) {
-	if len(b) == 0 || len(a) == 0 {
-		return f, fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
-	}
-	if a[0] == 0 {
-		return f, fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
+	if err = validateCoefficients(b, a); err != nil {
+		return f, err
 	}
 	n := max(len(b), len(a))
 	f.b = make([]float64, n)
@@ -140,5 +137,16 @@ func FilterZi(b, a []float64) (zi []float64, err error) {
 		return nil, err
 	}
 	zi, err = f.steadyState()
+	return
+}
+
+// validateCoefficients checks that b and a describe a filter: both non-empty, and a[0] non-zero
+func validateCoefficients(b, a []float64) (err error) {
+	if len(b) == 0 || len(a) == 0 {
+		return fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
+	}
+	if a[0] == 0 {
+		return fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
+	}
 	return
 }

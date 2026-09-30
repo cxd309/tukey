@@ -15,4 +15,5 @@ var (
 	ErrInvalidZPK          = errors.New("dsp: invalid zeros, poles and gain")
 	ErrInvalidSOS          = errors.New("dsp: invalid second-order sections")
 	ErrInvalidState        = errors.New("dsp: invalid filter state")
+	ErrInvalidLength       = errors.New("dsp: invalid length")
 )

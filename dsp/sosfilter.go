@@ -2,18 +2,13 @@ package dsp
 
 import "fmt"
 
-// toCascade validates the sections as SciPy's sosfilt does
-// at least on section, and a0 == 1 in every one
-// return sections as a cascade
+// toCascade validates the sections as SciPy's sosfilt does and returns them as a cascade
 func (s SOS) toCascade() (c cascade, err error) {
-	if len(s) == 0 {
-		return nil, fmt.Errorf("%w: no sections", ErrInvalidSOS)
+	if err = s.validate(); err != nil {
+		return nil, err
 	}
 	c = make(cascade, len(s))
 	for i, section := range s {
-		if section[3] != 1 {
-			return nil, fmt.Errorf("%w: section %d has a0 = %v, every section's a0 must be 1", ErrInvalidSOS, i, section[3])
-		}
 		if c[i], err = newDigitalFilter(section[:3], section[3:]); err != nil {
 			return nil, err
 		}
@@ -126,5 +121,19 @@ func SOSFiltFilt(sos SOS, x []float64, opts ...FiltOption) (y []float64, err err
 		return nil, err
 	}
 	y, err = c.zeroPhase(x, sos.ntaps(), opts)
+	return
+}
+
+// validate checks the sections as SciPy's sosfilt does:
+// at least one section, and a0 == 1 in every one
+func (s SOS) validate() (err error) {
+	if len(s) == 0 {
+		return fmt.Errorf("%w: no sections", ErrInvalidSOS)
+	}
+	for i, section := range s {
+		if section[3] != 1 {
+			return fmt.Errorf("%w: section %d has a0 = %v; every section's a0 must be 1", ErrInvalidSOS, i, section[3])
+		}
+	}
 	return
 }
