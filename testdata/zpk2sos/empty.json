@@ -1,0 +1,28 @@
+{
+  "description": "scipy.signal.zpk2sos(z, p, k) for empty",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "z": {
+      "re": [],
+      "im": []
+    },
+    "p": {
+      "re": [],
+      "im": []
+    },
+    "k": 2.0
+  },
+  "output": {
+    "sos": [
+      [
+        2.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    ]
+  }
+}

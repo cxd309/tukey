@@ -58,6 +58,27 @@ BUTTER_BAND_CASES: Final = [
     (8, (0.2, 0.5), "bandpass"),  # 16th-order poly: stress test
 ]
 
+# name -> (z, p, k) for scipy.signal.zpk2sos, beyond what Butterworth designs produce
+ZPK2SOS_CASES = {
+    "empty": ([], [], 2.0),  # no roots: a single gain-only section
+    "one_real_pole": ([], [0.5], 1.0),  # first-order: padded with zeros at the origin
+    "scipy_doc_mixed_odd": (  # SciPy's docstring example: odd order, real + complex
+        [-1, -0.5 - 0.5j, -0.5 + 0.5j],
+        [0.75, 0.8 + 0.1j, 0.8 - 0.1j],
+        1.0,
+    ),
+    "complex_zero_real_poles": (  # pole real, nearest zero complex: pairing step 3.3
+        [0.3 + 0.9j, 0.3 - 0.9j],
+        [0.5, -0.4],
+        1.0,
+    ),
+    "more_zeros_than_poles": (
+        [1j, -1j, -1.0],
+        [0.5],
+        3.0,
+    ),  # poles padded at the origin
+}
+
 # name -> (b, a): filters shared by the filter and lfilter_zi vectors
 FILTERS: Final = {
     "butter1_lp0.3": signal.butter(1, 0.3),  # shortest IIR
@@ -102,6 +123,12 @@ def write_vector(
     # print(f"wrote {path.relative_to(OUTPUT_ROOT)}")
 
 
+def complex_json(values) -> dict:
+    """Complex values as {"re":[...], "im":[...]}, since JSON has no complex type"""
+    values = np.asarray(values, dtype=complex)
+    return {"re": values.real.tolist(), "im": values.imag.tolist()}
+
+
 def generate_butter() -> None:
     """
     b, a coefficients from scipy.signal.butter, analog=False.
@@ -118,7 +145,11 @@ def generate_butter() -> None:
             name,
             f"scipy.signal.butter({order}, {wn}, btype='{btype}')",
             {"order": order, "wn": wn, "btype": btype},
-            {"b": b.tolist(), "a": a.tolist()},
+            {
+                "b": b.tolist(),
+                "a": a.tolist(),
+                "sos": signal.butter(order, wn, btype=btype, output="sos").tolist(),
+            },
         )
 
     for order, wn, btype in BUTTER_BAND_CASES:
@@ -129,7 +160,30 @@ def generate_butter() -> None:
             name,
             f"scipy.signal.butter({order}, {list(wn)}, btype='{btype}')",
             {"order": order, "wn": list(wn), "btype": btype},
-            {"b": b.tolist(), "a": a.tolist()},
+            {
+                "b": b.tolist(),
+                "a": a.tolist(),
+                "sos": signal.butter(order, wn, btype=btype, output="sos").tolist(),
+            },
+        )
+
+
+def generate_zpk2sos() -> None:
+    """sos from scipy.signal.zpk2sos: SciPy's own designs plus hand-built cases."""
+    cases = dict(ZPK2SOS_CASES)
+    for order, wn, btype in BUTTER_LOWHIGH_CASES + BUTTER_BAND_CASES:
+        z, p, k = signal.butter(order, wn, btype=btype, output="zpk")
+        wn_name = f"{wn[0]}-{wn[1]}" if isinstance(wn, tuple) else wn
+        cases[f"butter_{btype}_order{order}_wn{wn_name}"] = (z, p, k)
+
+    for name, (z, p, k) in cases.items():
+        sos = signal.zpk2sos(z, p, k)
+        write_vector(
+            "zpk2sos",
+            name,
+            f"scipy.signal.zpk2sos(z, p, k) for {name}",
+            {"z": complex_json(z), "p": complex_json(p), "k": float(k)},
+            {"sos": sos.tolist()},
         )
 
 
@@ -222,6 +276,8 @@ def write_filtfilt(
 if __name__ == "__main__":
     generate_butter()
     print("wrote butter/")
+    generate_zpk2sos()
+    print("wrote zpk2sos/")
     generate_filter()
     print("wrote filter/")
     generate_lfilter_zi()

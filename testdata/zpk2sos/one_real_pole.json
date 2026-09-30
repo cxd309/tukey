@@ -1,0 +1,32 @@
+{
+  "description": "scipy.signal.zpk2sos(z, p, k) for one_real_pole",
+  "scipy_version": "1.18.1",
+  "numpy_version": "2.5.3",
+  "params": {
+    "z": {
+      "re": [],
+      "im": []
+    },
+    "p": {
+      "re": [
+        0.5
+      ],
+      "im": [
+        0.0
+      ]
+    },
+    "k": 1.0
+  },
+  "output": {
+    "sos": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        -0.5,
+        0.0
+      ]
+    ]
+  }
+}
