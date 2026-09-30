@@ -106,3 +106,39 @@ func (f digitalFilter) sums() (sumB, sumA float64) {
 	}
 	return
 }
+
+// FilterState is Filter starting from state zi, of length max(len(a), len(b)) - 1,
+// and also returns the final state zf. Passing each block's zf as the next block's zi
+// filters a long signal in blocks exactly as filtering it in one go would
+//
+// returns ErrInvalidCoefficients as Filter does, and ErrInvalidState if zi has the wrong length
+//
+// equivalent to scipy.signal.lfilter(b, a, x, zi=zi)
+func FilterState(b, a, x, zi []float64) (y, zf []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(zi) != len(f.a)-1 {
+		return nil, nil, fmt.Errorf("%w: zi has %d values; this filter needs max(len(a), len(b)) - 1 = %d",
+			ErrInvalidState, len(zi), len(f.a)-1)
+	}
+	y, zf = f.apply(x, zi)
+	return
+}
+
+// FilterZi returns the state the filter settles into after a long unit step input
+// scaled by a signal's first sample, it starts FilterState without a startup transient
+//
+// returns ErrInvalidCoefficients as Filter does,
+// ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
+//
+// equivalent to scipy.signal.lfilter_zi(b, a)
+func FilterZi(b, a []float64) (zi []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, err
+	}
+	zi, err = f.steadyState()
+	return
+}

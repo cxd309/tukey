@@ -251,6 +251,21 @@ def generate_lfilter_zi() -> None:
         )
 
 
+def generate_lfilter_state() -> None:
+    """lfilter from an arbitrary starting state, to check zi in and zf out"""
+    x = synthetic_signals(SIGNAL_LENGTH)["sines"]
+    for fname, (b, a) in FILTERS.items():
+        zi = 0.5 * signal.lfilter_zi(b, a)
+        y, zf = signal.lfilter(b, a, x, zi=zi)
+        write_vector(
+            "lfilter_state",
+            fname,
+            f"scipy.signal.lfilter(b, a, x, zi=0.5*lfilter_zi(b, a)) for {fname}, sines",
+            {"b": list(b), "a": list(a), "x": x.tolist(), "zi": zi.tolist()},
+            {"y": y.tolist(), "zf": zf.tolist()},
+        )
+
+
 def generate_filtfilt() -> None:
     """y from scipy.signal.filtfilt(b, a, x) aross filters, signals and edge handling."""
     signals = synthetic_signals(SIGNAL_LENGTH)
@@ -368,3 +383,5 @@ if __name__ == "__main__":
     print("wrote filtfilt/")
     generate_sos_filtering()
     print("wrote sosfilt/, sosfilt_zi/ and sosfiltfilt")
+    generate_lfilter_state()
+    print("wrote lfilter_state/")

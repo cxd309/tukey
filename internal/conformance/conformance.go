@@ -14,18 +14,6 @@ import (
 	"github.com/cxd309/tukey/internal/reference"
 )
 
-// Suites is every conformance suite, run by this package's tests and by cmd/tolerances
-var Suites = []Suite{
-	butterSuite,
-	butterSOSSuite,
-	filterSuite,
-	filtfiltSuite,
-	sosFilterSuite,
-	sosFilterZiSuite,
-	sosFiltFiltSuite,
-	zpk2sosSuite,
-}
-
 // Suite checks one dsp function against one category of reference vectors
 type Suite struct {
 	Name      string              // the dsp function under test, e.g. "Butter"
