@@ -45,9 +45,6 @@ func checkLength(n int) (err error) {
 	if n == 0 {
 		return fmt.Errorf("%w: cannot transform an empty signal", ErrInvalidLength)
 	}
-	if largestPrimeFactor(n) > maxRadix {
-		return fmt.Errorf("%w: length %d has a prime factor above %d (not yet supported)", ErrInvalidLength, n, maxRadix)
-	}
 	return
 }
 

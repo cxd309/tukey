@@ -1,7 +1,7 @@
 package fft
 
-// maxRadix is the largest prime factor mixedRadix handles with its generic butterfly
-// lengths with a larger prime factor go to Bluestein's algorithm
+// maxRadix is the largest prime factor whose butterfly is a direct sum
+// larger primes use Bluestein
 const maxRadix = 13
 
 // mixedRadix is the recursive Cooley-Tukey FFT for lengths whose prime factors are all at most maxRadix
@@ -41,12 +41,9 @@ func mixedRadix(x []complex128, table []complex128) (y []complex128) {
 		for r := range p {
 			terms[r] = table[r*q*stride] * transformed[r][q]
 		}
+		out := butterfly(terms, table, m*stride)
 		for s := range p {
-			var sum complex128
-			for r := range p {
-				sum += terms[r] * table[(r*s%p)*m*stride] // w_p^(rs), as w_n^((rs mod p)m)
-			}
-			y[q+s*m] = sum
+			y[q+s*m] = out[s]
 		}
 	}
 	return
@@ -72,6 +69,27 @@ func largestPrimeFactor(n int) (p int) {
 	}
 	if n > 1 {
 		p = n
+	}
+	return
+}
+
+// butterfly is the p-point DFT at the heart of each mixed-radix combination:
+// a direct sum for primes up to maxRadix,
+// Bluestein's algorithm for larger ones, so every length stays O(n log n).
+// w_p^j is table[j*wStep].
+func butterfly(terms, table []complex128, wStep int) (out []complex128) {
+	p := len(terms)
+	if p > maxRadix {
+		out = bluestein(terms)
+		return
+	}
+	out = make([]complex128, p)
+	for s := range p {
+		var sum complex128
+		for r := range p {
+			sum += terms[r] * table[(r*s%p)*wStep]
+		}
+		out[s] = sum
 	}
 	return
 }

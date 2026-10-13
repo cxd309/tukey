@@ -13,6 +13,7 @@ import (
 
 // transformTolerance was measured against scipy.fft:
 // radix-2 and mixed radix both within 2 ULP (worst 4.1e-16) on every length they handle,
+// Bluestein to 4 ULP
 // not growing with n up to 4096; set ~10x above the worst
 var transformTolerance = reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}
 
@@ -32,9 +33,6 @@ func checkAgainstSciPy(t *testing.T, category string, transform func([]complex12
 	reference.Run(t, category, func(t *testing.T, v transformVector) {
 		x, err := v.Params.X.Values()
 		require.NoError(t, err)
-		if largestPrimeFactor(len(x)) > maxRadix {
-			t.Skip("large prime factors wait for Bluestein")
-		}
 		want, err := v.Output.Y.Values()
 		require.NoError(t, err)
 		got, err := transform(x)
@@ -47,17 +45,19 @@ func TestForwardMatchesSciPy(t *testing.T) { checkAgainstSciPy(t, "fft", Forward
 func TestInverseMatchesSciPy(t *testing.T) { checkAgainstSciPy(t, "ifft", Inverse) }
 
 // the fast transform must agree with the definition, at every power of two
-func TestForwardMatchesDFT(t *testing.T) {
+func TestRadix2MatchesDFT(t *testing.T) {
 	for n := 1; n <= 256; n *= 2 {
-		x := randomSignal(n)
-		y, err := Forward(x)
-		require.NoError(t, err)
-		reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
+		t.Run(strconv.Itoa(n), func(t *testing.T) {
+			x := randomSignal(n)
+			y, err := Forward(x)
+			require.NoError(t, err)
+			reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
+		})
 	}
 }
 
 // the inverse undoes the forward transform
-func TestInverseRoundTrip(t *testing.T) {
+func TestRadix2RoundTrip(t *testing.T) {
 	x := randomSignal(1024)
 	y, err := Forward(x)
 	require.NoError(t, err)
@@ -118,6 +118,28 @@ func TestMixedRadixMatchesDFT(t *testing.T) {
 // the round trip and Parseval hold at a smooth, non-power-of-two length too
 func TestMixedRadixRoundTrip(t *testing.T) {
 	x := randomSignal(1000)
+	y, err := Forward(x)
+	require.NoError(t, err)
+	back, err := Inverse(y)
+	require.NoError(t, err)
+	reference.AssertClose(t, "x", back, x, reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
+}
+
+// Bluestein, on its own for large primes, and as the butterfly inside mixed radix
+func TestBluesteinMatchesDFT(t *testing.T) {
+	for _, n := range []int{17, 19, 23, 97, 101, 34, 291, 1009, 2018} {
+		t.Run(strconv.Itoa(n), func(t *testing.T) {
+			x := randomSignal(n)
+			y, err := Forward(x)
+			require.NoError(t, err)
+			reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
+		})
+	}
+}
+
+// the round trip holds through Bluestein, at a prime length
+func TestBluesteinRoundTrip(t *testing.T) {
+	x := randomSignal(1009)
 	y, err := Forward(x)
 	require.NoError(t, err)
 	back, err := Inverse(y)
