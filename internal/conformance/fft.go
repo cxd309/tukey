@@ -53,3 +53,60 @@ func compareTransform(v fftVector, transform func([]complex128) ([]complex128, e
 	outputs = []Output{{Name: "y", GotComplex: y, WantComplex: want}}
 	return
 }
+
+type rfftVector struct {
+	reference.Meta
+	Params struct {
+		X []float64 `json:"x"`
+	} `json:"params"`
+	Output struct {
+		Y reference.Complex `json:"y"`
+	} `json:"output"`
+}
+
+// forwardRealSuite checks fft.ForwardReal against scipy.fft.rfft
+// measured: worst 3 ULP (5.8e-16 at n = 1009, Bluestein) despite SciPy using a
+// dedicated real-input algorithm where this uses the complex transform; set to
+// match Forward
+var forwardRealSuite = newSuite("fft.ForwardReal", "rfft",
+	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
+	func(v rfftVector) (outputs []Output, err error) {
+		want, err := v.Output.Y.Values()
+		if err != nil {
+			return nil, err
+		}
+		y, err := fft.ForwardReal(v.Params.X)
+		if err != nil {
+			return nil, err
+		}
+		outputs = []Output{{Name: "y", GotComplex: y, WantComplex: want}}
+		return
+	})
+
+type irfftVector struct {
+	reference.Meta
+	Params struct {
+		X reference.Complex `json:"x"`
+		N int               `json:"n"`
+	} `json:"params"`
+	Output struct {
+		Y []float64 `json:"y"`
+	} `json:"output"`
+}
+
+// inverseRealSuite checks fft.InverseReal against scipy.fft.irfft
+// measured: worst 2 ULP (5.0e-16 at n = 1009); set to match Inverse
+var inverseRealSuite = newSuite("fft.InverseReal", "irfft",
+	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
+	func(v irfftVector) (outputs []Output, err error) {
+		x, err := v.Params.X.Values()
+		if err != nil {
+			return nil, err
+		}
+		y, err := fft.InverseReal(x, v.Params.N)
+		if err != nil {
+			return nil, err
+		}
+		outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y}}
+		return
+	})

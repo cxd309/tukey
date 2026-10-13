@@ -16,4 +16,6 @@ var Suites = []Suite{
 	zpk2sosSuite,
 	forwardSuite,
 	inverseSuite,
+	forwardRealSuite,
+	inverseRealSuite,
 }

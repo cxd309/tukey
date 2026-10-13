@@ -29,13 +29,7 @@ func Inverse(x []complex128) (y []complex128, err error) {
 	if err = checkLength(len(x)); err != nil {
 		return nil, err
 	}
-	// the inverse is the forward transform with conjugated twiddles
-	// which is exatly conj(Forward(conj(x))): conjugation is exact in floating point
-	y = conjugated(transform(conjugated(x)))
-	scale := 1 / float64(len(x)) // multiplied, unlike pocketfft which divides
-	for i := range y {
-		y[i] *= complex(scale, 0)
-	}
+	y = inverse(x)
 	return
 }
 
@@ -64,6 +58,27 @@ func transform(x []complex128) (y []complex128) {
 		y = radix2(x)
 	} else {
 		y = mixedRadix(x, twiddleTable(n))
+	}
+	return
+}
+
+// inverse is the inverse tranform without input checks:
+// the forward transoform with conjugated twiddles, which is exactly
+// conj(transform(conj(x))), scaled by 1/n
+func inverse(x []complex128) (y []complex128) {
+	y = conjugated(transform(conjugated(x)))
+	scale := 1 / float64(len(x)) // multiplied not divided as pocketfft does
+	for i := range y {
+		y[i] *= complex(scale, 0)
+	}
+	return
+}
+
+// complexified returns x as complex values with zero imaginary parts
+func complexified(x []float64) (c []complex128) {
+	c = make([]complex128, len(x))
+	for i, v := range x {
+		c[i] = complex(v, 0)
 	}
 	return
 }
