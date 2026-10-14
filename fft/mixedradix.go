@@ -24,6 +24,13 @@ func mixedRadix(x []complex128, table []complex128) (y []complex128) {
 	m := n / p
 	stride := len(table) / n // table[j*stride] is w_n^j
 
+	// n is prime: there's nothing to split into
+	// so the whole tranform is one p-point butterfly (each subsequence would be a single sample)
+	if m == 1 {
+		y = butterfly(x, table, stride)
+		return
+	}
+
 	// transform each interleaved subsequence
 	transformed := make([][]complex128, p)
 	sub := make([]complex128, m)
