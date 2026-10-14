@@ -23,7 +23,7 @@ func mixedRadix(x []complex128) (y []complex128) {
 	y = make([]complex128, n)
 	plan := mixedRadixPlan{
 		table: twiddleTable(n),
-		terms: make([]complex128, largestPrimeFactor(n)),
+		terms: make([]complex128, max(largestPrimeFactor(n), 4)),
 	}
 	plan.transform(x, 1, y)
 	return
@@ -48,12 +48,12 @@ func (plan mixedRadixPlan) transform(in []complex128, step int, out []complex128
 		out[0] = in[0]
 		return
 	}
-	p := smallestPrimeFactor(n)
+	p := nextFactor(n)
 	m := n / p
 	stride := len(plan.table) / n // plan.table[j*stride] is w_n^j
 	terms := plan.terms[:p]
 
-	// n is prime: there's nothing to split into, so the whole transform is one butterfly
+	// n is a single butterfly: there's nothing to split into, so the whole transform is one butterfly
 	if m == 1 {
 		for r := range p {
 			terms[r] = in[r*step]
@@ -97,19 +97,32 @@ func largestPrimeFactor(n int) (p int) {
 	return
 }
 
-// butterfly writes the p-point DFT of terms to dst[0], dst[step], …, dst[(p-1)·step]:
-// a direct sum for primes up to maxRadix,
-// Bluestein's algorithm for larger ones
-// w_p^j is table[j*wStep]
-// it only reads terms, so dst can hold the values terms was built from
+// butterfly writes the p-point DFT of terms to dst[0], dst[step], ..., dst[(p-1)*step]:
+// dedicated versions for 2, 3, 4 and 5, a direct sum for other primes up to
+// maxRadix, and Bluestein's algorithm for larger ones. w_p^j is table[j*wStep]
+// it only reads terms, so dst can hold the values terms was built from.
 func butterfly(terms, table []complex128, wStep int, dst []complex128, step int) {
-	p := len(terms)
-	if p > maxRadix {
+	switch p := len(terms); {
+	case p == 2:
+		butterfly2(terms, dst, step)
+	case p == 3:
+		butterfly3(terms, dst, step)
+	case p == 4:
+		butterfly4(terms, dst, step)
+	case p == 5:
+		butterfly5(terms, dst, step)
+	case p > maxRadix:
 		for s, v := range bluestein(terms) {
 			dst[s*step] = v
 		}
-		return
+	default:
+		directButterfly(terms, table, wStep, dst, step)
 	}
+}
+
+// directButterfly is the p-point DFT as a direct sum, for primes with no dedicated butterfly
+func directButterfly(terms, table []complex128, wStep int, dst []complex128, step int) {
+	p := len(terms)
 	for s := range p {
 		var sum complex128
 		for r := range p {
@@ -117,4 +130,14 @@ func butterfly(terms, table []complex128, wStep int, dst []complex128, step int)
 		}
 		dst[s*step] = sum
 	}
+}
+
+// nextFactor is the radix n is split by: 4 when it divides n,
+// since one radix-4 level costs less than two radix-2 ones,
+// otherwise n's smallest prime factor
+func nextFactor(n int) (p int) {
+	if n%4 == 0 {
+		return 4
+	}
+	return smallestPrimeFactor(n)
 }

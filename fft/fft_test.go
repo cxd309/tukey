@@ -104,7 +104,7 @@ func TestForwardDoesNotModifyInput(t *testing.T) {
 // mixed radix at lengths the SciPy vectors don't reach: every prime up to maxRadix,
 // as a factor, squared, and mixed with others
 func TestMixedRadixMatchesDFT(t *testing.T) {
-	for _, n := range []int{3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 21, 49, 77, 121, 143, 169, 210} {
+	for _, n := range []int{3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 20, 21, 49, 77, 100, 121, 143, 169, 210, 1000} {
 		t.Run(strconv.Itoa(n), func(t *testing.T) {
 			x := randomSignal(n)
 			y, err := Forward(x)
