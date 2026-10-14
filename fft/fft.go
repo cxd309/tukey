@@ -70,7 +70,7 @@ func transform(x []complex128) (y []complex128) {
 	if isPowerOfTwo(n) {
 		y = radix2(x)
 	} else {
-		y = mixedRadix(x, twiddleTable(n))
+		y = mixedRadix(x)
 	}
 	return
 }

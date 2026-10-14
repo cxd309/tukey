@@ -12,48 +12,65 @@ const maxRadix = 13
 //	X[q + sm] = sum_r (w_n^(rq) Y_r[q]) w_p^(rs)
 //
 // a twiddle between levels, then a p-point DFT (the butterfly)
-// table holds e^(-2 pi i j/N) for the top-level length N,
-// so w_n^j = table[j N/n]
-func mixedRadix(x []complex128, table []complex128) (y []complex128) {
+func mixedRadix(x []complex128) (y []complex128) {
 	n := len(x)
+	// a large prime is a single Bluestein butterfly
+	// doesn't need the twiddle table or the scratch buffer so don't build
+	if n > maxRadix && smallestPrimeFactor(n) == n {
+		y = bluestein(x)
+		return
+	}
+	y = make([]complex128, n)
+	plan := mixedRadixPlan{
+		table: twiddleTable(n),
+		terms: make([]complex128, largestPrimeFactor(n)),
+	}
+	plan.transform(x, 1, y)
+	return
+}
+
+// mixedRadixPlan is what every level of one transform shares
+type mixedRadixPlan struct {
+	table []complex128 // e^(-2 pi i·j/N) for the top-level length N
+	terms []complex128 // scratch for one butterfly's inputs, sized for the largest factor
+}
+
+// transform writes the DFT of in[0], in[step], in[2·step], ... (len(out) values) to out
+//
+// it works in place in out:
+// sub-transform r goes to block out[rm : (r+1)m],
+// each combination reads the p values at q, q+m, ..., q+(p-1)m,
+// which are exactly the positions its outputs go to
+// subsequence r is read straight from in, starting at in[r·step] with step·p between values, so nothing is copied
+func (plan mixedRadixPlan) transform(in []complex128, step int, out []complex128) {
+	n := len(out)
 	if n == 1 {
-		y = []complex128{x[0]}
+		out[0] = in[0]
 		return
 	}
 	p := smallestPrimeFactor(n)
 	m := n / p
-	stride := len(table) / n // table[j*stride] is w_n^j
+	stride := len(plan.table) / n // plan.table[j*stride] is w_n^j
+	terms := plan.terms[:p]
 
-	// n is prime: there's nothing to split into
-	// so the whole tranform is one p-point butterfly (each subsequence would be a single sample)
+	// n is prime: there's nothing to split into, so the whole transform is one butterfly
 	if m == 1 {
-		y = butterfly(x, table, stride)
+		for r := range p {
+			terms[r] = in[r*step]
+		}
+		butterfly(terms, plan.table, stride, out, 1)
 		return
 	}
 
-	// transform each interleaved subsequence
-	transformed := make([][]complex128, p)
-	sub := make([]complex128, m)
 	for r := range p {
-		for j := range m {
-			sub[j] = x[r+j*p]
-		}
-		transformed[r] = mixedRadix(sub, table)
+		plan.transform(in[r*step:], step*p, out[r*m:(r+1)*m])
 	}
-
-	//combine: for each q, twiddle the p values, then a p-point DFT across time
-	y = make([]complex128, n)
-	terms := make([]complex128, p)
 	for q := range m {
 		for r := range p {
-			terms[r] = table[r*q*stride] * transformed[r][q]
+			terms[r] = plan.table[r*q*stride] * out[r*m+q]
 		}
-		out := butterfly(terms, table, m*stride)
-		for s := range p {
-			y[q+s*m] = out[s]
-		}
+		butterfly(terms, plan.table, m*stride, out[q:], m)
 	}
-	return
 }
 
 // smallestPrimeFactor returns n's smallest prime factor or n itself if n is prime (n<=2)
@@ -80,23 +97,24 @@ func largestPrimeFactor(n int) (p int) {
 	return
 }
 
-// butterfly is the p-point DFT at the heart of each mixed-radix combination:
+// butterfly writes the p-point DFT of terms to dst[0], dst[step], …, dst[(p-1)·step]:
 // a direct sum for primes up to maxRadix,
-// Bluestein's algorithm for larger ones, so every length stays O(n log n).
-// w_p^j is table[j*wStep].
-func butterfly(terms, table []complex128, wStep int) (out []complex128) {
+// Bluestein's algorithm for larger ones
+// w_p^j is table[j*wStep]
+// it only reads terms, so dst can hold the values terms was built from
+func butterfly(terms, table []complex128, wStep int, dst []complex128, step int) {
 	p := len(terms)
 	if p > maxRadix {
-		out = bluestein(terms)
+		for s, v := range bluestein(terms) {
+			dst[s*step] = v
+		}
 		return
 	}
-	out = make([]complex128, p)
 	for s := range p {
 		var sum complex128
 		for r := range p {
 			sum += terms[r] * table[(r*s%p)*wStep]
 		}
-		out[s] = sum
+		dst[s*step] = sum
 	}
-	return
 }
