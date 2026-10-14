@@ -37,7 +37,7 @@ var inverseSuite = newSuite("fft.Inverse", "ifft",
 
 // compareTransform runs a complex-to-complex transform on a vector's input
 // and pairs its output with SciPy's
-func compareTransform(v fftVector, transform func([]complex128) ([]complex128, error)) (outputs []Output, err error) {
+func compareTransform(v fftVector, transform func([]complex128, ...fft.Option) ([]complex128, error)) (outputs []Output, err error) {
 	x, err := v.Params.X.Values()
 	if err != nil {
 		return nil, err

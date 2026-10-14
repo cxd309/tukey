@@ -18,4 +18,7 @@ var Suites = []Suite{
 	inverseSuite,
 	forwardRealSuite,
 	inverseRealSuite,
+	fftOptionsSuite,
+	fftFreqSuite,
+	fftShiftSuite,
 }

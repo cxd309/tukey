@@ -27,9 +27,8 @@ func randomSignal(n int) (x []complex128) {
 	return
 }
 
-// checkAgainstSciPy runs transform on every vector in category, skipping lengths
-// the package doesn't support yet
-func checkAgainstSciPy(t *testing.T, category string, transform func([]complex128) ([]complex128, error)) {
+// checkAgainstSciPy runs transform on every vector in category
+func checkAgainstSciPy(t *testing.T, category string, transform func([]complex128, ...Option) ([]complex128, error)) {
 	reference.Run(t, category, func(t *testing.T, v transformVector) {
 		x, err := v.Params.X.Values()
 		require.NoError(t, err)

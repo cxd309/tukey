@@ -5,31 +5,44 @@ import (
 	"math/cmplx"
 )
 
-// Forward returns the discrete Fourier transform of x
-// y[k] = sum x[j] e^(-2 pi i j k/n) for k = 0 ... n-1
+// Forward returns the discrete Fourier transform of x:
+// y[k] = sum x[j]·e^(-2 pi i jk/n), for k = 0 … n-1, scaled per Norm
 //
-// returns ErrInvalidLength if x is empty
+// returns ErrInvalidLength if the transform length is less than 1, and
+// ErrInvalidOption for an unknown normalisation
 //
-// equivalent to scipy.fft.fft(x) and MATLAB's fft(x)
-func Forward(x []complex128) (y []complex128, err error) {
-	if err = checkLength(len(x)); err != nil {
+// equivalent to scipy.fft.fft(x) and MATLAB fft(x)
+func Forward(x []complex128, opts ...Option) (y []complex128, err error) {
+	cfg, err := newConfig(opts, len(x))
+	if err != nil {
 		return nil, err
 	}
-	y = transform(x)
+	y = transform(resized(x, cfg.n))
+	scaled(y, cfg.norm.scale(cfg.n, true))
 	return
 }
 
-// Inverse returns the inverse discrete Fourier transform of x
-// y[j] = (1/n) sum x[k] e^(+2 pi i j k/n), so Inverse(Forward(x)) recovers x
+// Inverse returns the inverse discrete Fourier transform of x:
+// y[j] = (1/n)·sum x[k]·e^(+2 pi i·jk/n) by default, so Inverse(Forward(x)) recovers x
+// Norm moves the 1/n
 //
-// returns ErrInvalidLength if x is empty
+// returns errors as Forward does
 //
-// equivalent to scipy.fft.ifft(x) and MATLAB's ifft(x)
-func Inverse(x []complex128) (y []complex128, err error) {
-	if err = checkLength(len(x)); err != nil {
+// equivalent to scipy.fft.ifft(x) and MATLAB ifft(x)
+func Inverse(x []complex128, opts ...Option) (y []complex128, err error) {
+	cfg, err := newConfig(opts, len(x))
+	if err != nil {
 		return nil, err
 	}
-	y = inverse(x)
+	y = backward(resized(x, cfg.n))
+	scaled(y, cfg.norm.scale(cfg.n, false))
+	return
+}
+
+// backward is the unscaled inverse transform
+// the forward transform with conjugated twiddles, which is conj(transform(conj(x)))
+func backward(x []complex128) (y []complex128) {
+	y = conjugated(transform(conjugated(x)))
 	return
 }
 

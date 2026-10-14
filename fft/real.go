@@ -12,15 +12,17 @@ import (
 // the DC bin and Nyquist bin when n is even are real: imaginary parts exactly zero
 //
 // returns ErrInvalidLength if x is empty
+// returns ErrInvalidOption for an unknown normalisation
 //
 // equivalent to scipy.fft.rfft(x)
 // MATLAB fft(x) returns all n bins, this is the first n/2 + 1
-func ForwardReal(x []float64) (y []complex128, err error) {
-	if err = checkLength(len(x)); err != nil {
+func ForwardReal(x []float64, opts ...Option) (y []complex128, err error) {
+	cfg, err := newConfig(opts, len(x))
+	if err != nil {
 		return nil, err
 	}
-	n := len(x)
-	y = slices.Clone(transform(complexified(x))[:n/2+1])
+	n := cfg.n
+	y = slices.Clone(transform(complexified(resized(x, n)))[:n/2+1])
 
 	// exactly real, as they are for any real signal
 	// rounding inside the transform can otherwise leave ~1e-16 imaginary parts
@@ -28,6 +30,7 @@ func ForwardReal(x []float64) (y []complex128, err error) {
 	if n%2 == 0 {
 		y[n/2] = complex(real(y[n/2]), 0)
 	}
+	scaled(y, cfg.norm.scale(n, true))
 	return
 }
 
@@ -39,14 +42,20 @@ func ForwardReal(x []float64) (y []complex128, err error) {
 // the imaginary parts of the DC bin, and the nyquist bin when n is even are ignored
 //
 // returns ErrInvalidLength if n<1
+// returns ErrInvalidOption for an unknown normalisation or if given N
 //
 // equivalent to scipy.fft.irfft(x, n=n)
 // MATLAB ifft(X, 'symmetric') does the same from the full spectrum
-func InverseReal(x []complex128, n int) (y []float64, err error) {
-	if n < 1 {
-		return nil, fmt.Errorf("%w: n must be >= 1, got %d", ErrInvalidLength, n)
+func InverseReal(x []complex128, n int, opts ...Option) (y []float64, err error) {
+	cfg, err := newConfig(opts, n)
+	if err != nil {
+		return nil, err
 	}
-	z := inverse(hermitian(x, n))
+	if cfg.nSet {
+		return nil, fmt.Errorf("%w: InverseReal's length is its n argument, not an N option", ErrInvalidOption)
+	}
+	z := backward(hermitian(x, n))
+	scaled(z, cfg.norm.scale(n, false))
 	y = make([]float64, n)
 	for i := range y {
 		y[i] = real(z[i])
