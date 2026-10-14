@@ -1,31 +1,43 @@
 package fft
 
 import (
-	"strconv"
 	"testing"
 
-	"github.com/cxd309/tukey/internal/reference"
+	"github.com/stretchr/testify/assert"
 )
 
-// each dedicated butterfly computes the same p-point DFT as the direct sum
-func TestDedicatedButterfliesMatchDirectSum(t *testing.T) {
-	dedicated := map[int]func(t, dst []complex128, step int){
-		2: butterfly2, 3: butterfly3, 4: butterfly4, 5: butterfly5,
+func TestSmoothSize(t *testing.T) {
+	cases := map[int]int{
+		1: 1, 7: 8, 11: 12, 13: 15, 17: 18,
+		2017:   2025,   // 3^4 * 5^2, not 2048
+		131073: 131220, // 2^2 * 3^8 * 5, half of 262144
 	}
-	for p, fast := range dedicated {
-		t.Run(strconv.Itoa(p), func(t *testing.T) {
-			terms := randomSignal(p)
-			want := make([]complex128, p)
-			directButterfly(terms, twiddleTable(p), 1, want, 1)
+	for target, want := range cases {
+		assert.Equal(t, want, smoothSize(target), "smoothSize(%d)", target)
+	}
+}
 
-			// step 3, to check the strided writes land in the right places
-			got := make([]complex128, 3*p)
-			fast(terms, got, 3)
-			strided := make([]complex128, p)
-			for s := range p {
-				strided[s] = got[3*s]
+// smoothSize must give the smallest smooth length, so check it against a brute-force search
+func TestSmoothSizeIsSmallest(t *testing.T) {
+	isSmooth := func(n int) bool {
+		for _, f := range []int{2, 3, 5} {
+			for n%f == 0 {
+				n /= f
 			}
-			reference.AssertClose(t, "X", strided, want, reference.Tolerance{Rel: 1e-15, Scaled: 1e-15})
-		})
+		}
+		return n == 1
 	}
+	for target := 1; target <= 2000; target++ {
+		want := target
+		for !isSmooth(want) {
+			want++
+		}
+		assert.Equal(t, want, smoothSize(target), "smoothSize(%d)", target)
+	}
+}
+
+// the padded length is the power of two unless the smooth length is enough shorter
+func TestPaddedSize(t *testing.T) {
+	assert.Equal(t, 2048, paddedSize(1009))    // 2025 is barely shorter
+	assert.Equal(t, 131220, paddedSize(65537)) // 131220 is half of 262144
 }

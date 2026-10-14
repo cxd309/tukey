@@ -16,10 +16,7 @@ func bluestein(x []complex128) (y []complex128) {
 		chirp[j] = twiddle(j*j%(2*n), 2*n) // e^(-pi i j^2 /n) reduced exactly
 	}
 
-	size := 1
-	for size < 2*n-1 {
-		size *= 2
-	}
+	size := paddedSize(n)
 
 	// xc zero-padded
 	a := make([]complex128, size)
@@ -35,16 +32,53 @@ func bluestein(x []complex128) (y []complex128) {
 	}
 
 	// the convolution theorem: multiply spectra, then transform back
-	spectrum, kernel := radix2(a), radix2(b)
+	spectrum, kernel := transform(a), transform(b)
 	for i := range spectrum {
 		spectrum[i] *= kernel[i]
 	}
-	convolution := conjugated(radix2(conjugated(spectrum))) // inverse, unscaled
+	convolution := conjugated(transform(conjugated(spectrum))) // inverse, unscaled
 
 	scale := complex(1/float64(size), 0)
 	y = make([]complex128, n)
 	for k := range y {
 		y[k] = chirp[k] * convolution[k] * scale
+	}
+	return
+}
+
+// paddedSize is the convolution length Bluestein uses for an n-point transform:
+// at least 2n-1, and either the next power of two, or the next length with no
+// prime factors beyond 5 when that's short enough to make up for mixed radix
+// costing about 1.5x radix-2 per element (2.0-2.5 against 1.5 ns/(nlog2 n))
+func paddedSize(n int) (size int) {
+	target := 2*n - 1
+	powerOfTwo := 1
+	for powerOfTwo < target {
+		powerOfTwo *= 2
+	}
+	smooth := smoothSize(target)
+	if 1.5*float64(smooth) < float64(powerOfTwo) {
+		return smooth
+	}
+	return powerOfTwo
+}
+
+// smoothSize returns the smallest length >= target whose only prime factors are
+// 2, 3 and 5, the factors with dedicated butterflies
+// it tries every product of powers of 3 and 5 below the best so far, doubling each up to target
+func smoothSize(target int) (size int) {
+	size = 1
+	for size < target {
+		size *= 2 // the power of two is always a candidate
+	}
+	for f5 := 1; f5 < size; f5 *= 5 {
+		for f35 := f5; f35 < size; f35 *= 3 {
+			candidate := f35
+			for candidate < target {
+				candidate *= 2
+			}
+			size = min(size, candidate)
+		}
 	}
 	return
 }
