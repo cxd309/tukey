@@ -25,7 +25,7 @@ func randomReal(n int) (x []float64) {
 // for even and odd lengths and through each algorithm:
 // radix-2, mixed radix, Bluestein, and Bluestein inside mixed radix
 func TestRealRoundTrip(t *testing.T) {
-	for _, n := range []int{1, 2, 1024, 1000, 1001, 1009, 2018} {
+	for _, n := range []int{1, 2, 4, 6, 10, 1024, 1000, 1001, 1009, 2018} {
 		t.Run(strconv.Itoa(n), func(t *testing.T) {
 			x := randomReal(n)
 			y, err := ForwardReal(x)
@@ -83,4 +83,16 @@ func TestRealTransformsRejectInvalidLengths(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidLength)
 	_, err = InverseReal([]complex128{1}, 0)
 	assert.ErrorIs(t, err, ErrInvalidLength)
+}
+
+// the packed path against the complex one, at even lengths whose half is each
+// algorithm: 1 (n=2), odd 3 (6), radix-2, smooth, and Bluestein (2·1009)
+func TestForwardRealPackedMatchesComplex(t *testing.T) {
+	for _, n := range []int{2, 4, 6, 10, 1024, 1000, 2018} {
+		t.Run(strconv.Itoa(n), func(t *testing.T) {
+			x := randomReal(n)
+			want := transform(complexified(x))[:n/2+1]
+			reference.AssertClose(t, "y", forwardRealPacked(x), want, reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
+		})
+	}
 }
