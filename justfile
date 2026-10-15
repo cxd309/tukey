@@ -1,3 +1,15 @@
+testdata := justfile_directory() / "testdata"
+
+clean-vectors source:
+    rm -rf {{testdata}}/{{source}}
+
+vectors-scipy: (clean-vectors "scipy")
+    cd reference/scipy && uv run python -m vectors {{testdata}}/scipy
+
+vectors: vectors-scipy 
+
+fixtures: vectors
+
 fmt:
     dprint fmt
     go fmt ./...
