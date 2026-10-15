@@ -3,15 +3,27 @@
 import numpy as np
 import scipy as sc
 
-from .cases import (
-    FILTERS,
-    FILTFILT_PADDING_CASES,
-    SIGNAL_LENGTH,
-    SOS_FILTERS,
-    SOSFILTFILT_PADDING_CASES,
+from dsp.cases import FILTERS, SIGNAL_LENGTH, SOS_FILTERS
+from dsp.signals import synthetic_signals
+from write import write_vector
+
+# (name, padtype, padlen) variations of scipy.signal.filtfilt's edge handling,
+# each run on butter2_lp0.3; padlen None means SciPy's 3 * max(len(a), len(b))
+FILTFILT_PADDING_CASES = (
+    ("even", "even", None),  # mirrored edges: slope flips
+    ("constant", "constant", None),  # flat edges: slope drops to zero
+    ("none", None, None),  # no extension: transients land on the data
+    ("padlen0", "odd", 0),  # odd padtype but nothing added
+    ("padlen_matlab", "odd", 6),  # MATLAB's 3 * (nfilt - 1)
+    ("padlen50", "odd", 50),  # longer than the default 9
+    ("padlen_max", "odd", SIGNAL_LENGTH - 1),  # longest SciPy allows
 )
-from .signals import synthetic_signals
-from .write import write_vector
+
+
+# filtfilt's padding variations, minus MATLAB's padlen, which was computed for 3 taps
+SOSFILTFILT_PADDING_CASES = tuple(
+    c for c in FILTFILT_PADDING_CASES if c[0] != "padlen_matlab"
+)
 
 
 def generate_filter() -> None:

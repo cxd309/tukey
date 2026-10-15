@@ -2,8 +2,8 @@
 
 import scipy as sc
 
-from .cases import FILTERS, SOS_FILTERS
-from .write import complex_json, write_vector
+from dsp.cases import FILTERS, SOS_FILTERS
+from write import complex_json, write_vector
 
 
 def generate_freqz() -> None:

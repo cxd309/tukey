@@ -5,7 +5,8 @@ clean-vectors source:
     rm -rf {{testdata}}/{{source}}
 
 vectors-scipy: (clean-vectors "scipy")
-    cd reference/scipy && uv run python -m vectors {{testdata}}/scipy
+    cd reference/scipy && uv run main.py {{testdata}}/scipy
+
 
 vectors: vectors-scipy 
 
@@ -22,7 +23,7 @@ fmt:
     dprint fmt
     go fmt ./...
     cd {{scipy_reference_dir}} && uv run ruff format .
-    ruff check --fix
+    cd {{scipy_reference_dir}} && uv run ruff check --fix .
 
 test:
     go test ./...

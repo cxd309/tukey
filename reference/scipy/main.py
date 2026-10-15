@@ -1,33 +1,27 @@
-"""Write every reference vector: uv run python -m vectors <output dir>"""
+"""
+Reference vectors for tukey's conformance tests, generated with SciPy
+
+Run with `just vectors-scipy`:
+clears testdata/scipy first so renamed or removed cases get cleaned
+then runs `uv run main.py <dir>` from reference/scipy
+
+Requires pinned scipy/numpy in uv.lock: do not run against an unpinned environment
+
+Writes <dir>/<category>/<name>.json, with one package per tukey GO package
+
+Each JSON file records the scipy/numpy version
+so a stale vector is very obvious in vc if run against different versions
+"""
 
 import argparse
 from pathlib import Path
 
-from . import write
-from .design import generate_butter, generate_zpk2sos
-from .fft import generate_fft, generate_fft_options
-from .filtering import (
-    generate_filter,
-    generate_filtfilt,
-    generate_lfilter_state,
-    generate_lfilter_zi,
-    generate_sos_filtering,
-)
-from .freqz import generate_freqz
+import dsp
+import fft
+import write
 
-# every generator, each writes one or more categories
-GENERATORS = [
-    generate_butter,
-    generate_zpk2sos,
-    generate_filter,
-    generate_lfilter_zi,
-    generate_lfilter_state,
-    generate_filtfilt,
-    generate_sos_filtering,
-    generate_freqz,
-    generate_fft,
-    generate_fft_options,
-]
+# every generator in all generators
+GENERATORS = dsp.GENERATORS + fft.GENERATORS
 
 
 def main() -> None:
