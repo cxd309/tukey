@@ -14,4 +14,11 @@ var Suites = []Suite{
 	sosFiltFiltSuite,
 	sosFreqzSuite,
 	zpk2sosSuite,
+	forwardSuite,
+	inverseSuite,
+	forwardRealSuite,
+	inverseRealSuite,
+	fftOptionsSuite,
+	fftFreqSuite,
+	fftShiftSuite,
 }

@@ -14,11 +14,10 @@ from pathlib import Path
 from typing import Final
 
 import numpy as np
-import scipy
-from scipy import signal
+import scipy as sc
 
 OUTPUT_ROOT = Path(__file__).parent
-VERSIONS = {"scipy_version": scipy.__version__, "numpy_version": np.__version__}
+VERSIONS = {"scipy_version": sc.__version__, "numpy_version": np.__version__}
 
 # -----------------------------------------------------------------------------
 # Reference cases: everything tukey is checked against
@@ -81,9 +80,9 @@ ZPK2SOS_CASES = {
 
 # name -> (b, a): filters shared by the filter and lfilter_zi vectors
 FILTERS: Final = {
-    "butter1_lp0.3": signal.butter(1, 0.3),  # shortest IIR
-    "butter2_lp0.3": signal.butter(2, 0.3),  # typical call site
-    "butter2_bp0.2-0.5": signal.butter(2, [0.2, 0.5], "bandpass"),
+    "butter1_lp0.3": sc.signal.butter(1, 0.3),  # shortest IIR
+    "butter2_lp0.3": sc.signal.butter(2, 0.3),  # typical call site
+    "butter2_bp0.2-0.5": sc.signal.butter(2, [0.2, 0.5], "bandpass"),
     "fir_avg4": ([0.25] * 4, [1.0]),  # a is length 1: no feedback
     "unnormalised": ([2.0, 1.0], [2.0, -0.5]),  # a[0] != 1
     "short_b": ([1.0], [1.0, -0.9]),  # len(b) < len(a)
@@ -103,16 +102,16 @@ FILTFILT_PADDING_CASES = (
 
 # name -> sos: filters as second-order sections, for sosfilt, sosfilt_zi, sosfiltfilt
 SOS_FILTERS = {
-    "butter3_lp0.3": signal.butter(
+    "butter3_lp0.3": sc.signal.butter(
         3, 0.3, output="sos"
     ),  # odd order: a first-order section
-    "butter4_bs0.2-0.5": signal.butter(
+    "butter4_bs0.2-0.5": sc.signal.butter(
         4, [0.2, 0.5], "bandstop", output="sos"
     ),  # 4 sections
-    "butter8_lp0.01": signal.butter(
+    "butter8_lp0.01": sc.signal.butter(
         8, 0.01, output="sos"
     ),  # overall gain ~1e-14 in section 0
-    "butter10_bp0.3-0.31": signal.butter(
+    "butter10_bp0.3-0.31": sc.signal.butter(
         10, [0.3, 0.31], "bandpass", output="sos"
     ),  # order 20: (b, a) fails here
 }
@@ -120,6 +119,33 @@ SOS_FILTERS = {
 # filtfilt's padding variations, minus MATLAB's padlen, which was computed for 3 taps
 SOSFILTFILT_PADDING_CASES = tuple(
     c for c in FILTFILT_PADDING_CASES if c[0] != "padlen_matlab"
+)
+
+# lengths the FFT must handle, chosen to exercise each algorithm path
+FFT_LENGTHS = (
+    1,
+    2,
+    4,
+    8,
+    16,
+    128,
+    1024,
+    4096,  # powers of two: radix-2
+    3,
+    5,
+    9,
+    15,
+    30,
+    60,
+    100,
+    1000,  # smooth: mixed radix over 2, 3, 5
+    6,
+    12,
+    210,  # more mixed factors; 210 = 2*3*5*7 brings in a 7
+    7,
+    17,
+    97,
+    1009,  # primes: the generic butterfly or Bluestein
 )
 
 
@@ -159,7 +185,7 @@ def generate_butter() -> None:
     """
 
     for order, wn, btype in BUTTER_LOWHIGH_CASES:
-        b, a = signal.butter(order, wn, btype=btype, analog=False)
+        b, a = sc.signal.butter(order, wn, btype=btype, analog=False)
         name = f"{btype}_order{order}_wn{wn}"
         write_vector(
             "butter",
@@ -169,12 +195,12 @@ def generate_butter() -> None:
             {
                 "b": b.tolist(),
                 "a": a.tolist(),
-                "sos": signal.butter(order, wn, btype=btype, output="sos").tolist(),
+                "sos": sc.signal.butter(order, wn, btype=btype, output="sos").tolist(),
             },
         )
 
     for order, wn, btype in BUTTER_BAND_CASES:
-        b, a = signal.butter(order, wn, btype=btype, analog=False)
+        b, a = sc.signal.butter(order, wn, btype=btype, analog=False)
         name = f"{btype}_order{order}_wn{wn[0]}-{wn[1]}"
         write_vector(
             "butter",
@@ -184,7 +210,7 @@ def generate_butter() -> None:
             {
                 "b": b.tolist(),
                 "a": a.tolist(),
-                "sos": signal.butter(order, wn, btype=btype, output="sos").tolist(),
+                "sos": sc.signal.butter(order, wn, btype=btype, output="sos").tolist(),
             },
         )
 
@@ -193,12 +219,12 @@ def generate_zpk2sos() -> None:
     """sos from scipy.signal.zpk2sos: SciPy's own designs plus hand-built cases."""
     cases = dict(ZPK2SOS_CASES)
     for order, wn, btype in BUTTER_LOWHIGH_CASES + BUTTER_BAND_CASES:
-        z, p, k = signal.butter(order, wn, btype=btype, output="zpk")
+        z, p, k = sc.signal.butter(order, wn, btype=btype, output="zpk")
         wn_name = f"{wn[0]}-{wn[1]}" if isinstance(wn, tuple) else wn
         cases[f"butter_{btype}_order{order}_wn{wn_name}"] = (z, p, k)
 
     for name, (z, p, k) in cases.items():
-        sos = signal.zpk2sos(z, p, k)
+        sos = sc.signal.zpk2sos(z, p, k)
         write_vector(
             "zpk2sos",
             name,
@@ -218,7 +244,7 @@ def synthetic_signals(n: int) -> dict[str, np.ndarray]:
         "step": np.r_[np.zeros(n // 2), np.ones(n - n // 2)],  # mid-signal edge
         "constant": np.full(n, 3.0),  # DC: filtfilt must preserve exactly
         "sines": np.sin(2 * np.pi * 5 * t) + 0.5 * np.sin(2 * np.pi * 40 * t),
-        "chirp": signal.chirp(t, f0=1, t1=1, f1=80),  # sweeps through cutoff
+        "chirp": sc.signal.chirp(t, f0=1, t1=1, f1=80),  # sweeps through cutoff
         "noise": rng.standard_normal(n),  # broadband
     }
 
@@ -228,7 +254,7 @@ def generate_filter() -> None:
 
     for fname, (b, a) in FILTERS.items():
         for sname, x in synthetic_signals(SIGNAL_LENGTH).items():
-            y = signal.lfilter(b, a, x)
+            y = sc.signal.lfilter(b, a, x)
             write_vector(
                 "filter",
                 f"{fname}_{sname}",
@@ -241,7 +267,7 @@ def generate_filter() -> None:
 def generate_lfilter_zi() -> None:
     """zi from scipy.signal.lfilter_zi(b, a): the steady-state step response state."""
     for fname, (b, a) in FILTERS.items():
-        zi = signal.lfilter_zi(b, a)
+        zi = sc.signal.lfilter_zi(b, a)
         write_vector(
             "lfilter_zi",
             fname,
@@ -255,8 +281,8 @@ def generate_lfilter_state() -> None:
     """lfilter from an arbitrary starting state, to check zi in and zf out"""
     x = synthetic_signals(SIGNAL_LENGTH)["sines"]
     for fname, (b, a) in FILTERS.items():
-        zi = 0.5 * signal.lfilter_zi(b, a)
-        y, zf = signal.lfilter(b, a, x, zi=zi)
+        zi = 0.5 * sc.signal.lfilter_zi(b, a)
+        y, zf = sc.signal.lfilter(b, a, x, zi=zi)
         write_vector(
             "lfilter_state",
             fname,
@@ -288,7 +314,7 @@ def generate_filtfilt() -> None:
 def write_filtfilt(
     name: str, b, a, x: np.ndarray, padtype: str | None, padlen: int | None
 ) -> None:
-    y = signal.filtfilt(b, a, x, padtype=padtype, padlen=padlen)
+    y = sc.signal.filtfilt(b, a, x, padtype=padtype, padlen=padlen)
     write_vector(
         "filtfilt",
         name,
@@ -309,7 +335,7 @@ def generate_sos_filtering() -> None:
     signals = synthetic_signals(SIGNAL_LENGTH)
 
     for fname, sos in SOS_FILTERS.items():
-        zi = signal.sosfilt_zi(sos)
+        zi = sc.signal.sosfilt_zi(sos)
         write_vector(
             "sosfilt_zi",
             fname,
@@ -324,13 +350,13 @@ def generate_sos_filtering() -> None:
                 f"{fname}_{sname}",
                 f"scipy.signal.sosfilt(sos, x) for {fname}, {sname}",
                 {"sos": sos.tolist(), "x": x.tolist(), "zi": None},
-                {"y": signal.sosfilt(sos, x).tolist(), "zf": None},
+                {"y": sc.signal.sosfilt(sos, x).tolist(), "zf": None},
             )
             write_sosfiltfilt(f"{fname}_{sname}", sos, x, "odd", None)
 
         # an arbitrary starting state, to exercise zi in and zf out
         zi0 = 0.5 * zi
-        y, zf = signal.sosfilt(sos, signals["sines"], zi=zi0)
+        y, zf = sc.signal.sosfilt(sos, signals["sines"], zi=zi0)
         write_vector(
             "sosfilt",
             f"{fname}_sines_with_state",
@@ -355,7 +381,7 @@ def generate_sos_filtering() -> None:
 def write_sosfiltfilt(
     name: str, sos: np.ndarray, x: np.ndarray, padtype: str | None, padlen: int | None
 ) -> None:
-    y = signal.sosfiltfilt(sos, x, padtype=padtype, padlen=padlen)
+    y = sc.signal.sosfiltfilt(sos, x, padtype=padtype, padlen=padlen)
     write_vector(
         "sosfiltfilt",
         name,
@@ -375,7 +401,7 @@ def generate_freqz() -> None:
         write_freqz("freqz", f"butter2_lp0.3_n{n}", b, a, n)
 
     for fname, sos in SOS_FILTERS.items():
-        w, h = signal.freqz_sos(sos, worN=512)
+        w, h = sc.signal.freqz_sos(sos, worN=512)
         write_vector(
             "freqz_sos",
             f"{fname}_n512",
@@ -386,13 +412,135 @@ def generate_freqz() -> None:
 
 
 def write_freqz(category: str, name: str, b, a, n: int) -> None:
-    w, h = signal.freqz(b, a, worN=n)
+    w, h = sc.signal.freqz(b, a, worN=n)
     write_vector(
         category,
         name,
         f"scipy.signal.freqz(b, a, worN={n}) for {name}",
         {"b": list(b), "a": list(a), "n": n},
         {"w": w.tolist(), "h": complex_json(h)},
+    )
+
+
+def generate_fft() -> None:
+    """scipy.fft transforms of seeded random signals, at every length in FFT_LENGTHS."""
+    for n in FFT_LENGTHS:
+        rng = np.random.default_rng(seed=n)  # per-length seed
+        x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+        real = rng.standard_normal(n)
+        spectrum = sc.fft.rfft(rng.standard_normal(n))  # Hermitian as irfft expects
+
+        write_vector(
+            "fft",
+            f"n{n}",
+            f"scipy.fft.fft(x), n={n}",
+            {"x": complex_json(x)},
+            {"y": complex_json(sc.fft.fft(x))},
+        )
+        write_vector(
+            "ifft",
+            f"n{n}",
+            f"scipy.fft.ifft(x), n={n}",
+            {"x": complex_json(x)},
+            {"y": complex_json(sc.fft.ifft(x))},
+        )
+        write_vector(
+            "rfft",
+            f"n{n}",
+            f"scipy.fft.rfft(x), n={n}",
+            {"x": real.tolist()},
+            {"y": complex_json(sc.fft.rfft(real))},
+        )
+        write_vector(
+            "irfft",
+            f"n{n}",
+            f"scipy.fft.irfft(x, n={n})",
+            {"x": complex_json(spectrum), "n": n},
+            {"y": sc.fft.irfft(spectrum, n=n).tolist()},
+        )
+
+
+def generate_fft_options() -> None:
+    """scipy.fft's norm and n options on each transform, and its frequency and shift helpers."""
+    for n in (12, 1009):  # mixed radix and Bluestein
+        rng = np.random.default_rng(seed=n + 1)
+        x = rng.standard_normal(n) + 1j * rng.standard_normal(n)
+        spectrum = sc.fft.rfft(x.real)
+        for norm in ("backward", "ortho", "forward"):
+            write_fft_option(
+                f"fft_n{n}_{norm}", "fft", x, sc.fft.fft(x, norm=norm), norm, None
+            )
+            write_fft_option(
+                f"ifft_n{n}_{norm}", "ifft", x, sc.fft.ifft(x, norm=norm), norm, None
+            )
+            write_fft_option(
+                f"rfft_n{n}_{norm}",
+                "rfft",
+                x.real,
+                sc.fft.rfft(x.real, norm=norm),
+                norm,
+                None,
+            )
+            write_fft_option(
+                f"irfft_n{n}_{norm}",
+                "irfft",
+                spectrum,
+                sc.fft.irfft(spectrum, n=n, norm=norm),
+                norm,
+                n,
+            )
+
+    # n pads (16) or truncates (8) a length-12 input before transforming
+    x = np.random.default_rng(seed=12).standard_normal(12) + 0j
+    for n in (8, 16):
+        write_fft_option(
+            f"fft_n{n}_from12", "fft", x, sc.fft.fft(x, n=n), "backward", n
+        )
+        write_fft_option(
+            f"ifft_n{n}_from12", "ifft", x, sc.fft.ifft(x, n=n), "backward", n
+        )
+        write_fft_option(
+            f"rfft_n{n}_from12",
+            "rfft",
+            x.real,
+            sc.fft.rfft(x.real, n=n),
+            "backward",
+            n,
+        )
+
+    for n in (1, 8, 9):  # smallest, even, odd
+        for d in (1.0, 0.001):
+            write_vector(
+                "fftfreq",
+                f"n{n}_d{d}",
+                f"scipy.fft.fftfreq({n}, {d}) and rfftfreq({n}, {d})",
+                {"n": n, "d": d},
+                {
+                    "freq": sc.fft.fftfreq(n, d).tolist(),
+                    "rfreq": sc.fft.rfftfreq(n, d).tolist(),
+                },
+            )
+        x = np.arange(n, dtype=float)
+        write_vector(
+            "fftshift",
+            f"n{n}",
+            f"scipy.fft.fftshift and ifftshift of arange({n})",
+            {"x": x.tolist()},
+            {
+                "shift": sc.fft.fftshift(x).tolist(),
+                "ishift": sc.fft.ifftshift(x).tolist(),
+            },
+        )
+
+
+def write_fft_option(name: str, transform: str, x, y, norm: str, n: int | None) -> None:
+    """One option case; real inputs and outputs are stored as complex, so every case shares a shape."""
+    write_vector(
+        "fft_options",
+        name,
+        f"scipy.fft.{transform}(x, n={n!r}, norm={norm!r})",
+        {"transform": transform, "x": complex_json(x), "norm": norm, "n": n},
+        {"y": complex_json(y)},
     )
 
 
@@ -418,3 +566,7 @@ if __name__ == "__main__":
     print("wrote lfilter_state/")
     generate_freqz()
     print("wrote freqz and freqz_sos")
+    generate_fft()
+    print("wrote fft/, ifft/, rfft/ and irfft/")
+    generate_fft_options()
+    print("wrote fft_options/, fftfreq/ and fftshift/")

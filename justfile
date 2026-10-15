@@ -16,3 +16,6 @@ test-verbose:
 
 tolerances:
     go run ./cmd/tolerances
+
+bench:
+    go test ./fft -run '^$' -bench . -benchmem -count 6 | tee temp/bench.txt
