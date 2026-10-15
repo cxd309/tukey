@@ -1,4 +1,5 @@
 testdata := justfile_directory() / "testdata"
+scipy_reference_dir := "reference/scipy"
 
 clean-vectors source:
     rm -rf {{testdata}}/{{source}}
@@ -10,16 +11,20 @@ vectors: vectors-scipy
 
 fixtures: vectors
 
+lint:
+    dprint check
+    test -z "$(gofmt -l .)"
+    go vet ./...
+    cd {{scipy_reference_dir}} && uv run ruff format --check .
+    cd {{scipy_reference_dir}} && uv run ruff check .
+
 fmt:
     dprint fmt
     go fmt ./...
-    cd testdata && uv run ruff format .
-
-fixtures:
-    cd testdata && uv run generate.py
+    cd {{scipy_reference_dir}} && uv run ruff format .
+    ruff check --fix
 
 test:
-    go vet ./...
     go test ./...
 
 test-verbose:
