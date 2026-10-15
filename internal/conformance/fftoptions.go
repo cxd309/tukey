@@ -23,7 +23,7 @@ type fftOptionVector struct {
 // fftOptionsSuite checks Norm and N on each transform against scipy.fft
 // measured: worst 3 ULP (6.4e-16, ifft at n = 1009 with norm='forward'),
 // no worse than the transforms themselves, set to match them
-var fftOptionsSuite = newSuite("fft options", "fft_options",
+var fftOptionsSuite = newSuite("fft options", reference.SourceSciPy, "fft_options",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v fftOptionVector) (outputs []Output, err error) {
 		x, err := v.Params.X.Values()
@@ -115,7 +115,7 @@ type fftFreqVector struct {
 // Each value is an integer times 1/(n·d), computed as NumPy does,
 // and IEEE 754 rounds a single division and multiplication identically everywhere,
 // so anything but an exact match is a bug
-var fftFreqSuite = newSuite("fft.Freq", "fftfreq",
+var fftFreqSuite = newSuite("fft.Freq", reference.SourceSciPy, "fftfreq",
 	reference.Tolerance{},
 	func(v fftFreqVector) (outputs []Output, err error) {
 		outputs = []Output{
@@ -138,7 +138,7 @@ type fftShiftVector struct {
 
 // fftShiftSuite checks fft.Shift and fft.InverseShift against scipy.fft.fftshift and ifftshift
 // they only reorder values, so they must match exactly
-var fftShiftSuite = newSuite("fft.Shift", "fftshift",
+var fftShiftSuite = newSuite("fft.Shift", reference.SourceSciPy, "fftshift",
 	reference.Tolerance{},
 	func(v fftShiftVector) (outputs []Output, err error) {
 		outputs = []Output{

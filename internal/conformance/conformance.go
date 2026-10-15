@@ -1,5 +1,5 @@
-// Package conformance checks tukey's public API against the SciPy reference
-// vectors in testdata/
+// Package conformance checks tukey's public API against
+// reference vectors in testdata/<source>/
 //
 // Each Suite pairs one dsp function with its vectors and measured tolerance
 // the package tests assert on every suite
@@ -17,6 +17,7 @@ import (
 // Suite checks one dsp function against one category of reference vectors
 type Suite struct {
 	Name      string              // the dsp function under test, e.g. "Butter"
+	Source    reference.Source    // the tool the vectors came from
 	Category  string              // the vectors' directory, testdata/<Category>
 	Tolerance reference.Tolerance // measured; see where each suite is defined
 	run       func() (results []FileResult, err error)
@@ -91,10 +92,10 @@ func (s Suite) Run() (results []FileResult, err error) {
 
 // newSuite builds a Suite from outputs, which runs the dsp function
 // on one decoded vector and pairs each of its outputs with SciPy's
-func newSuite[T any](name, category string, tol reference.Tolerance, outputs func(v T) ([]Output, error)) (s Suite) {
-	s = Suite{Name: name, Category: category, Tolerance: tol}
+func newSuite[T any](name string, source reference.Source, category string, tol reference.Tolerance, outputs func(v T) ([]Output, error)) (s Suite) {
+	s = Suite{Name: name, Source: source, Category: category, Tolerance: tol}
 	s.run = func() (results []FileResult, err error) {
-		files, err := reference.Load[T](category)
+		files, err := reference.Load[T](source, category)
 		if err != nil {
 			return nil, err
 		}

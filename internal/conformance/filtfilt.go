@@ -22,7 +22,7 @@ type filtfiltVector struct {
 }
 
 // filtfiltSuite checks dsp.FiltFilt against scipy.signal.filtfilt
-var filtfiltSuite = newSuite("FiltFilt", "filtfilt",
+var filtfiltSuite = newSuite("FiltFilt", reference.SourceSciPy, "filtfilt",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v filtfiltVector) (outputs []Output, err error) {
 		opts, err := filtfiltOptions(v.Params.PadType, v.Params.PadLen)

@@ -19,7 +19,7 @@ type fftVector struct {
 // radix-2, mixed radix and Bluestein
 // measured: radix-2 and mixed radix within 2 ULP; Bluestein (primes 17, 97, 1009)
 // worst 4 ULP (9.3e-16 at n = 1009); set ~10x above the worst
-var forwardSuite = newSuite("fft.Forward", "fft",
+var forwardSuite = newSuite("fft.Forward", reference.SourceSciPy, "fft",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v fftVector) (outputs []Output, err error) {
 		outputs, err = compareTransform(v, fft.Forward)
@@ -28,7 +28,7 @@ var forwardSuite = newSuite("fft.Forward", "fft",
 
 // inverseSuite checks fft.Inverse against scipy.fft.ifft
 // measured: as Forward, worst 4 ULP (8.5e-16 at n = 1009); set to match
-var inverseSuite = newSuite("fft.Inverse", "ifft",
+var inverseSuite = newSuite("fft.Inverse", reference.SourceSciPy, "ifft",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v fftVector) (outputs []Output, err error) {
 		outputs, err = compareTransform(v, fft.Inverse)
@@ -68,7 +68,7 @@ type rfftVector struct {
 // measured: worst 3 ULP (5.8e-16 at n = 1009, Bluestein) despite SciPy using a
 // dedicated real-input algorithm where this uses the complex transform; set to
 // match Forward
-var forwardRealSuite = newSuite("fft.ForwardReal", "rfft",
+var forwardRealSuite = newSuite("fft.ForwardReal", reference.SourceSciPy, "rfft",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v rfftVector) (outputs []Output, err error) {
 		want, err := v.Output.Y.Values()
@@ -96,7 +96,7 @@ type irfftVector struct {
 
 // inverseRealSuite checks fft.InverseReal against scipy.fft.irfft
 // measured: worst 2 ULP (5.0e-16 at n = 1009); set to match Inverse
-var inverseRealSuite = newSuite("fft.InverseReal", "irfft",
+var inverseRealSuite = newSuite("fft.InverseReal", reference.SourceSciPy, "irfft",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v irfftVector) (outputs []Output, err error) {
 		x, err := v.Params.X.Values()

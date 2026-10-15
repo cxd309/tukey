@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.lfilter_zi(b,a) for butter2_bp0.2-0.5",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "b": [
       0.13110643991662593,

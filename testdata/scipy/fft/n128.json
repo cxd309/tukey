@@ -1,7 +1,9 @@
 {
   "description": "scipy.fft.fft(x), n=128",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "x": {
       "re": [

@@ -1,7 +1,9 @@
 {
   "description": "scipy.fft.rfft(x), n=1",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "x": [
       0.33043707618338714

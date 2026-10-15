@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.freqz(b, a, worN=512) for short_b_n512",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "b": [
       1.0

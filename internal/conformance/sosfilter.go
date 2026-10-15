@@ -24,7 +24,7 @@ type sosfiltVector struct {
 // to z = 1: the feedback amplifies single-rounding differences between Go and SciPy
 // (same coefficients and algorithm; likely FMA). Other filters, including the narrow
 // order-20 bandpass, agree within a few ULP; set ~10x above the worst
-var sosFilterSuite = newSuite("SOSFilter", "sosfilt",
+var sosFilterSuite = newSuite("SOSFilter", reference.SourceSciPy, "sosfilt",
 	reference.Tolerance{Rel: 1e-12, Scaled: 1e-12},
 	func(v sosfiltVector) (outputs []Output, err error) {
 		scale := maxAbs(v.Params.X)
@@ -59,7 +59,7 @@ type sosfiltZiVector struct {
 
 // sosFilterZiSuite checks dsp.SOSFilterZi against scipy.signal.sosfilt_zi
 // measured: exact or under 1 ULP on all 4 filters (worst 9.8e-17); set to match Filter
-var sosFilterZiSuite = newSuite("SOSFilterZi", "sosfilt_zi",
+var sosFilterZiSuite = newSuite("SOSFilterZi", reference.SourceSciPy, "sosfilt_zi",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v sosfiltZiVector) (outputs []Output, err error) {
 		zi, err := dsp.SOSFilterZi(v.Params.SOS)
@@ -87,7 +87,7 @@ type sosfiltfiltVector struct {
 // measured: worst 1.7e-13 (~763 ULP) on butter8_lp0.01: SOSFilter's sensitivity on
 // that filter, over two passes of a padded signal; other filters within a few ULP;
 // set ~10x above the worst
-var sosFiltFiltSuite = newSuite("SOSFiltFilt", "sosfiltfilt",
+var sosFiltFiltSuite = newSuite("SOSFiltFilt", reference.SourceSciPy, "sosfiltfilt",
 	reference.Tolerance{Rel: 1e-11, Scaled: 1e-11},
 	func(v sosfiltfiltVector) (outputs []Output, err error) {
 		opts, err := filtfiltOptions(v.Params.PadType, v.Params.PadLen)

@@ -27,7 +27,7 @@ type butterVector struct {
 // worst is bandstop 0.01-0.99 at ~7e-15
 // where prewarp near Nyquist makes the pole quadratic ill-conditioned;
 // set ~10x above the worst for headroom across platforms
-var butterSuite = newSuite("Butter", "butter",
+var butterSuite = newSuite("Butter", reference.SourceSciPy, "butter",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
 	func(v butterVector) (outputs []Output, err error) {
 		wn, err := parseWn(v.Params.Wn)

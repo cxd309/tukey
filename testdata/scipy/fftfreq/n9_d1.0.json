@@ -1,7 +1,9 @@
 {
   "description": "scipy.fft.fftfreq(9, 1.0) and rfftfreq(9, 1.0)",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "n": 9,
     "d": 1.0

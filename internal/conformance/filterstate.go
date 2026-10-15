@@ -24,7 +24,7 @@ type lfilterStateVector struct {
 // measured: worst 2.3e-16 (1 ULP) across all six filters, including a[0] != 1,
 // which confirms SciPy treats zi as the state of the normalised filter, as apply
 // does; set to match Filter
-var filterStateSuite = newSuite("FilterState", "lfilter_state",
+var filterStateSuite = newSuite("FilterState", reference.SourceSciPy, "lfilter_state",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v lfilterStateVector) (outputs []Output, err error) {
 		y, zf, err := dsp.FilterState(v.Params.B, v.Params.A, v.Params.X, v.Params.Zi)
@@ -53,7 +53,7 @@ type lfilterZiVector struct {
 // filterZiSuite checks dsp.FilterZi against scipy.signal.lfilter_zi
 // measured (as steadyState, before it was public): five of six filters
 // bit-identical, worst 1 ULP (1.7e-16); set to match Filter
-var filterZiSuite = newSuite("FilterZi", "lfilter_zi",
+var filterZiSuite = newSuite("FilterZi", reference.SourceSciPy, "lfilter_zi",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v lfilterZiVector) (outputs []Output, err error) {
 		zi, err := dsp.FilterZi(v.Params.B, v.Params.A)

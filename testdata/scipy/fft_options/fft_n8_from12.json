@@ -1,7 +1,9 @@
 {
   "description": "scipy.fft.fft(x, n=8, norm='backward')",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "transform": "fft",
     "x": {

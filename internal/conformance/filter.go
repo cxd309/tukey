@@ -21,7 +21,7 @@ type filterVector struct {
 // measured: FIR and simple-coefficient cases are bit-identical; Butterworth cases
 // agree within ~3 ULPs (worst 6.6e-16), differing only in the order of additions;
 // set ~10x above the worst for headroom across platforms
-var filterSuite = newSuite("Filter", "filter",
+var filterSuite = newSuite("Filter", reference.SourceSciPy, "filter",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v filterVector) (outputs []Output, err error) {
 		y, err := dsp.Filter(v.Params.B, v.Params.A, v.Params.X)

@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.butter(2, 0.3, btype='highpass')",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "order": 2,
     "wn": 0.3,

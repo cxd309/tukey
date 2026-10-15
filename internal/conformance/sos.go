@@ -25,7 +25,7 @@ type zpk2sosVector struct {
 // isolating the pairing from any difference in designs
 // measured: section order and pairing match exactly on all 29 vectors, worst
 // coefficient error 1.1e-16 (under 1 ULP); set to 1e-14 to match Filter
-var zpk2sosSuite = newSuite("ZPK.SOS", "zpk2sos",
+var zpk2sosSuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v zpk2sosVector) (outputs []Output, err error) {
 		zeros, err := v.Params.Z.Values()
@@ -58,7 +58,7 @@ var zpk2sosSuite = newSuite("ZPK.SOS", "zpk2sos",
 // measured: worst 7.3e-15 (~33 ULP), on the same vector as Butter's own worst
 // case; the conversion adds essentially nothing (see zpk2sosSuite), so SOS
 // inherits the design's pole accuracy; set to match Butter
-var butterSOSSuite = newSuite("Butter (SOS)", "butter",
+var butterSOSSuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butter",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
 	func(v butterVector) (outputs []Output, err error) {
 		wn, err := parseWn(v.Params.Wn)

@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.zpk2sos(z, p, k) for butter_highpass_order5_wn0.7",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "z": {
       "re": [

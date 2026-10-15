@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.freqz_sos(sos, worN=512) for butter8_lp0.01",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "sos": [
       [

@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.sosfilt(sos, x) for butter3_lp0.3, sines",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "sos": [
       [

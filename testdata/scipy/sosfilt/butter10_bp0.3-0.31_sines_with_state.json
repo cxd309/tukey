@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.sosfilt(sos, x, zi=0.5*sosfilt_zi(sos)) for butter10_bp0.3-0.31, sines",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "sos": [
       [

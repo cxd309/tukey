@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.lfilter(b, a, x) for butter1_lp0.3, constant",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "b": [
       0.33754015188354686,

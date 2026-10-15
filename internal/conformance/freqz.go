@@ -21,7 +21,7 @@ type freqzVector struct {
 // freqzSuite checks dsp.Freqz against scipy.signal.freqz
 // measured: worst 1.2e-15 (~6 ULP); Horner as SciPy, differing only in rounding of
 // e^(-jw); fir_avg4, where SciPy uses an FFT instead, agrees as closely; set ~10x above
-var freqzSuite = newSuite("Freqz", "freqz",
+var freqzSuite = newSuite("Freqz", reference.SourceSciPy, "freqz",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
 	func(v freqzVector) (outputs []Output, err error) {
 		w, h, err := dsp.Freqz(v.Params.B, v.Params.A, v.Params.N)
@@ -49,7 +49,7 @@ type sosFreqzVector struct {
 // each section's denominator near DC is a near-cancellation, magnifying single-ULP
 // differences in cos(w) between Go and NumPy; other filters within a few ULP;
 // set ~10x above the worst
-var sosFreqzSuite = newSuite("SOSFreqz", "freqz_sos",
+var sosFreqzSuite = newSuite("SOSFreqz", reference.SourceSciPy, "freqz_sos",
 	reference.Tolerance{Rel: 1e-11, Scaled: 1e-11},
 	func(v sosFreqzVector) (outputs []Output, err error) {
 		w, h, err := dsp.SOSFreqz(v.Params.SOS, v.Params.N)

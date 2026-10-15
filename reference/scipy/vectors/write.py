@@ -9,7 +9,9 @@ import scipy as sc
 
 # set from the command line by __main__ before any generator runs
 output_root: Path | None = None
-VERSIONS = {"scipy_version": sc.__version__, "numpy_version": np.__version__}
+VERSIONS = {
+    "versions": {"scipy_version": sc.__version__, "numpy_version": np.__version__}
+}
 
 # vectors written per category this run, for the summary
 written: Counter[str] = Counter()

@@ -1,7 +1,9 @@
 {
   "description": "scipy.signal.filtfilt(b, a, x, padtype='odd', padlen=0)",
-  "scipy_version": "1.18.1",
-  "numpy_version": "2.5.3",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
   "params": {
     "b": [
       0.13110643991662593,
