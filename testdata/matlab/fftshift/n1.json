@@ -1,0 +1,5 @@
+{"description": "fftshift(x) and ifftshift(x)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      0.0
+    ]
+  }, "output": {"shift": [0], "ishift": [0]}}

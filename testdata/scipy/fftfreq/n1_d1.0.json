@@ -1,0 +1,19 @@
+{
+  "description": "scipy.fft.fftfreq(1, 1.0) and rfftfreq(1, 1.0)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 1,
+    "d": 1.0
+  },
+  "output": {
+    "freq": [
+      0.0
+    ],
+    "rfreq": [
+      0.0
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{"description": "fft(x), first n/2+1 bins", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      0.33043707618338714
+    ]
+  }, "output": {"y": {"re": [0.33043707618338714], "im": [0]}}}

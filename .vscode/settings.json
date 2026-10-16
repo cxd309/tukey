@@ -10,4 +10,7 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true
   },
+  "python.defaultInterpreterPath": "${workspaceFolder}/reference/scipy/.venv/bin/python",
+  "python.analysis.extraPaths": ["reference/scipy"],
+  "ruff.importStrategy": "fromEnvironment"
 }

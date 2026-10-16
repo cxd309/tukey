@@ -29,7 +29,7 @@ func randomSignal(n int) (x []complex128) {
 
 // checkAgainstSciPy runs transform on every vector in category
 func checkAgainstSciPy(t *testing.T, category string, transform func([]complex128, ...Option) ([]complex128, error)) {
-	reference.Run(t, category, func(t *testing.T, v transformVector) {
+	reference.Run(t, reference.SourceSciPy, category, func(t *testing.T, v transformVector) {
 		x, err := v.Params.X.Values()
 		require.NoError(t, err)
 		want, err := v.Output.Y.Values()

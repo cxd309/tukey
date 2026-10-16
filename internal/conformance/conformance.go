@@ -1,7 +1,9 @@
-// Package conformance checks tukey's public API against the SciPy reference
-// vectors in testdata/
+// Package conformance checks tukey's public API against
+// reference vectors in testdata/<source>/
 //
-// Each Suite pairs one dsp function with its vectors and measured tolerance
+// Each Suite pairs one function with one source's vectors and measured tolerance;
+// a function checked against SciPy and MATLAB has a suite for each,
+// sharing the code that runs it
 // the package tests assert on every suite
 // cmd/tolerances reports the error each one actually achieves.
 package conformance
@@ -14,15 +16,16 @@ import (
 	"github.com/cxd309/tukey/internal/reference"
 )
 
-// Suite checks one dsp function against one category of reference vectors
+// Suite checks one function against one source's category of reference vectors
 type Suite struct {
-	Name      string              // the dsp function under test, e.g. "Butter"
-	Category  string              // the vectors' directory, testdata/<Category>
+	Name      string              // the function under test, e.g. "Butter"
+	Source    reference.Source    // the tool the vectors came from
+	Category  string              // the vectors' directory, testdata/<Source>/<Category>
 	Tolerance reference.Tolerance // measured; see where each suite is defined
 	run       func() (results []FileResult, err error)
 }
 
-// Output pairs one output of a dsp function with SciPy's for the same input
+// Output pairs one output of a tukey function with the reference's for the same input
 type Output struct {
 	Name      string // e.g. "b"
 	Got, Want []float64
@@ -40,7 +43,7 @@ func (o Output) isComplex() (ok bool) {
 	return
 }
 
-// compare measures the output against SciPy's, real or complex
+// compare measures the output against the reference's, real or complex
 func (o Output) compare(tol reference.Tolerance) (c reference.Comparison, err error) {
 	if o.isComplex() {
 		c, err = reference.CompareScaled(o.GotComplex, o.WantComplex, tol, o.Scale)
@@ -65,7 +68,7 @@ type FileResult struct {
 	Outputs []OutputResult
 }
 
-// OutputResult is one output's comparison against SciPy
+// OutputResult is one output's comparison against the reference
 type OutputResult struct {
 	Output
 	reference.Comparison
@@ -90,11 +93,11 @@ func (s Suite) Run() (results []FileResult, err error) {
 }
 
 // newSuite builds a Suite from outputs, which runs the dsp function
-// on one decoded vector and pairs each of its outputs with SciPy's
-func newSuite[T any](name, category string, tol reference.Tolerance, outputs func(v T) ([]Output, error)) (s Suite) {
-	s = Suite{Name: name, Category: category, Tolerance: tol}
+// on one decoded vector and pairs each of its outputs with the vector's
+func newSuite[T any](name string, source reference.Source, category string, tol reference.Tolerance, outputs func(v T) ([]Output, error)) (s Suite) {
+	s = Suite{Name: name, Source: source, Category: category, Tolerance: tol}
 	s.run = func() (results []FileResult, err error) {
-		files, err := reference.Load[T](category)
+		files, err := reference.Load[T](source, category)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +109,7 @@ func newSuite[T any](name, category string, tol reference.Tolerance, outputs fun
 	return
 }
 
-// compareFile runs one vector through outputs and compares each result with SciPy's
+// compareFile runs one vector through outputs and compares each result with the vector's
 func compareFile[T any](name string, v T, tol reference.Tolerance, outputs func(v T) ([]Output, error)) (r FileResult) {
 	r.File = name
 	outs, err := outputs(v)

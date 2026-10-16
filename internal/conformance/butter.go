@@ -22,37 +22,51 @@ type butterVector struct {
 	} `json:"output"`
 }
 
-// butterSuite checks dsp.Butter against scipy.signal.butter
+// butterSciPySuite checks dsp.Butter against scipy.signal.butter
 // measured: most cases agree within a few ULPs (~1e-16)
 // worst is bandstop 0.01-0.99 at ~7e-15
 // where prewarp near Nyquist makes the pole quadratic ill-conditioned;
 // set ~10x above the worst for headroom across platforms
-var butterSuite = newSuite("Butter", "butter",
+var butterSciPySuite = newSuite("Butter", reference.SourceSciPy, "butter",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
-	func(v butterVector) (outputs []Output, err error) {
-		wn, err := parseWn(v.Params.Wn)
-		if err != nil {
-			return nil, err
-		}
-		band, err := bandFromVector(v.Params.BType, wn)
-		if err != nil {
-			return nil, err
-		}
-		f, err := dsp.Butter(v.Params.Order, band)
-		if err != nil {
-			return nil, err
-		}
-		b, a, err := f.BA()
-		if err != nil {
-			return nil, err
-		}
-		// no Scale: coefficients are their own scale
-		outputs = []Output{
-			{Name: "b", Got: b, Want: v.Output.B},
-			{Name: "a", Got: a, Want: v.Output.A},
-		}
-		return
-	})
+	butterOutputs)
+
+// butterMATLABSuite checks dsp.Butter's (b, a) against MATLAB's butter
+// its sos isn't compared: zp2sos factorises odd orders and equal-radius pole
+// pairs differently from SciPy's zpk2sos (same filter, different sections)
+// measured: most cases within a few ULP; worst 1.2e-13 (533 ULP) on lowpass_order8_wn0.01's
+// b (~1e-14), where MATLAB's own b differs from SciPy's by the same amount while tukey
+// matches SciPy to 7e-15: the difference is in MATLAB's design, not tukey's;
+// set ~10x above the worst
+var butterMATLABSuite = newSuite("Butter", reference.SourceMATLAB, "butter",
+	reference.Tolerance{Rel: 1e-11, Scaled: 1e-11},
+	butterOutputs)
+
+// butterOutputs pairs dsp.Butter's (b, a) with a vector's
+func butterOutputs(v butterVector) (outputs []Output, err error) {
+	wn, err := parseWn(v.Params.Wn)
+	if err != nil {
+		return nil, err
+	}
+	band, err := bandFromVector(v.Params.BType, wn)
+	if err != nil {
+		return nil, err
+	}
+	f, err := dsp.Butter(v.Params.Order, band)
+	if err != nil {
+		return nil, err
+	}
+	b, a, err := f.BA()
+	if err != nil {
+		return nil, err
+	}
+	// no Scale: coefficients are their own scale
+	outputs = []Output{
+		{Name: "b", Got: b, Want: v.Output.B},
+		{Name: "a", Got: a, Want: v.Output.A},
+	}
+	return
+}
 
 // parseWn handles the vectors' wn field, which is a scalar for
 // lowpass/highpass and a [low, high] pair for bandpass/bandstop

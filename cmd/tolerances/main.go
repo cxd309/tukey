@@ -1,5 +1,5 @@
 // Command tolerances reports the error tukey actually achieves
-// compares against each SciPy refrence-vector suite
+// compares against each reference-vector suite, SciPy or MATLAB
 // next to the tolerance its test enforce
 //
 // the measured numbers are what tolerances and the packaging doc are set from
@@ -18,7 +18,7 @@ import (
 
 func main() {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "SUITE\tVECTORS\tFAILING\tWORST\tULPS\tTOLERANCE\tHEADROOM\tWORST CASE")
+	fmt.Fprintln(w, "SUITE\tSOURCE\tVECTORS\tFAILING\tWORST\tULPS\tTOLERANCE\tHEADROOM\tWORST CASE")
 
 	failed := false
 	for _, suite := range conformance.Suites {
@@ -31,8 +31,9 @@ func main() {
 		failed = failed || s.failing > 0
 		fmt.Fprintf(
 			w,
-			"%s\t%d\t%d\t%.1e\t%.0f\t%.0e\t%s\t%s\n",
+			"%s\t%s\t%d\t%d\t%.1e\t%.0f\t%.0e\t%s\t%s\n",
 			suite.Name,
+			suite.Source,
 			s.vectors,
 			s.failing,
 			s.worst,
@@ -49,7 +50,7 @@ func main() {
 	}
 }
 
-// summary one suite's measured error across all its refrence vectors
+// summary one suite's measured error across all its reference vectors
 type summary struct {
 	vectors   int
 	failing   int     // vectors that errored or had an output outside tolerance

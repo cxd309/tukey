@@ -26,6 +26,7 @@ go.work.sum
 
 # python specific
 **/.venv
+**/__pycache__
 **/.ruff_cache
 
 # temp

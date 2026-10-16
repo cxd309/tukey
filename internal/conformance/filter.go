@@ -17,17 +17,26 @@ type filterVector struct {
 	} `json:"output"`
 }
 
-// filterSuite checks dsp.Filter against scipy.signal.lfilter
+// filterSciPySuite checks dsp.Filter against scipy.signal.lfilter
 // measured: FIR and simple-coefficient cases are bit-identical; Butterworth cases
 // agree within ~3 ULPs (worst 6.6e-16), differing only in the order of additions;
 // set ~10x above the worst for headroom across platforms
-var filterSuite = newSuite("Filter", "filter",
+var filterSciPySuite = newSuite("Filter", reference.SourceSciPy, "filter",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	func(v filterVector) (outputs []Output, err error) {
-		y, err := dsp.Filter(v.Params.B, v.Params.A, v.Params.X)
-		if err != nil {
-			return nil, err
-		}
-		outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y, Scale: maxAbs(v.Params.X)}}
-		return
-	})
+	filterOutputs)
+
+// filterMATLABSuite checks dsp.Filter against MATLAB's filter
+// measured: worst 5.3e-16 (2 ULP), as against SciPy; set to match
+var filterMATLABSuite = newSuite("Filter", reference.SourceMATLAB, "filter",
+	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
+	filterOutputs)
+
+// filterOutputs pairs dsp.Filter's output with a vector's
+func filterOutputs(v filterVector) (outputs []Output, err error) {
+	y, err := dsp.Filter(v.Params.B, v.Params.A, v.Params.X)
+	if err != nil {
+		return nil, err
+	}
+	outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y, Scale: maxAbs(v.Params.X)}}
+	return
+}

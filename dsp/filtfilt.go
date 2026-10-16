@@ -31,6 +31,9 @@ func PadLen(n int) (option FiltOption) {
 // MATLABPadLen uses the padding length MATLAB's filtfilt uses
 // 3 * (max(len(a), len(b)) - 1), in place of SciPy's default
 // only samples near the ends of the output are affected
+//
+// with FiltFilt this matches MATLAB's filtfilt(b, a, x), verified against MATLAB R2025a;
+// with SOSFiltFilt it doesn't match MATLAB's filtfilt(sos, g, x) (see SOSFiltFilt)
 func MATLABPadLen() (option FiltOption) {
 	option = func(c *filtConfig) {
 		c.padLen = func(ntaps int) int { return 3 * (ntaps - 1) }

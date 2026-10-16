@@ -1,0 +1,20 @@
+[project]
+name = "tukey-reference-scipy"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.5.3",
+  "scipy>=1.18.1",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.17.1",
+]
+
+[tool.ruff.lint]
+extend-select = [
+  "I", # import sorting
+  "UP", # modern syntax for the Python version in requires-python
+  "B", # likely bugs: mutable defaults, loop variable capture, ...
+]

@@ -1,0 +1,20 @@
+{
+  "description": "scipy.fft.fftshift and ifftshift of arange(1)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      0.0
+    ]
+  },
+  "output": {
+    "shift": [
+      0.0
+    ],
+    "ishift": [
+      0.0
+    ]
+  }
+}

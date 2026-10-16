@@ -37,7 +37,7 @@ type transformVector struct {
 // measured: 0-2 ULP at small n, growing with n as its O(n) summations accumulate
 // rounding, to 18 ULP (4.0e-15) at n = 4096; set ~10x above the worst
 func TestDFTMatchesSciPy(t *testing.T) {
-	reference.Run(t, "fft", func(t *testing.T, v transformVector) {
+	reference.Run(t, reference.SourceSciPy, "fft", func(t *testing.T, v transformVector) {
 		x, err := v.Params.X.Values()
 		require.NoError(t, err)
 		want, err := v.Output.Y.Values()

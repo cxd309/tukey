@@ -20,50 +20,60 @@ type fftOptionVector struct {
 	} `json:"output"`
 }
 
-// fftOptionsSuite checks Norm and N on each transform against scipy.fft
+// fftOptionsSciPySuite checks Norm and N on each transform against scipy.fft
 // measured: worst 3 ULP (6.4e-16, ifft at n = 1009 with norm='forward'),
 // no worse than the transforms themselves, set to match them
-var fftOptionsSuite = newSuite("fft options", "fft_options",
+var fftOptionsSciPySuite = newSuite("fft options", reference.SourceSciPy, "fft_options",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	func(v fftOptionVector) (outputs []Output, err error) {
-		x, err := v.Params.X.Values()
-		if err != nil {
-			return nil, err
-		}
-		want, err := v.Output.Y.Values()
-		if err != nil {
-			return nil, err
-		}
-		norm, err := normalisation(v.Params.Norm)
-		if err != nil {
-			return nil, err
-		}
-		opts := []fft.Option{fft.Norm(norm)}
-		if v.Params.N != nil && v.Params.Transform != "irfft" {
-			opts = append(opts, fft.N(*v.Params.N))
-		}
+	fftOptionOutputs)
 
-		var y []complex128
-		switch v.Params.Transform {
-		case "fft":
-			y, err = fft.Forward(x, opts...)
-		case "ifft":
-			y, err = fft.Inverse(x, opts...)
-		case "rfft":
-			y, err = fft.ForwardReal(realParts(x), opts...)
-		case "irfft":
-			var r []float64
-			r, err = fft.InverseReal(x, *v.Params.N, opts...)
-			y = asComplex(r)
-		default:
-			err = fmt.Errorf("unknown transform %q", v.Params.Transform)
-		}
-		if err != nil {
-			return nil, err
-		}
-		outputs = []Output{{Name: "y", GotComplex: y, WantComplex: want}}
-		return
-	})
+// fftOptionsMATLABSuite checks N on each transform against MATLAB's fft(x, n) and ifft(x, n)
+// MATLAB has no normalisation option, so only SciPy's norm='backward' cases have MATLAB vectors
+// measured: worst 3 ULP (7.2e-16, fft at n = 1009); set to match the transforms
+var fftOptionsMATLABSuite = newSuite("fft options", reference.SourceMATLAB, "fft_options",
+	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
+	fftOptionOutputs)
+
+// fftOptionOutputs pairs the output of the vector's transform, with its options, with the vector's
+func fftOptionOutputs(v fftOptionVector) (outputs []Output, err error) {
+	x, err := v.Params.X.Values()
+	if err != nil {
+		return nil, err
+	}
+	want, err := v.Output.Y.Values()
+	if err != nil {
+		return nil, err
+	}
+	norm, err := normalisation(v.Params.Norm)
+	if err != nil {
+		return nil, err
+	}
+	opts := []fft.Option{fft.Norm(norm)}
+	if v.Params.N != nil && v.Params.Transform != "irfft" {
+		opts = append(opts, fft.N(*v.Params.N))
+	}
+
+	var y []complex128
+	switch v.Params.Transform {
+	case "fft":
+		y, err = fft.Forward(x, opts...)
+	case "ifft":
+		y, err = fft.Inverse(x, opts...)
+	case "rfft":
+		y, err = fft.ForwardReal(realParts(x), opts...)
+	case "irfft":
+		var r []float64
+		r, err = fft.InverseReal(x, *v.Params.N, opts...)
+		y = asComplex(r)
+	default:
+		err = fmt.Errorf("unknown transform %q", v.Params.Transform)
+	}
+	if err != nil {
+		return nil, err
+	}
+	outputs = []Output{{Name: "y", GotComplex: y, WantComplex: want}}
+	return
+}
 
 // normalisation translates SciPy's norm names
 func normalisation(name string) (norm fft.Normalisation, err error) {
@@ -110,12 +120,13 @@ type fftFreqVector struct {
 	} `json:"output"`
 }
 
-// fftFreqSuite checks fft.Freq and fft.RealFreq against scipy.fft.fftfreq and rfftfreq
+// fftFreqSciPySuite checks fft.Freq and fft.RealFreq against scipy.fft.fftfreq and rfftfreq
+// MATLAB has no equivalent function
 // measured: exact
 // Each value is an integer times 1/(n·d), computed as NumPy does,
 // and IEEE 754 rounds a single division and multiplication identically everywhere,
 // so anything but an exact match is a bug
-var fftFreqSuite = newSuite("fft.Freq", "fftfreq",
+var fftFreqSciPySuite = newSuite("fft.Freq", reference.SourceSciPy, "fftfreq",
 	reference.Tolerance{},
 	func(v fftFreqVector) (outputs []Output, err error) {
 		outputs = []Output{
@@ -136,14 +147,23 @@ type fftShiftVector struct {
 	} `json:"output"`
 }
 
-// fftShiftSuite checks fft.Shift and fft.InverseShift against scipy.fft.fftshift and ifftshift
+// fftShiftSciPySuite checks fft.Shift and fft.InverseShift against scipy.fft.fftshift and ifftshift
 // they only reorder values, so they must match exactly
-var fftShiftSuite = newSuite("fft.Shift", "fftshift",
+var fftShiftSciPySuite = newSuite("fft.Shift", reference.SourceSciPy, "fftshift",
 	reference.Tolerance{},
-	func(v fftShiftVector) (outputs []Output, err error) {
-		outputs = []Output{
-			{Name: "shift", Got: fft.Shift(v.Params.X), Want: v.Output.Shift},
-			{Name: "ishift", Got: fft.InverseShift(v.Params.X), Want: v.Output.IShift},
-		}
-		return
-	})
+	fftShiftOutputs)
+
+// fftShiftMATLABSuite checks fft.Shift and fft.InverseShift against MATLAB's fftshift and ifftshift
+// exact, as for SciPy
+var fftShiftMATLABSuite = newSuite("fft.Shift", reference.SourceMATLAB, "fftshift",
+	reference.Tolerance{},
+	fftShiftOutputs)
+
+// fftShiftOutputs pairs fft.Shift's and fft.InverseShift's outputs with a vector's
+func fftShiftOutputs(v fftShiftVector) (outputs []Output, err error) {
+	outputs = []Output{
+		{Name: "shift", Got: fft.Shift(v.Params.X), Want: v.Output.Shift},
+		{Name: "ishift", Got: fft.InverseShift(v.Params.X), Want: v.Output.IShift},
+	}
+	return
+}
