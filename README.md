@@ -154,6 +154,7 @@ The library will grow into three packages, mirroring SciPy:
 | v0.4    | Planned  | window                 | `tukey/window`                                                                                                                                   |
 | tbd     | Concept  | Signal analysis        |                                                                                                                                                  |
 | tbd     | Concept  | Filter design breadth  |                                                                                                                                                  |
+| tbd     | Planned  | MATLAB compatibility   | MATLAB-generated reference vectors alongside SciPy's and MATLAB-compatibility mode for SOSFiltFilt                                               |
 
 Two functions have no SciPy equivalent and will be checked against MATLAB instead: a moving-RMS envelope, and `FindSignal` (template search).
 
