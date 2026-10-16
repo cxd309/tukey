@@ -1,0 +1,11 @@
+{"description": "ifft(x, 1, \"symmetric\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": {
+      "re": [
+        -1.303157231604361
+      ],
+      "im": [
+        0.0
+      ]
+    },
+    "n": 1
+  }, "output": {"y": [-1.3031572316043609]}}
