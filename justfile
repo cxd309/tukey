@@ -13,8 +13,6 @@ vectors-matlab: (clean-vectors "matlab")
 
 vectors: vectors-scipy vectors-matlab
 
-fixtures: vectors
-
 lint:
     dprint check
     test -z "$(gofmt -l .)"

@@ -109,7 +109,9 @@ func SOSFilterZi(sos SOS) (zi [][2]float64, err error) {
 // minus one for each first-order section
 //
 // with MATLABPadLen the padding length is 3*(ntaps-1), same as MATLAB's filtfilt for (b, a)
-// this hasn't been verified against MATLAB's filtfilt with an SOS matrix
+// this does not match MATLAB's filtfilt(sos, g, x), which filters forward then
+// backward one section at a time, each padded by 3 * the total filter order;
+// expect differences near the ends of the output
 //
 // returns ErrInvalidSOS as SOSFilter does, and ErrInvalidPadding,
 // ErrSignalTooShort and ErrNoSteadyState as FiltFilt does

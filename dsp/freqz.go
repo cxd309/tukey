@@ -16,7 +16,8 @@ import (
 // returns ErrInvalidCoefficients as Filter does, and ErrInvalidLength if n < 0
 //
 // equivalent to scipy.signal.freqz(b, a, worN=n), and to MATLAB's [h, w] = freqz(b, a, n)
-// (note MATLAB returns h first)
+// (note MATLAB returns h first); for n = 0 this returns empty slices, as SciPy
+// does, where MATLAB's freqz errors
 func Freqz(b, a []float64, n int) (w []float64, h []complex128, err error) {
 	if err = validateCoefficients(b, a); err != nil {
 		return nil, nil, err
