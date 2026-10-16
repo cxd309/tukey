@@ -20,12 +20,14 @@ type zpk2sosVector struct {
 	} `json:"output"`
 }
 
-// zpk2sosSuite checks ZPK.SOS against scipy.signal.zpk2sos
+// zpk2sosSciPySuite checks ZPK.SOS against scipy.signal.zpk2sos
 // on SciPy's own zeros, poles and gain,
 // isolating the pairing from any difference in designs
+// not checked against MATLAB: zp2sos factorises odd orders and equal-radius pole
+// pairs differently (same filter, different sections), so coefficients can't match
 // measured: section order and pairing match exactly on all 29 vectors, worst
 // coefficient error 1.1e-16 (under 1 ULP); set to 1e-14 to match Filter
-var zpk2sosSuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
+var zpk2sosSciPySuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v zpk2sosVector) (outputs []Output, err error) {
 		zeros, err := v.Params.Z.Values()
@@ -44,7 +46,7 @@ var zpk2sosSuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
 		return
 	})
 
-// butterSOSSuite checks dsp.Butter(...).SOS() against
+// butterSOSSciPySuite checks dsp.Butter(...).SOS() against
 // scipy.signal.butter(..., output='sos') end to end,
 // using the sos output recorded in the Butter vectors
 //
@@ -53,12 +55,14 @@ var zpk2sosSuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
 // both the section order and which section carries the gain, and either way is
 // the same filter. bandstop_order2_wn0.01-0.99 is such a case: its edges are
 // symmetric about half Nyquist, so its pole pairs are p and -p. Order and gain
-// placement are checked exactly by zpk2sosSuite, on identical inputs.
+// placement are checked exactly by zpk2sosSciPySuite, on identical inputs.
+//
+// not checked against MATLAB, for the reason given at zpk2sosSciPySuite
 //
 // measured: worst 7.3e-15 (~33 ULP), on the same vector as Butter's own worst
-// case; the conversion adds essentially nothing (see zpk2sosSuite), so SOS
+// case; the conversion adds essentially nothing (see zpk2sosSciPySuite), so SOS
 // inherits the design's pole accuracy; set to match Butter
-var butterSOSSuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butter",
+var butterSOSSciPySuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butter",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
 	func(v butterVector) (outputs []Output, err error) {
 		wn, err := parseWn(v.Params.Wn)
@@ -114,7 +118,7 @@ func leadingCoefficient(b []float64) (lead float64) {
 }
 
 // matchSections reorders got so each section lines up with the closest section
-// in want; see butterSOSSuite for why order can legitimately differ
+// in want; see butterSOSSciPySuite for why order can legitimately differ
 func matchSections(got dsp.SOS, want [][6]float64) (matched dsp.SOS) {
 	used := make([]bool, len(got))
 	for _, w := range want {

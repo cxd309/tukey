@@ -6,11 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestConformance runs every suite, with one subtest per suite and per vector file,
-// e.g. TestConformance/Filter/butter2_lp0.3_step.json
+// TestConformance runs every suite, with one subtest per source, suite and vector file,
+// e.g. TestConformance/scipy/Filter/butter2_lp0.3_step.json
+// run one source alone with -run TestConformance/matlab
 func TestConformance(t *testing.T) {
 	for _, suite := range Suites {
-		t.Run(suite.Name, func(t *testing.T) { checkSuite(t, suite) })
+		t.Run(string(suite.Source)+"/"+suite.Name, func(t *testing.T) { checkSuite(t, suite) })
 	}
 }
 

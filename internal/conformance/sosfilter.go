@@ -18,34 +18,46 @@ type sosfiltVector struct {
 	} `json:"output"`
 }
 
-// sosFilterSuite checks dsp.SOSFilter against scipy.signal.sosfilt, and
+// sosFilterSciPySuite checks dsp.SOSFilter against scipy.signal.sosfilt, and
 // dsp.SOSFilterState against sosfilt with zi, including the final state
 // measured: worst 4.1e-14 (~183 ULP) on butter8_lp0.01, whose poles sit very close
 // to z = 1: the feedback amplifies single-rounding differences between Go and SciPy
 // (same coefficients and algorithm; likely FMA). Other filters, including the narrow
 // order-20 bandpass, agree within a few ULP; set ~10x above the worst
-var sosFilterSuite = newSuite("SOSFilter", reference.SourceSciPy, "sosfilt",
+var sosFilterSciPySuite = newSuite("SOSFilter", reference.SourceSciPy, "sosfilt",
 	reference.Tolerance{Rel: 1e-12, Scaled: 1e-12},
-	func(v sosfiltVector) (outputs []Output, err error) {
-		scale := maxAbs(v.Params.X)
-		if v.Params.Zi == nil {
-			y, err := dsp.SOSFilter(v.Params.SOS, v.Params.X)
-			if err != nil {
-				return nil, err
-			}
-			outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y, Scale: scale}}
-			return outputs, nil
-		}
-		y, zf, err := dsp.SOSFilterState(v.Params.SOS, v.Params.X, v.Params.Zi)
+	sosFilterOutputs)
+
+// sosFilterMATLABSuite checks dsp.SOSFilter against MATLAB's sosfilt
+// sosfilt takes no initial state, so the with-state cases have no MATLAB vector
+// measured: worst 9.0e-15 (41 ULP) on butter8_lp0.01, 4.5x closer than SciPy on the
+// same filter, consistent with the SciPy difference being FMA; set ~10x above the worst
+var sosFilterMATLABSuite = newSuite("SOSFilter", reference.SourceMATLAB, "sosfilt",
+	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
+	sosFilterOutputs)
+
+// sosFilterOutputs pairs dsp.SOSFilter's output with a vector's,
+// or dsp.SOSFilterState's output and final state when the vector has a starting state
+func sosFilterOutputs(v sosfiltVector) (outputs []Output, err error) {
+	scale := maxAbs(v.Params.X)
+	if v.Params.Zi == nil {
+		y, err := dsp.SOSFilter(v.Params.SOS, v.Params.X)
 		if err != nil {
 			return nil, err
 		}
-		outputs = []Output{
-			{Name: "y", Got: y, Want: v.Output.Y, Scale: scale},
-			{Name: "zf", Got: flattenPairs(zf), Want: flattenPairs(v.Output.Zf), Scale: scale},
-		}
-		return
-	})
+		outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y, Scale: scale}}
+		return outputs, nil
+	}
+	y, zf, err := dsp.SOSFilterState(v.Params.SOS, v.Params.X, v.Params.Zi)
+	if err != nil {
+		return nil, err
+	}
+	outputs = []Output{
+		{Name: "y", Got: y, Want: v.Output.Y, Scale: scale},
+		{Name: "zf", Got: flattenPairs(zf), Want: flattenPairs(v.Output.Zf), Scale: scale},
+	}
+	return
+}
 
 type sosfiltZiVector struct {
 	reference.Meta
@@ -57,9 +69,10 @@ type sosfiltZiVector struct {
 	} `json:"output"`
 }
 
-// sosFilterZiSuite checks dsp.SOSFilterZi against scipy.signal.sosfilt_zi
+// sosFilterZiSciPySuite checks dsp.SOSFilterZi against scipy.signal.sosfilt_zi
+// MATLAB has no equivalent function
 // measured: exact or under 1 ULP on all 4 filters (worst 9.8e-17); set to match Filter
-var sosFilterZiSuite = newSuite("SOSFilterZi", reference.SourceSciPy, "sosfilt_zi",
+var sosFilterZiSciPySuite = newSuite("SOSFilterZi", reference.SourceSciPy, "sosfilt_zi",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v sosfiltZiVector) (outputs []Output, err error) {
 		zi, err := dsp.SOSFilterZi(v.Params.SOS)
@@ -83,11 +96,16 @@ type sosfiltfiltVector struct {
 	} `json:"output"`
 }
 
-// sosFiltFiltSuite checks dsp.SOSFiltFilt against scipy.signal.sosfiltfilt
+// sosFiltFiltSciPySuite checks dsp.SOSFiltFilt against scipy.signal.sosfiltfilt
 // measured: worst 1.7e-13 (~763 ULP) on butter8_lp0.01: SOSFilter's sensitivity on
 // that filter, over two passes of a padded signal; other filters within a few ULP;
 // set ~10x above the worst
-var sosFiltFiltSuite = newSuite("SOSFiltFilt", reference.SourceSciPy, "sosfiltfilt",
+//
+// not yet checked against MATLAB: its filtfilt(sos, g, x) runs forward-backward per
+// section, each padded by 3 * the total filter order, which SOSFiltFilt doesn't
+// offer; testdata/matlab/sosfiltfilt is waiting for the MATLAB compatibility
+// option on the roadmap
+var sosFiltFiltSciPySuite = newSuite("SOSFiltFilt", reference.SourceSciPy, "sosfiltfilt",
 	reference.Tolerance{Rel: 1e-11, Scaled: 1e-11},
 	func(v sosfiltfiltVector) (outputs []Output, err error) {
 		opts, err := filtfiltOptions(v.Params.PadType, v.Params.PadLen)
