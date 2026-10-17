@@ -1,0 +1,5 @@
+{"description": "chebwin(3, 50)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 3,
+    "sym": true,
+    "at": 50
+  }, "output": {"w": [0.50317230938326218, 1, 0.50317230938326218]}}

@@ -1,0 +1,7 @@
+{"description": "taylorwin(2, 4, -30)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 2,
+    "sym": true,
+    "nbar": 4,
+    "sll": 30,
+    "norm": false
+  }, "output": {"w": [1.0315675012821064, 1.0315675012821064]}}

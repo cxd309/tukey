@@ -1,0 +1,20 @@
+{
+  "description": "scipy.signal.windows.taylor(2, nbar=4, sll=30, norm=False, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 2,
+    "sym": false,
+    "nbar": 4,
+    "sll": 30,
+    "norm": false
+  },
+  "output": {
+    "w": [
+      0.7274898182495382,
+      1.558106599377844
+    ]
+  }
+}

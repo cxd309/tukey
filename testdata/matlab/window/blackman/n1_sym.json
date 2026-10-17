@@ -1,0 +1,4 @@
+{"description": "blackman(1, \"symmetric\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 1,
+    "sym": true
+  }, "output": {"w": [1]}}

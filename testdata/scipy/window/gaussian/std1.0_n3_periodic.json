@@ -1,0 +1,19 @@
+{
+  "description": "scipy.signal.windows.gaussian(3, std=1.0, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 3,
+    "sym": false,
+    "std": 1.0
+  },
+  "output": {
+    "w": [
+      0.32465246735834974,
+      0.8824969025845955,
+      0.8824969025845955
+    ]
+  }
+}

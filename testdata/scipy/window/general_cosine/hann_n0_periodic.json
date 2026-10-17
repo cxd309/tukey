@@ -1,0 +1,18 @@
+{
+  "description": "scipy.signal.windows.general_cosine(0, a=[0.5, 0.5], sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 0,
+    "sym": false,
+    "a": [
+      0.5,
+      0.5
+    ]
+  },
+  "output": {
+    "w": []
+  }
+}

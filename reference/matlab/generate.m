@@ -20,7 +20,7 @@ signal = ver("signal");
 versions = struct("matlab", version, "signal", signal.Version);
 
 % every generator, package by package, as in reference/scipy/main.py
-generators = [tukey.dsp.generators(), tukey.fft.generators()];
+generators = [tukey.dsp.generators(), tukey.fft.generators(), tukey.window.generators()];
 for g = generators
     eachVector(scipyDir, outDir, versions, g.category, g.run);
 end

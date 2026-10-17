@@ -1,0 +1,17 @@
+{
+  "description": "scipy.signal.windows.chebwin(1, at=50, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 1,
+    "sym": true,
+    "at": 50
+  },
+  "output": {
+    "w": [
+      1.0
+    ]
+  }
+}

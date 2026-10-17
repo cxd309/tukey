@@ -1,0 +1,18 @@
+{
+  "description": "scipy.signal.windows.blackman(3, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 3,
+    "sym": false
+  },
+  "output": {
+    "w": [
+      -1.3877787807814457e-17,
+      0.6299999999999999,
+      0.6300000000000002
+    ]
+  }
+}

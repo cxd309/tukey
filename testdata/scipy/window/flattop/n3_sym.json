@@ -1,0 +1,18 @@
+{
+  "description": "scipy.signal.windows.flattop(3, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 3,
+    "sym": true
+  },
+  "output": {
+    "w": [
+      -0.0004210510000000013,
+      1.000000003,
+      -0.0004210510000000013
+    ]
+  }
+}

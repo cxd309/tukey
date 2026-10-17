@@ -1,0 +1,5 @@
+{"description": "tukeywin(1, 1)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 1,
+    "sym": true,
+    "alpha": 1.0
+  }, "output": {"w": [1]}}

@@ -1,0 +1,17 @@
+{
+  "description": "scipy.signal.windows.gaussian(1, std=7.0, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 1,
+    "sym": true,
+    "std": 7.0
+  },
+  "output": {
+    "w": [
+      1.0
+    ]
+  }
+}

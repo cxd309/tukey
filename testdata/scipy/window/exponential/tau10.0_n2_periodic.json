@@ -1,0 +1,18 @@
+{
+  "description": "scipy.signal.windows.exponential(2, tau=10.0, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 2,
+    "sym": false,
+    "tau": 10.0
+  },
+  "output": {
+    "w": [
+      0.9048374180359595,
+      1.0
+    ]
+  }
+}

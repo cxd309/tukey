@@ -1,0 +1,4 @@
+{"description": "nuttallwin(3, \"symmetric\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 3,
+    "sym": true
+  }, "output": {"w": [0.00036280000000003809, 1, 0.00036280000000003809]}}
