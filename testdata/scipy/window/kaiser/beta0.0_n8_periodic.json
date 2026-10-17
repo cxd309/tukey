@@ -1,0 +1,24 @@
+{
+  "description": "scipy.signal.windows.kaiser(8, beta=0.0, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 8,
+    "sym": false,
+    "beta": 0.0
+  },
+  "output": {
+    "w": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  }
+}

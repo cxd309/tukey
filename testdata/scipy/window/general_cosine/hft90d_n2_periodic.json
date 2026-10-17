@@ -1,0 +1,24 @@
+{
+  "description": "scipy.signal.windows.general_cosine(2, a=[1, 1.942604, 1.340318, 0.440811, 0.043097], sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 2,
+    "sym": false,
+    "a": [
+      1,
+      1.942604,
+      1.340318,
+      0.440811,
+      0.043097
+    ]
+  },
+  "output": {
+    "w": [
+      -1.0408340855860843e-16,
+      4.766830000000001
+    ]
+  }
+}

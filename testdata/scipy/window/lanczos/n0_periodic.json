@@ -1,0 +1,14 @@
+{
+  "description": "scipy.signal.windows.lanczos(0, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 0,
+    "sym": false
+  },
+  "output": {
+    "w": []
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "description": "scipy.signal.windows.parzen(8, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 8,
+    "sym": true
+  },
+  "output": {
+    "w": [
+      0.00390625,
+      0.10546875,
+      0.47265625,
+      0.91796875,
+      0.91796875,
+      0.47265625,
+      0.10546875,
+      0.00390625
+    ]
+  }
+}

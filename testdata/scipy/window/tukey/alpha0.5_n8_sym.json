@@ -1,0 +1,24 @@
+{
+  "description": "scipy.signal.windows.tukey(8, alpha=0.5, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 8,
+    "sym": true,
+    "alpha": 0.5
+  },
+  "output": {
+    "w": [
+      0.0,
+      0.6112604669781572,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.6112604669781576,
+      0.0
+    ]
+  }
+}

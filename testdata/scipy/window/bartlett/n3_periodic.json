@@ -1,0 +1,18 @@
+{
+  "description": "scipy.signal.windows.bartlett(3, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 3,
+    "sym": false
+  },
+  "output": {
+    "w": [
+      0.0,
+      0.6666666666666666,
+      0.6666666666666667
+    ]
+  }
+}

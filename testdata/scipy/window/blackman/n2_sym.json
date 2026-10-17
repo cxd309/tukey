@@ -1,0 +1,17 @@
+{
+  "description": "scipy.signal.windows.blackman(2, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 2,
+    "sym": true
+  },
+  "output": {
+    "w": [
+      -1.3877787807814457e-17,
+      -1.3877787807814457e-17
+    ]
+  }
+}

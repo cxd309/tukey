@@ -1,0 +1,24 @@
+{
+  "description": "scipy.signal.windows.general_hamming(8, alpha=0.54, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 8,
+    "sym": false,
+    "alpha": 0.54
+  },
+  "output": {
+    "w": [
+      0.08000000000000007,
+      0.21473088065418822,
+      0.54,
+      0.865269119345812,
+      1.0,
+      0.865269119345812,
+      0.54,
+      0.21473088065418822
+    ]
+  }
+}
