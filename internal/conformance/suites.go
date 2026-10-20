@@ -21,7 +21,14 @@ var Suites = []Suite{
 	fftOptionsSciPySuite,
 	fftFreqSciPySuite,
 	fftShiftSciPySuite,
-
+	hannSciPySuite,
+	hammingSciPySuite,
+	blackmanSciPySuite,
+	blackmanHarrisSciPySuite,
+	nuttallSciPySuite,
+	flatTopSciPySuite,
+	generalCosineSciPySuite,
+	generalHammingSciPySuite,
 	// MATLAB, for the categories it can reproduce; see each SciPy suite for why
 	// any without a MATLAB counterpart are missing
 	butterMATLABSuite,
@@ -37,4 +44,10 @@ var Suites = []Suite{
 	inverseRealMATLABSuite,
 	fftOptionsMATLABSuite,
 	fftShiftMATLABSuite,
+	hannMATLABSuite,
+	hammingMATLABSuite,
+	blackmanMATLABSuite,
+	blackmanHarrisMATLABSuite,
+	nuttallMATLABSuite,
+	flatTopMATLABSuite,
 }
