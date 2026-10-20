@@ -13,12 +13,17 @@ type windowVector struct {
 	} `json:"output"`
 }
 
-// windowParams is every window's parameters; each window reads its own
+// windowParams is every window's parameters, each window reads its own
 type windowParams struct {
-	N     int       `json:"n"`
-	Sym   bool      `json:"sym"`
-	Alpha float64   `json:"alpha"` // tukey, general_hamming
-	A     []float64 `json:"a"`     // general_cosine
+	N      int       `json:"n"`
+	Sym    bool      `json:"sym"`
+	Alpha  float64   `json:"alpha"`  // tukey, general_hamming
+	A      []float64 `json:"a"`      // general_cosine
+	Std    float64   `json:"std"`    // gaussian
+	P      float64   `json:"p"`      // general_gaussian
+	Sig    float64   `json:"sig"`    // general_gaussian
+	Tau    float64   `json:"tau"`    // exponential
+	Center *float64  `json:"center"` // exponential; null or absent: the middle
 }
 
 // windowCall calls one window function with a vector's parameters and options
@@ -91,6 +96,16 @@ var (
 	// MATLAB has no cosine or lanczos
 	cosineSciPySuite  = newWindowSuite("window.Cosine", reference.SourceSciPy, "cosine", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, cosineCall)
 	lanczosSciPySuite = newWindowSuite("window.Lanczos", reference.SourceSciPy, "lanczos", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, lanczosCall)
+
+	// exponential family
+	// measured: within 1 ULP of SciPy and MATLAB (gausswin, alpha converted from std);
+	// exp of a single well-conditioned argument leaves little to differ, set ~10x above
+	gaussianSciPySuite  = newWindowSuite("window.Gaussian", reference.SourceSciPy, "gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, gaussianCall)
+	gaussianMATLABSuite = newWindowSuite("window.Gaussian", reference.SourceMATLAB, "gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, gaussianCall)
+
+	// MATLAB has no general_gaussian or exponential
+	generalGaussianSciPySuite = newWindowSuite("window.GeneralGaussian", reference.SourceSciPy, "general_gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, generalGaussianCall)
+	exponentialSciPySuite     = newWindowSuite("window.Exponential", reference.SourceSciPy, "exponential", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, exponentialCall)
 )
 
 func hannCall(p windowParams, opts []window.Option) (w []float64, err error) {
@@ -179,5 +194,22 @@ func cosineCall(p windowParams, opts []window.Option) (w []float64, err error) {
 
 func lanczosCall(p windowParams, opts []window.Option) (w []float64, err error) {
 	w, err = window.Lanczos(p.N, opts...)
+	return
+}
+func gaussianCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Gaussian(p.N, p.Std, opts...)
+	return
+}
+
+func generalGaussianCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.GeneralGaussian(p.N, p.P, p.Sig, opts...)
+	return
+}
+
+func exponentialCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	if p.Center != nil {
+		opts = append(opts, window.Center(*p.Center))
+	}
+	w, err = window.Exponential(p.N, p.Tau, opts...)
 	return
 }

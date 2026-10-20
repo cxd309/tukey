@@ -10,24 +10,27 @@ type optionKind int
 
 const (
 	optionPeriodic optionKind = iota
-	optionCount               // the number of options, keep last
+	optionCenter
+	optionCount // the number of options, keep last
 )
 
 // optionNames names each option, for error messages
 var optionNames = [optionCount]string{
 	optionPeriodic: "Periodic",
+	optionCenter:   "Center",
 }
 
 // optionSet is a set of optionSet: optionSet[o] is whether o is in it
 type optionSet [optionCount]bool
 
-// Option configures a window (see Periodic)
+// Option configures a window (see Periodic and Center)
 // a window given an option that doesn't apply to it returns ErrInvalidParameter
 type Option func(*config)
 
 // config is a window's settings, built from Options
 type config struct {
 	periodic bool
+	center   float64
 	given    optionSet // which options were passed, so a window can reject the rest
 }
 
@@ -58,9 +61,17 @@ func newConfig(window string, opts []Option, accepted optionSet) (cfg config, er
 // without names the options in s that aren't in other
 func (s optionSet) without(other optionSet) (names []string) {
 	for o := range optionCount {
-		if s[0] && !other[o] {
+		if s[o] && !other[o] {
 			names = append(names, optionNames[o])
 		}
+	}
+	return
+}
+
+func Center(c float64) (option Option) {
+	option = func(cfg *config) {
+		cfg.center = c
+		cfg.given[optionCenter] = true
 	}
 	return
 }

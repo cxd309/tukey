@@ -39,6 +39,15 @@ var windows = map[string]func(n int, opts ...Option) ([]float64, error){
 	"Tukey(0.5)": func(n int, opts ...Option) ([]float64, error) {
 		return Tukey(n, 0.5, opts...)
 	},
+	"Gaussian(2.5)": func(n int, opts ...Option) ([]float64, error) {
+		return Gaussian(n, 2.5, opts...)
+	},
+	"GeneralGaussian(1.5, 7)": func(n int, opts ...Option) ([]float64, error) {
+		return GeneralGaussian(n, 1.5, 7, opts...)
+	},
+	"Exponential(3)": func(n int, opts ...Option) ([]float64, error) {
+		return Exponential(n, 3, opts...)
+	},
 }
 
 func TestRejectsNegativeLength(t *testing.T) {
@@ -138,9 +147,9 @@ func TestGeneralCosineNeedsCoefficients(t *testing.T) {
 }
 
 func TestRejectsOptionThatDoesNotApply(t *testing.T) {
-	_, err := newConfig("Test", []Option{Periodic()}, optionSet{})
+	_, err := Hann(8, Center(2))
 	assert.ErrorIs(t, err, ErrInvalidParameter)
-	assert.ErrorContains(t, err, "Periodic doesn't apply to Test")
+	assert.ErrorContains(t, err, "Center doesn't apply to Hann")
 }
 
 // Tukey's alpha has no domain: at or below 0 it's Boxcar, at or above 1 it's Hann
@@ -203,4 +212,51 @@ func TestTriangularSmall(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0.0, w[0])
 	assert.Equal(t, 0.0, w[4])
+}
+
+// GeneralGaussian at p = 1 is Gaussian, to within rounding: one squares, the other uses Pow
+func TestGeneralGaussianAtP1IsGaussian(t *testing.T) {
+	for n := 0; n <= 20; n++ {
+		gaussian, err := Gaussian(n, 2.5)
+		require.NoError(t, err)
+		general, err := GeneralGaussian(n, 1, 2.5)
+		require.NoError(t, err)
+		assert.InDeltaSlice(t, gaussian, general, 1e-15, "n = %d", n)
+	}
+}
+
+// Center at the periodic window's own middle (n/2) is the default, exactly:
+// |i - n/2| is the same whether computed directly or mirrored
+func TestExponentialCenterAtMiddleIsDefault(t *testing.T) {
+	for n := 0; n <= 20; n++ {
+		centred, err := Exponential(n, 3, Periodic())
+		require.NoError(t, err)
+		w, err := Exponential(n, 3, Periodic(), Center(float64(n)/2))
+		require.NoError(t, err)
+		assert.Equal(t, centred, w, "n = %d", n)
+	}
+}
+
+func TestExponentialCenterNeedsPeriodic(t *testing.T) {
+	_, err := Exponential(8, 3, Center(0))
+	assert.ErrorIs(t, err, ErrInvalidParameter)
+}
+
+func TestRejectsNonPositiveParameters(t *testing.T) {
+	cases := map[string]func() ([]float64, error){
+		"Gaussian std 0":        func() ([]float64, error) { return Gaussian(8, 0) },
+		"Gaussian std NaN":      func() ([]float64, error) { return Gaussian(8, math.NaN()) },
+		"GeneralGaussian p -1":  func() ([]float64, error) { return GeneralGaussian(8, -1, 2) },
+		"GeneralGaussian sig 0": func() ([]float64, error) { return GeneralGaussian(8, 1, 0) },
+		"Exponential tau 0":     func() ([]float64, error) { return Exponential(8, 0) },
+		"Exponential center NaN": func() ([]float64, error) {
+			return Exponential(8, 3, Periodic(), Center(math.NaN()))
+		},
+	}
+	for name, call := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := call()
+			assert.ErrorIs(t, err, ErrInvalidParameter)
+		})
+	}
 }
