@@ -33,3 +33,14 @@ func shape(n int, periodic bool, value func(k, m int) float64) (w []float64, err
 	}
 	return
 }
+
+// newWindow builds the n-point window name from value (see shape)
+// accepting only Periodic
+func newWindow(name string, n int, opts []Option, value func(k, m int) float64) (w []float64, err error) {
+	cfg, err := newConfig(name, opts, optionSet{optionPeriodic: true})
+	if err != nil {
+		return nil, err
+	}
+	w, err = shape(n, cfg.periodic, value)
+	return
+}

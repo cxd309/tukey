@@ -17,7 +17,7 @@ type windowVector struct {
 type windowParams struct {
 	N     int       `json:"n"`
 	Sym   bool      `json:"sym"`
-	Alpha float64   `json:"alpha"` // general_hamming
+	Alpha float64   `json:"alpha"` // tukey, general_hamming
 	A     []float64 `json:"a"`     // general_cosine
 }
 
@@ -66,6 +66,31 @@ var (
 	// alternating coefficients nearly cancel where the window is small, set ~10x above
 	generalCosineSciPySuite  = newWindowSuite("window.GeneralCosine", reference.SourceSciPy, "general_cosine", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, generalCosineCall)
 	generalHammingSciPySuite = newWindowSuite("window.GeneralHamming", reference.SourceSciPy, "general_hamming", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, generalHammingCall)
+	// piecewise and sine windows
+	// measured: within 3 ULP of SciPy and MATLAB, worst Tukey at alpha 0.25;
+	// Boxcar and Triang are exact against both: one integer division per sample
+	// (Triang) or none (Boxcar) leaves nothing to round differently, so anything
+	// but exact is a bug; set ~10x above the rest
+	boxcarSciPySuite    = newWindowSuite("window.Boxcar", reference.SourceSciPy, "boxcar", reference.Tolerance{}, boxcarCall)
+	boxcarMATLABSuite   = newWindowSuite("window.Boxcar", reference.SourceMATLAB, "boxcar", reference.Tolerance{}, boxcarCall)
+	triangSciPySuite    = newWindowSuite("window.Triang", reference.SourceSciPy, "triang", reference.Tolerance{}, triangCall)
+	triangMATLABSuite   = newWindowSuite("window.Triang", reference.SourceMATLAB, "triang", reference.Tolerance{}, triangCall)
+	bartlettSciPySuite  = newWindowSuite("window.Bartlett", reference.SourceSciPy, "bartlett", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bartlettCall)
+	bartlettMATLABSuite = newWindowSuite("window.Bartlett", reference.SourceMATLAB, "bartlett", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bartlettCall)
+	parzenSciPySuite    = newWindowSuite("window.Parzen", reference.SourceSciPy, "parzen", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, parzenCall)
+	parzenMATLABSuite   = newWindowSuite("window.Parzen", reference.SourceMATLAB, "parzen", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, parzenCall)
+	bohmanSciPySuite    = newWindowSuite("window.Bohman", reference.SourceSciPy, "bohman", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bohmanCall)
+	bohmanMATLABSuite   = newWindowSuite("window.Bohman", reference.SourceMATLAB, "bohman", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bohmanCall)
+	barthannSciPySuite  = newWindowSuite("window.Barthann", reference.SourceSciPy, "barthann", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, barthannCall)
+	barthannMATLABSuite = newWindowSuite("window.Barthann", reference.SourceMATLAB, "barthann", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, barthannCall)
+	tukeySciPySuite     = newWindowSuite("window.Tukey", reference.SourceSciPy, "tukey", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, tukeyCall)
+	tukeyMATLABSuite    = newWindowSuite("window.Tukey", reference.SourceMATLAB, "tukey", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, tukeyCall)
+	hanningSciPySuite   = newWindowSuite("window.Hanning", reference.SourceSciPy, "hanning", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hanningCall)
+	hanningMATLABSuite  = newWindowSuite("window.Hanning", reference.SourceMATLAB, "hanning", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hanningCall)
+
+	// MATLAB has no cosine or lanczos
+	cosineSciPySuite  = newWindowSuite("window.Cosine", reference.SourceSciPy, "cosine", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, cosineCall)
+	lanczosSciPySuite = newWindowSuite("window.Lanczos", reference.SourceSciPy, "lanczos", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, lanczosCall)
 )
 
 func hannCall(p windowParams, opts []window.Option) (w []float64, err error) {
@@ -105,5 +130,54 @@ func generalCosineCall(p windowParams, opts []window.Option) (w []float64, err e
 
 func generalHammingCall(p windowParams, opts []window.Option) (w []float64, err error) {
 	w, err = window.GeneralHamming(p.N, p.Alpha, opts...)
+	return
+}
+func boxcarCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Boxcar(p.N, opts...)
+	return
+}
+
+func triangCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Triang(p.N, opts...)
+	return
+}
+
+func bartlettCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Bartlett(p.N, opts...)
+	return
+}
+
+func parzenCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Parzen(p.N, opts...)
+	return
+}
+
+func bohmanCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Bohman(p.N, opts...)
+	return
+}
+
+func barthannCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Barthann(p.N, opts...)
+	return
+}
+
+func tukeyCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Tukey(p.N, p.Alpha, opts...)
+	return
+}
+
+func hanningCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Hanning(p.N, opts...)
+	return
+}
+
+func cosineCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Cosine(p.N, opts...)
+	return
+}
+
+func lanczosCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Lanczos(p.N, opts...)
 	return
 }

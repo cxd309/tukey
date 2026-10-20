@@ -29,11 +29,7 @@ func cosineSum(a []float64) (value func(k, m int) float64) {
 
 // cosineWindow builds the n-point cosine-sum window with coefficients a
 func cosineWindow(name string, n int, a []float64, opts []Option) (w []float64, err error) {
-	cfg, err := newConfig(name, opts, optionSet{optionPeriodic: true})
-	if err != nil {
-		return nil, err
-	}
-	w, err = shape(n, cfg.periodic, cosineSum(a))
+	w, err = newWindow(name, n, opts, cosineSum(a))
 	return
 }
 
@@ -56,6 +52,64 @@ func GeneralCosine(n int, a []float64, opts ...Option) (w []float64, err error) 
 		return nil, fmt.Errorf("%w: GeneralCosine needs at least one coefficient", ErrInvalidParameter)
 	}
 	w, err = cosineWindow("GeneralCosine", n, a, opts)
+	return
+}
+
+// Tukey returns the n-point tukey (cosine-tapered) window:
+// flat in the middle with raised-cosine tapers at each end
+// making up alpha of its length
+//
+// alpha 0 or less is Boxcar, and 1 or more is Hann
+//
+// returns ErrInvalidLength if n < 0, and ErrInvalidParameter if alpha is NaN
+//
+// equivalent to scipy.signal.windows.tukey(n, alpha) and MATLAB's tukeywin(n, alpha)
+func Tukey(n int, alpha float64, opts ...Option) (w []float64, err error) {
+	switch {
+	case math.IsNaN(alpha):
+		return nil, fmt.Errorf("%w: Tukey's alpha is NaN", ErrInvalidParameter)
+	case alpha <= 0:
+		w, err = newWindow("Tukey", n, opts, boxcar)
+	case alpha >= 1:
+		w, err = newWindow("Tueky", n, opts, cosineSum(generalHamming(0.5)))
+	default:
+		w, err = newWindow("Tukey", n, opts, tukey(alpha))
+	}
+	return
+}
+
+// Hanning returns MATLAB's n-point Hanning window:
+// symmetric, it's the Hann window without the zero endpoints,  Hann(n+2) less its first and last sample.
+// periodic, it's Hann's periodic window, keeping it's first zero
+//
+// returns ErrInvalidLength if n<0
+//
+// equivalent to MATLAB's hanning(n), no SciPy equivalent
+func Hanning(n int, opts ...Option) (w []float64, err error) {
+	cfg, err := newConfig("Hanning", opts, optionSet{optionPeriodic: true})
+	if err != nil {
+		return nil, err
+	}
+	hann := cosineSum(generalHamming(0.5))
+	if cfg.periodic {
+		w, err = shape(n, true, hann)
+		return
+	}
+	w, err = shape(n, false, func(k, m int) float64 { return hann(k+1, m+2) })
+	return
+}
+
+// tukey gives sample k of the summetric Tukey window of length m, for 0<alpha<1:
+// a raised-cosine taper over the first alpha (m-1)/2 samples, then flat
+func tukey(alpha float64) (value func(k, m int) float64) {
+	value = func(k, m int) (v float64) {
+		width := int(math.Floor(alpha * float64(m-1) / 2))
+		if k > width {
+			return 1
+		}
+		v = 0.5 * (1 + math.Cos(math.Pi*(-1+2*float64(k)/(alpha*float64(m-1)))))
+		return
+	}
 	return
 }
 
