@@ -34,6 +34,157 @@ type windowParams struct {
 // windowCall calls one window function with a vector's parameters and options
 type windowCall func(p windowParams, opts []window.Option) (w []float64, err error)
 
+// windowCheck is one window function, checked against testdata/<source>/window/<category>
+// from each source it has; matlab is nil where MATLAB has no equivalent
+type windowCheck struct {
+	name, category string
+	call           windowCall
+	scipy          reference.Tolerance
+	matlab         *reference.Tolerance
+}
+
+// windowChecks is every window, grouped by family, each with its measured tolerances
+var windowChecks = []windowCheck{
+	// cosine-sum windows
+	// measured: within 3 ULP of SciPy, most at n = 64 symmetric, where SciPy's
+	// own asymmetry (up to 3.5 ULP) meets tukey's exact mirroring; within 4 ULP
+	// of MATLAB, whose windows are symmetric; set ~10x above
+	{name: "window.Hann", category: "hann", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Hann(p.N, opts...) }},
+	{name: "window.Hamming", category: "hamming", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Hamming(p.N, opts...) }},
+	{name: "window.Blackman", category: "blackman", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Blackman(p.N, opts...) }},
+	{name: "window.BlackmanHarris", category: "blackmanharris", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.BlackmanHarris(p.N, opts...)
+		}},
+	{name: "window.Nuttall", category: "nuttall", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Nuttall(p.N, opts...) }},
+	{name: "window.FlatTop", category: "flattop", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.FlatTop(p.N, opts...) }},
+	// GeneralCosine measured: worst 8 ULP (1.7e-15) on HFT90D, whose large,
+	// alternating coefficients nearly cancel where the window is small; set ~10x above
+	// MATLAB has no general_cosine or general_hamming
+	{name: "window.GeneralCosine", category: "general_cosine", scipy: tolerance(1e-13),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.GeneralCosine(p.N, p.A, opts...)
+		}},
+	{name: "window.GeneralHamming", category: "general_hamming", scipy: tolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.GeneralHamming(p.N, p.Alpha, opts...)
+		}},
+
+	// piecewise and sine windows
+	// measured: within 3 ULP of SciPy and MATLAB, worst Tukey at alpha 0.25;
+	// Boxcar and Triang are exact against both: one integer division per sample
+	// (Triang) or none (Boxcar) leaves nothing to round differently, so anything
+	// but exact is a bug; set ~10x above the rest
+	{name: "window.Boxcar", category: "boxcar", scipy: tolerance(0), matlab: matlabTolerance(0),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Boxcar(p.N, opts...) }},
+	{name: "window.Triang", category: "triang", scipy: tolerance(0), matlab: matlabTolerance(0),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Triang(p.N, opts...) }},
+	{name: "window.Bartlett", category: "bartlett", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Bartlett(p.N, opts...) }},
+	{name: "window.Parzen", category: "parzen", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Parzen(p.N, opts...) }},
+	{name: "window.Bohman", category: "bohman", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Bohman(p.N, opts...) }},
+	{name: "window.Barthann", category: "barthann", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Barthann(p.N, opts...) }},
+	{name: "window.Tukey", category: "tukey", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.Tukey(p.N, p.Alpha, opts...)
+		}},
+	{name: "window.Hanning", category: "hanning", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Hanning(p.N, opts...) }},
+	// MATLAB has no cosine or lanczos
+	{name: "window.Cosine", category: "cosine", scipy: tolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Cosine(p.N, opts...) }},
+	{name: "window.Lanczos", category: "lanczos", scipy: tolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Lanczos(p.N, opts...) }},
+
+	// exponential family
+	// measured: within 1 ULP of SciPy and MATLAB (gausswin, alpha converted from std);
+	// exp of a single well-conditioned argument leaves little to differ; set ~10x above
+	{name: "window.Gaussian", category: "gaussian", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.Gaussian(p.N, p.Std, opts...)
+		}},
+	// MATLAB has no general_gaussian or exponential
+	{name: "window.GeneralGaussian", category: "general_gaussian", scipy: tolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.GeneralGaussian(p.N, p.P, p.Sig, opts...)
+		}},
+	{name: "window.Exponential", category: "exponential", scipy: tolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			if p.Center != nil {
+				opts = append(opts, window.Center(*p.Center))
+			}
+			return window.Exponential(p.N, p.Tau, opts...)
+		}},
+
+	// Bessel windows
+	// Kaiser measured: worst 8 ULP against SciPy (beta 14) and 9 against MATLAB
+	// (beta 8.6): I0 grows like exp, so its relative error is about its argument's
+	// absolute error, which scales with beta; set ~10x above
+	{name: "window.Kaiser", category: "kaiser", scipy: tolerance(1e-13), matlab: matlabTolerance(1e-13),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.Kaiser(p.N, p.Beta, opts...)
+		}},
+	// KaiserBesselDerived measured: exact against SciPy, as tukey's I0 (Cephes, as
+	// SciPy's) matches it to the bit at these arguments; that's coincidence, not
+	// construction, so it takes Kaiser's tolerance, whose error it inherits
+	// MATLAB has no kaiser_bessel_derived; its vectors are symmetric and even n only
+	{name: "window.KaiserBesselDerived", category: "kaiser_bessel_derived", scipy: tolerance(1e-13),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.KaiserBesselDerived(p.N, p.Beta, opts...)
+		}},
+
+	// Taylor and Chebyshev
+	// Taylor measured: within 2 ULP of SciPy and MATLAB (its raw cases); set ~10x above
+	{name: "window.Taylor", category: "taylor", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			if !p.Norm {
+				opts = append(opts, window.Unnormalised())
+			}
+			return window.Taylor(p.N, p.Nbar, p.Sll, opts...)
+		}},
+	// Chebwin measured: worst 1.5e-12 against SciPy (50 dB, n = 255 periodic) and
+	// 3.7e-13 against MATLAB, as far apart as SciPy and MATLAB are (3.2e-13):
+	// near x = ±1, T_{n-1}(x) magnifies an ULP of difference in x by about
+	// (n-1)/sqrt(1-x^2), and Go, NumPy and MATLAB round x differently; the FFT
+	// then spreads that evenly over the window; set ~10x above
+	{name: "window.Chebwin", category: "chebwin", scipy: tolerance(1e-11), matlab: matlabTolerance(1e-11),
+		call: func(p windowParams, opts []window.Option) ([]float64, error) {
+			return window.Chebwin(p.N, p.At, opts...)
+		}},
+}
+
+// windowSuites is a suite for each window in windowChecks with vectors from source,
+// in windowChecks' order
+func windowSuites(source reference.Source) (suites []Suite) {
+	for _, c := range windowChecks {
+		tol, ok := c.tolerance(source)
+		if !ok {
+			continue
+		}
+		suites = append(suites, newWindowSuite(c.name, source, c.category, tol, c.call))
+	}
+	return
+}
+
+// tolerance is c's tolerance against source, and whether source has vectors for it
+func (c windowCheck) tolerance(source reference.Source) (tol reference.Tolerance, ok bool) {
+	switch {
+	case source == reference.SourceSciPy:
+		return c.scipy, true
+	case source == reference.SourceMATLAB && c.matlab != nil:
+		return *c.matlab, true
+	}
+	return
+}
+
 // newWindowSuite builds a suite checking call against testdata/<source>/window/<category>
 func newWindowSuite(name string, source reference.Source, category string, tol reference.Tolerance, call windowCall) (s Suite) {
 	s = newSuite(name, source, "window/"+category, tol, func(v windowVector) (outputs []Output, err error) {
@@ -53,217 +204,16 @@ func newWindowSuite(name string, source reference.Source, category string, tol r
 	return
 }
 
-// cosine-sum windows
-// measured: within 3 ULP of SciPy, most at n = 64 symmetric,
-// where SciPy's own asymmetry (up to 3.5 ULP) meets tukey's exact mirroring
-// within 4 ULP of MATLAB, whose windows are symmetric, set ~10x above
-
-var (
-	hannSciPySuite            = newWindowSuite("window.Hann", reference.SourceSciPy, "hann", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hannCall)
-	hannMATLABSuite           = newWindowSuite("window.Hann", reference.SourceMATLAB, "hann", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hannCall)
-	hammingSciPySuite         = newWindowSuite("window.Hamming", reference.SourceSciPy, "hamming", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hammingCall)
-	hammingMATLABSuite        = newWindowSuite("window.Hamming", reference.SourceMATLAB, "hamming", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hammingCall)
-	blackmanSciPySuite        = newWindowSuite("window.Blackman", reference.SourceSciPy, "blackman", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, blackmanCall)
-	blackmanMATLABSuite       = newWindowSuite("window.Blackman", reference.SourceMATLAB, "blackman", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, blackmanCall)
-	blackmanHarrisSciPySuite  = newWindowSuite("window.BlackmanHarris", reference.SourceSciPy, "blackmanharris", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, blackmanHarrisCall)
-	blackmanHarrisMATLABSuite = newWindowSuite("window.BlackmanHarris", reference.SourceMATLAB, "blackmanharris", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, blackmanHarrisCall)
-	nuttallSciPySuite         = newWindowSuite("window.Nuttall", reference.SourceSciPy, "nuttall", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, nuttallCall)
-	nuttallMATLABSuite        = newWindowSuite("window.Nuttall", reference.SourceMATLAB, "nuttall", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, nuttallCall)
-	flatTopSciPySuite         = newWindowSuite("window.FlatTop", reference.SourceSciPy, "flattop", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, flatTopCall)
-	flatTopMATLABSuite        = newWindowSuite("window.FlatTop", reference.SourceMATLAB, "flattop", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, flatTopCall)
-	// MATLAB has no general_cosine or general_hamming
-	// GeneralCosine measured: worst 8 ULP (1.7e-15) on HFT90D, whose large,
-	// alternating coefficients nearly cancel where the window is small, set ~10x above
-	generalCosineSciPySuite  = newWindowSuite("window.GeneralCosine", reference.SourceSciPy, "general_cosine", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, generalCosineCall)
-	generalHammingSciPySuite = newWindowSuite("window.GeneralHamming", reference.SourceSciPy, "general_hamming", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, generalHammingCall)
-	// piecewise and sine windows
-	// measured: within 3 ULP of SciPy and MATLAB, worst Tukey at alpha 0.25;
-	// Boxcar and Triang are exact against both: one integer division per sample
-	// (Triang) or none (Boxcar) leaves nothing to round differently, so anything
-	// but exact is a bug; set ~10x above the rest
-	boxcarSciPySuite    = newWindowSuite("window.Boxcar", reference.SourceSciPy, "boxcar", reference.Tolerance{}, boxcarCall)
-	boxcarMATLABSuite   = newWindowSuite("window.Boxcar", reference.SourceMATLAB, "boxcar", reference.Tolerance{}, boxcarCall)
-	triangSciPySuite    = newWindowSuite("window.Triang", reference.SourceSciPy, "triang", reference.Tolerance{}, triangCall)
-	triangMATLABSuite   = newWindowSuite("window.Triang", reference.SourceMATLAB, "triang", reference.Tolerance{}, triangCall)
-	bartlettSciPySuite  = newWindowSuite("window.Bartlett", reference.SourceSciPy, "bartlett", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bartlettCall)
-	bartlettMATLABSuite = newWindowSuite("window.Bartlett", reference.SourceMATLAB, "bartlett", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bartlettCall)
-	parzenSciPySuite    = newWindowSuite("window.Parzen", reference.SourceSciPy, "parzen", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, parzenCall)
-	parzenMATLABSuite   = newWindowSuite("window.Parzen", reference.SourceMATLAB, "parzen", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, parzenCall)
-	bohmanSciPySuite    = newWindowSuite("window.Bohman", reference.SourceSciPy, "bohman", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bohmanCall)
-	bohmanMATLABSuite   = newWindowSuite("window.Bohman", reference.SourceMATLAB, "bohman", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, bohmanCall)
-	barthannSciPySuite  = newWindowSuite("window.Barthann", reference.SourceSciPy, "barthann", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, barthannCall)
-	barthannMATLABSuite = newWindowSuite("window.Barthann", reference.SourceMATLAB, "barthann", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, barthannCall)
-	tukeySciPySuite     = newWindowSuite("window.Tukey", reference.SourceSciPy, "tukey", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, tukeyCall)
-	tukeyMATLABSuite    = newWindowSuite("window.Tukey", reference.SourceMATLAB, "tukey", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, tukeyCall)
-	hanningSciPySuite   = newWindowSuite("window.Hanning", reference.SourceSciPy, "hanning", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hanningCall)
-	hanningMATLABSuite  = newWindowSuite("window.Hanning", reference.SourceMATLAB, "hanning", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, hanningCall)
-
-	// MATLAB has no cosine or lanczos
-	cosineSciPySuite  = newWindowSuite("window.Cosine", reference.SourceSciPy, "cosine", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, cosineCall)
-	lanczosSciPySuite = newWindowSuite("window.Lanczos", reference.SourceSciPy, "lanczos", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, lanczosCall)
-
-	// exponential family
-	// measured: within 1 ULP of SciPy and MATLAB (gausswin, alpha converted from std);
-	// exp of a single well-conditioned argument leaves little to differ, set ~10x above
-	gaussianSciPySuite  = newWindowSuite("window.Gaussian", reference.SourceSciPy, "gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, gaussianCall)
-	gaussianMATLABSuite = newWindowSuite("window.Gaussian", reference.SourceMATLAB, "gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, gaussianCall)
-
-	// MATLAB has no general_gaussian or exponential
-	generalGaussianSciPySuite = newWindowSuite("window.GeneralGaussian", reference.SourceSciPy, "general_gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, generalGaussianCall)
-	exponentialSciPySuite     = newWindowSuite("window.Exponential", reference.SourceSciPy, "exponential", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, exponentialCall)
-
-	// Bessel windows
-	// Kaiser measured: worst 8 ULP against SciPy (beta 14) and 9 against MATLAB
-	// (beta 8.6): I0 grows like exp, so its relative error is about its argument's
-	// absolute error, which scales with beta; set ~10x above
-	kaiserSciPySuite  = newWindowSuite("window.Kaiser", reference.SourceSciPy, "kaiser", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserCall)
-	kaiserMATLABSuite = newWindowSuite("window.Kaiser", reference.SourceMATLAB, "kaiser", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserCall)
-
-	// MATLAB has no kaiser_bessel_derived; its vectors are symmetric and even n only
-	// measured: exact against SciPy, as tukey's I0 (Cephes, as SciPy's) matches it
-	// to the bit at these arguments; that's coincidence, not construction, so it
-	// takes Kaiser's tolerance, whose error it inherits
-	kaiserBesselDerivedSciPySuite = newWindowSuite("window.KaiserBesselDerived", reference.SourceSciPy, "kaiser_bessel_derived", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserBesselDerivedCall)
-
-	// Taylor and Chebyshev
-	// Taylor measured: within 2 ULP of SciPy and MATLAB (its raw cases); set ~10x above
-	taylorSciPySuite  = newWindowSuite("window.Taylor", reference.SourceSciPy, "taylor", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, taylorCall)
-	taylorMATLABSuite = newWindowSuite("window.Taylor", reference.SourceMATLAB, "taylor", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, taylorCall)
-
-	// Chebwin measured: worst 1.5e-12 against SciPy (50 dB, n = 255 periodic) and
-	// 3.7e-13 against MATLAB, as far apart as SciPy and MATLAB are (3.2e-13):
-	// near x = ±1, T_{n-1}(x) magnifies an ULP of difference in x by about
-	// (n-1)/sqrt(1-x^2), and Go, NumPy and MATLAB round x differently; the FFT
-	// then spreads that evenly over the window; set ~10x above
-	chebwinSciPySuite  = newWindowSuite("window.Chebwin", reference.SourceSciPy, "chebwin", reference.Tolerance{Rel: 1e-11, Scaled: 1e-11}, chebwinCall)
-	chebwinMATLABSuite = newWindowSuite("window.Chebwin", reference.SourceMATLAB, "chebwin", reference.Tolerance{Rel: 1e-11, Scaled: 1e-11}, chebwinCall)
-)
-
-func hannCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Hann(p.N, opts...)
+// tolerance is a Tolerance bounding both relative and scaled error by bound;
+// 0 is exact
+func tolerance(bound float64) (tol reference.Tolerance) {
+	tol = reference.Tolerance{Rel: bound, Scaled: bound}
 	return
 }
 
-func hammingCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Hamming(p.N, opts...)
-	return
-}
-
-func blackmanCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Blackman(p.N, opts...)
-	return
-}
-
-func blackmanHarrisCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.BlackmanHarris(p.N, opts...)
-	return
-}
-
-func nuttallCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Nuttall(p.N, opts...)
-	return
-}
-
-func flatTopCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.FlatTop(p.N, opts...)
-	return
-}
-
-func generalCosineCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.GeneralCosine(p.N, p.A, opts...)
-	return
-}
-
-func generalHammingCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.GeneralHamming(p.N, p.Alpha, opts...)
-	return
-}
-func boxcarCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Boxcar(p.N, opts...)
-	return
-}
-
-func triangCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Triang(p.N, opts...)
-	return
-}
-
-func bartlettCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Bartlett(p.N, opts...)
-	return
-}
-
-func parzenCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Parzen(p.N, opts...)
-	return
-}
-
-func bohmanCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Bohman(p.N, opts...)
-	return
-}
-
-func barthannCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Barthann(p.N, opts...)
-	return
-}
-
-func tukeyCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Tukey(p.N, p.Alpha, opts...)
-	return
-}
-
-func hanningCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Hanning(p.N, opts...)
-	return
-}
-
-func cosineCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Cosine(p.N, opts...)
-	return
-}
-
-func lanczosCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Lanczos(p.N, opts...)
-	return
-}
-func gaussianCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Gaussian(p.N, p.Std, opts...)
-	return
-}
-
-func generalGaussianCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.GeneralGaussian(p.N, p.P, p.Sig, opts...)
-	return
-}
-
-func exponentialCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	if p.Center != nil {
-		opts = append(opts, window.Center(*p.Center))
-	}
-	w, err = window.Exponential(p.N, p.Tau, opts...)
-	return
-}
-
-func kaiserCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Kaiser(p.N, p.Beta, opts...)
-	return
-}
-
-func kaiserBesselDerivedCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.KaiserBesselDerived(p.N, p.Beta, opts...)
-	return
-}
-
-func taylorCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	if !p.Norm {
-		opts = append(opts, window.Unnormalised())
-	}
-	w, err = window.Taylor(p.N, p.Nbar, p.Sll, opts...)
-	return
-}
-
-func chebwinCall(p windowParams, opts []window.Option) (w []float64, err error) {
-	w, err = window.Chebwin(p.N, p.At, opts...)
+// matlabTolerance is tolerance(bound), for windowCheck's optional matlab field
+func matlabTolerance(bound float64) (tol *reference.Tolerance) {
+	t := tolerance(bound)
+	tol = &t
 	return
 }

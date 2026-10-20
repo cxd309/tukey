@@ -87,14 +87,14 @@ The `fft` package matches `scipy.fft` the same way, at 23 lengths covering power
 
 And against MATLAB, whose `fft` is FFTW, an independent implementation:
 
-| Function          | MATLAB equivalent          | Worst measured | Tested to |
-| ----------------- | -------------------------- | -------------- | --------- |
-| `fft.Forward`     | `fft`                      | 9.5e-16        | 1e-14     |
-| `fft.Inverse`     | `ifft`                     | 8.3e-16        | 1e-14     |
-| `fft.ForwardReal` | `fft`, first n/2+1 bins    | 6.7e-16        | 1e-14     |
-| `fft.InverseReal` | `ifft(x, n, 'symmetric')`  | 5.3e-16        | 1e-14     |
-| `fft.N`           | `fft(x, n)`, `ifft(x, n)`  | 7.2e-16        | 1e-14     |
-| `fft.Shift`       | `fftshift`, `ifftshift`    | exact          | exact     |
+| Function          | MATLAB equivalent         | Worst measured | Tested to |
+| ----------------- | ------------------------- | -------------- | --------- |
+| `fft.Forward`     | `fft`                     | 9.5e-16        | 1e-14     |
+| `fft.Inverse`     | `ifft`                    | 8.3e-16        | 1e-14     |
+| `fft.ForwardReal` | `fft`, first n/2+1 bins   | 6.7e-16        | 1e-14     |
+| `fft.InverseReal` | `ifft(x, n, 'symmetric')` | 5.3e-16        | 1e-14     |
+| `fft.N`           | `fft(x, n)`, `ifft(x, n)` | 7.2e-16        | 1e-14     |
+| `fft.Shift`       | `fftshift`, `ifftshift`   | exact          | exact     |
 
 MATLAB has no normalisation option or `fftfreq`, so `fft.Norm` and `fft.Freq` are checked against SciPy only.
 
