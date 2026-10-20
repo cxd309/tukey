@@ -42,6 +42,8 @@ var Suites = []Suite{
 	gaussianSciPySuite,
 	generalGaussianSciPySuite,
 	exponentialSciPySuite,
+	kaiserSciPySuite,
+	kaiserBesselDerivedSciPySuite,
 	// MATLAB, for the categories it can reproduce; see each SciPy suite for why
 	// any without a MATLAB counterpart are missing
 	butterMATLABSuite,
@@ -72,4 +74,5 @@ var Suites = []Suite{
 	tukeyMATLABSuite,
 	hanningMATLABSuite,
 	gaussianMATLABSuite,
+	kaiserMATLABSuite,
 }

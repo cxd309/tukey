@@ -18,6 +18,7 @@ type windowParams struct {
 	N      int       `json:"n"`
 	Sym    bool      `json:"sym"`
 	Alpha  float64   `json:"alpha"`  // tukey, general_hamming
+	Beta   float64   `json:"beta"`   // kaiser, kaiser_bessel_derived
 	A      []float64 `json:"a"`      // general_cosine
 	Std    float64   `json:"std"`    // gaussian
 	P      float64   `json:"p"`      // general_gaussian
@@ -106,6 +107,19 @@ var (
 	// MATLAB has no general_gaussian or exponential
 	generalGaussianSciPySuite = newWindowSuite("window.GeneralGaussian", reference.SourceSciPy, "general_gaussian", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, generalGaussianCall)
 	exponentialSciPySuite     = newWindowSuite("window.Exponential", reference.SourceSciPy, "exponential", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, exponentialCall)
+
+	// Bessel windows
+	// Kaiser measured: worst 8 ULP against SciPy (beta 14) and 9 against MATLAB
+	// (beta 8.6): I0 grows like exp, so its relative error is about its argument's
+	// absolute error, which scales with beta; set ~10x above
+	kaiserSciPySuite  = newWindowSuite("window.Kaiser", reference.SourceSciPy, "kaiser", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserCall)
+	kaiserMATLABSuite = newWindowSuite("window.Kaiser", reference.SourceMATLAB, "kaiser", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserCall)
+
+	// MATLAB has no kaiser_bessel_derived; its vectors are symmetric and even n only
+	// measured: exact against SciPy, as tukey's I0 (Cephes, as SciPy's) matches it
+	// to the bit at these arguments; that's coincidence, not construction, so it
+	// takes Kaiser's tolerance, whose error it inherits
+	kaiserBesselDerivedSciPySuite = newWindowSuite("window.KaiserBesselDerived", reference.SourceSciPy, "kaiser_bessel_derived", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserBesselDerivedCall)
 )
 
 func hannCall(p windowParams, opts []window.Option) (w []float64, err error) {
@@ -211,5 +225,15 @@ func exponentialCall(p windowParams, opts []window.Option) (w []float64, err err
 		opts = append(opts, window.Center(*p.Center))
 	}
 	w, err = window.Exponential(p.N, p.Tau, opts...)
+	return
+}
+
+func kaiserCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Kaiser(p.N, p.Beta, opts...)
+	return
+}
+
+func kaiserBesselDerivedCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.KaiserBesselDerived(p.N, p.Beta, opts...)
 	return
 }
