@@ -3,8 +3,10 @@ package window
 import (
 	"fmt"
 	"math"
+	"math/cmplx"
 	"testing"
 
+	"github.com/cxd309/tukey/fft"
 	"github.com/cxd309/tukey/internal/special"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,6 +53,15 @@ var windows = map[string]func(n int, opts ...Option) ([]float64, error){
 	},
 	"Kaiser(8.6)": func(n int, opts ...Option) ([]float64, error) {
 		return Kaiser(n, 8.6, opts...)
+	},
+	"Taylor(4, 30)": func(n int, opts ...Option) ([]float64, error) {
+		return Taylor(n, 4, 30, opts...)
+	},
+	"Taylor(9, 50, Unnormalised)": func(n int, opts ...Option) ([]float64, error) {
+		return Taylor(n, 9, 50, append(opts, Unnormalised())...)
+	},
+	"Chebwin(50)": func(n int, opts ...Option) ([]float64, error) {
+		return Chebwin(n, 50, opts...)
 	},
 }
 
@@ -258,6 +269,11 @@ func TestRejectsNonPositiveParameters(t *testing.T) {
 		},
 		"Kaiser beta NaN":              func() ([]float64, error) { return Kaiser(8, math.NaN()) },
 		"KaiserBesselDerived beta Inf": func() ([]float64, error) { return KaiserBesselDerived(8, math.Inf(1)) },
+		"Taylor nbar 0":                func() ([]float64, error) { return Taylor(8, 0, 30) },
+		"Taylor sll 0":                 func() ([]float64, error) { return Taylor(8, 4, 0) },
+		"Chebwin attenuation 0":        func() ([]float64, error) { return Chebwin(8, 0) },
+		"Chebwin NaN":                  func() ([]float64, error) { return Chebwin(8, math.NaN()) },
+		"Unnormalised on Hann":         func() ([]float64, error) { return Hann(8, Unnormalised()) },
 	}
 	for name, call := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -322,4 +338,54 @@ func TestKaiserEnds(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1/special.I0(8.6), w[0])
 	assert.Equal(t, 1.0, w[4], "the centre is I0(beta) / I0(beta)")
+}
+
+// with nbar = 1 there are no cosine terms: Taylor is Boxcar, exactly
+func TestTaylorAtNbar1IsBoxcar(t *testing.T) {
+	for n := 0; n <= 20; n++ {
+		boxcar, err := Boxcar(n)
+		require.NoError(t, err)
+		w, err := Taylor(n, 1, 30)
+		require.NoError(t, err)
+		assert.Equal(t, boxcar, w, "n = %d", n)
+	}
+}
+
+// normalising divides every sample by the centre's value, so for odd n the
+// normalised window is the unnormalised one over its own centre, exactly
+func TestTaylorNormalisesToCentre(t *testing.T) {
+	for _, n := range []int{3, 9, 65} {
+		normalised, err := Taylor(n, 4, 30)
+		require.NoError(t, err)
+		raw, err := Taylor(n, 4, 30, Unnormalised())
+		require.NoError(t, err)
+		centre := raw[n/2]
+		for k := range raw {
+			assert.Equal(t, raw[k]/centre, normalised[k], "n = %d, k = %d", n, k)
+		}
+		assert.Equal(t, 1.0, normalised[n/2])
+	}
+}
+
+// the property Chebwin is designed for: every sidelobe of its spectrum is at
+// -attenuation dB relative to the main lobe; checked on a finely sampled spectrum
+func TestChebwinSidelobesAreAtAttenuation(t *testing.T) {
+	for _, attenuation := range []float64{50, 80} {
+		w, err := Chebwin(31, attenuation)
+		require.NoError(t, err)
+		spectrum, err := fft.ForwardReal(w, fft.N(8192))
+		require.NoError(t, err)
+
+		// walk down the main lobe to its first null; everything after is sidelobes
+		k := 1
+		for k < len(spectrum)-1 && cmplx.Abs(spectrum[k+1]) < cmplx.Abs(spectrum[k]) {
+			k++
+		}
+		peak := 0.0
+		for _, s := range spectrum[k:] {
+			peak = math.Max(peak, cmplx.Abs(s))
+		}
+		level := peak / cmplx.Abs(spectrum[0])
+		assert.InEpsilon(t, math.Pow(10, -attenuation/20), level, 1e-2, "%g dB", attenuation)
+	}
 }

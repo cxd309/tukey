@@ -11,27 +11,30 @@ type optionKind int
 const (
 	optionPeriodic optionKind = iota
 	optionCenter
+	optionUnnormalised
 	optionCount // the number of options, keep last
 )
 
 // optionNames names each option, for error messages
 var optionNames = [optionCount]string{
-	optionPeriodic: "Periodic",
-	optionCenter:   "Center",
+	optionPeriodic:     "Periodic",
+	optionCenter:       "Center",
+	optionUnnormalised: "Unnormalised",
 }
 
 // optionSet is a set of optionSet: optionSet[o] is whether o is in it
 type optionSet [optionCount]bool
 
-// Option configures a window (see Periodic and Center)
+// Option configures a window (see Periodic, Center, Unnormalised)
 // a window given an option that doesn't apply to it returns ErrInvalidParameter
 type Option func(*config)
 
 // config is a window's settings, built from Options
 type config struct {
-	periodic bool
-	center   float64
-	given    optionSet // which options were passed, so a window can reject the rest
+	periodic     bool
+	center       float64
+	unnormalised bool
+	given        optionSet // which options were passed, so a window can reject the rest
 }
 
 // Periodic gives the DFT-even window, for spectral analysis:
@@ -42,6 +45,27 @@ func Periodic() (option Option) {
 	option = func(c *config) {
 		c.periodic = true
 		c.given[optionPeriodic] = true
+	}
+	return
+}
+
+func Center(c float64) (option Option) {
+	option = func(cfg *config) {
+		cfg.center = c
+		cfg.given[optionCenter] = true
+	}
+	return
+}
+
+// Unnormalised leaves Taylor's peak where its formula puts it,
+// rather than sclaing it to 1 at the centre
+//
+// equivalent to SciPy's norm=False,
+// equivalent to MATLAB taylorwin, which doesn't normalise
+func Unnormalised() (option Option) {
+	option = func(cfg *config) {
+		cfg.unnormalised = true
+		cfg.given[optionUnnormalised] = true
 	}
 	return
 }
@@ -64,14 +88,6 @@ func (s optionSet) without(other optionSet) (names []string) {
 		if s[o] && !other[o] {
 			names = append(names, optionNames[o])
 		}
-	}
-	return
-}
-
-func Center(c float64) (option Option) {
-	option = func(cfg *config) {
-		cfg.center = c
-		cfg.given[optionCenter] = true
 	}
 	return
 }

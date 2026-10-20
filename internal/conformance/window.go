@@ -24,7 +24,11 @@ type windowParams struct {
 	P      float64   `json:"p"`      // general_gaussian
 	Sig    float64   `json:"sig"`    // general_gaussian
 	Tau    float64   `json:"tau"`    // exponential
-	Center *float64  `json:"center"` // exponential; null or absent: the middle
+	Center *float64  `json:"center"` // exponential. null or absent: the middle
+	Nbar   int       `json:"nbar"`   // taylor
+	Sll    float64   `json:"sll"`    // taylor, positive dB as SciPy
+	Norm   bool      `json:"norm"`   // taylor
+	At     float64   `json:"at"`     // chebwin
 }
 
 // windowCall calls one window function with a vector's parameters and options
@@ -120,6 +124,19 @@ var (
 	// to the bit at these arguments; that's coincidence, not construction, so it
 	// takes Kaiser's tolerance, whose error it inherits
 	kaiserBesselDerivedSciPySuite = newWindowSuite("window.KaiserBesselDerived", reference.SourceSciPy, "kaiser_bessel_derived", reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}, kaiserBesselDerivedCall)
+
+	// Taylor and Chebyshev
+	// Taylor measured: within 2 ULP of SciPy and MATLAB (its raw cases); set ~10x above
+	taylorSciPySuite  = newWindowSuite("window.Taylor", reference.SourceSciPy, "taylor", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, taylorCall)
+	taylorMATLABSuite = newWindowSuite("window.Taylor", reference.SourceMATLAB, "taylor", reference.Tolerance{Rel: 1e-14, Scaled: 1e-14}, taylorCall)
+
+	// Chebwin measured: worst 1.5e-12 against SciPy (50 dB, n = 255 periodic) and
+	// 3.7e-13 against MATLAB, as far apart as SciPy and MATLAB are (3.2e-13):
+	// near x = ±1, T_{n-1}(x) magnifies an ULP of difference in x by about
+	// (n-1)/sqrt(1-x^2), and Go, NumPy and MATLAB round x differently; the FFT
+	// then spreads that evenly over the window; set ~10x above
+	chebwinSciPySuite  = newWindowSuite("window.Chebwin", reference.SourceSciPy, "chebwin", reference.Tolerance{Rel: 1e-11, Scaled: 1e-11}, chebwinCall)
+	chebwinMATLABSuite = newWindowSuite("window.Chebwin", reference.SourceMATLAB, "chebwin", reference.Tolerance{Rel: 1e-11, Scaled: 1e-11}, chebwinCall)
 )
 
 func hannCall(p windowParams, opts []window.Option) (w []float64, err error) {
@@ -235,5 +252,18 @@ func kaiserCall(p windowParams, opts []window.Option) (w []float64, err error) {
 
 func kaiserBesselDerivedCall(p windowParams, opts []window.Option) (w []float64, err error) {
 	w, err = window.KaiserBesselDerived(p.N, p.Beta, opts...)
+	return
+}
+
+func taylorCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	if !p.Norm {
+		opts = append(opts, window.Unnormalised())
+	}
+	w, err = window.Taylor(p.N, p.Nbar, p.Sll, opts...)
+	return
+}
+
+func chebwinCall(p windowParams, opts []window.Option) (w []float64, err error) {
+	w, err = window.Chebwin(p.N, p.At, opts...)
 	return
 }
