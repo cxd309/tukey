@@ -39,3 +39,54 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+--------------------------------------------------------------------------------
+
+tukey includes code derived from the Cephes Math Library, as included in
+SciPy's special functions library xsf (https://github.com/scipy/xsf).
+xsf distributes Cephes under the 3-clause BSD licence with permission from
+its author (https://lists.debian.org/debian-legal/2004/12/msg00295.html).
+
+- internal/special/i0.go
+    - I0 -> xsf/cephes/i0.h (method and Chebyshev coefficients)
+    - chebyshev -> xsf/cephes/chbevl.h (Chebyshev series evaluation)
+
+i0.h: Cephes Math Library Release 2.8: June, 2000
+      Copyright 1984, 1987, 2000 by Stephen L. Moshier
+chbevl.h: Cephes Math Library Release 2.0: April, 1987
+          Copyright 1985, 1987 by Stephen L. Moshier
+
+The Cephes library's own notice, as Go's standard library math package also
+quotes it: "What you see here may be used freely but it comes with no
+support or guarantee."
+
+xsf licence:
+
+BSD 3-Clause License
+
+Copyright (c) 2024, SciPy
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
