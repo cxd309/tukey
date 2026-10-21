@@ -21,15 +21,15 @@ type filterVector struct {
 // measured: FIR and simple-coefficient cases are bit-identical; Butterworth cases
 // agree within ~3 ULPs (worst 6.6e-16), differing only in the order of additions;
 // set ~10x above the worst for headroom across platforms
-var filterSciPySuite = newSuite("Filter", reference.SourceSciPy, "filter",
+var filterSciPySuite = newSuiteOf("Filter", reference.SourceSciPy, "filter",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	filterOutputs)
+	filterOutputs, isWellConditioned)
 
 // filterMATLABSuite checks dsp.Filter against MATLAB's filter
 // measured: worst 5.3e-16 (2 ULP), as against SciPy; set to match
-var filterMATLABSuite = newSuite("Filter", reference.SourceMATLAB, "filter",
+var filterMATLABSuite = newSuiteOf("Filter", reference.SourceMATLAB, "filter",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	filterOutputs)
+	filterOutputs, isWellConditioned)
 
 // filterOutputs pairs dsp.Filter's output with a vector's
 func filterOutputs(v filterVector) (outputs []Output, err error) {

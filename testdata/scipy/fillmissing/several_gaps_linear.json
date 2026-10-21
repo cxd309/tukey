@@ -1,0 +1,33 @@
+{
+  "description": "fillmissing(x, 'linear') from MATLAB's documentation",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      1.0,
+      null,
+      3.0,
+      null,
+      null,
+      0.0,
+      null,
+      2.0
+    ],
+    "method": "linear",
+    "value": null
+  },
+  "output": {
+    "y": [
+      1.0,
+      2.0,
+      3.0,
+      2.0,
+      1.0,
+      0.0,
+      1.0,
+      2.0
+    ]
+  }
+}

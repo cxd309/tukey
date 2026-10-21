@@ -1,6 +1,7 @@
 """Writing reference vector files to testdata/scipy"""
 
 import json
+import math
 from collections import Counter
 from pathlib import Path
 
@@ -36,7 +37,7 @@ def write_vector(
     if path in seen:
         raise ValueError(f"two cases named {category}/{name}")
     seen.add(path)
-    path.write_text(json.dumps(payload, indent=2) + "\n")
+    path.write_text(json.dumps(nan_as_null(payload), indent=2) + "\n")
     written[category] += 1
 
 
@@ -44,3 +45,17 @@ def complex_json(values) -> dict:
     """Complex values as {"re":[...], "im":[...]}, since JSON has no complex type"""
     values = np.asarray(values, dtype=complex)
     return {"re": values.real.tolist(), "im": values.imag.tolist()}
+
+
+def nan_as_null(value):
+    """
+    value with every NaN replaced by None, since JSON has no NaN:
+    Go's reference.Floats and MATLAB's jsondecode read null back as NaN
+    """
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    if isinstance(value, list):
+        return [nan_as_null(v) for v in value]
+    if isinstance(value, dict):
+        return {k: nan_as_null(v) for k, v in value.items()}
+    return value

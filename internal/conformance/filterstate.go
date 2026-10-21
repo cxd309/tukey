@@ -24,16 +24,16 @@ type lfilterStateVector struct {
 // measured: worst 2.3e-16 (1 ULP) across all six filters, including a[0] != 1,
 // which confirms SciPy treats zi as the state of the normalised filter, as apply
 // does; set to match Filter
-var filterStateSciPySuite = newSuite("FilterState", reference.SourceSciPy, "lfilter_state",
+var filterStateSciPySuite = newSuiteOf("FilterState", reference.SourceSciPy, "lfilter_state",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	filterStateOutputs)
+	filterStateOutputs, isWellConditioned)
 
 // filterStateMATLABSuite checks dsp.FilterState against MATLAB's [y, zf] = filter(b, a, x, zi)
 // measured: worst 3.0e-16 (1 ULP), confirming MATLAB's zi is the same transposed
 // direct form II state as SciPy's; set to match Filter
-var filterStateMATLABSuite = newSuite("FilterState", reference.SourceMATLAB, "lfilter_state",
+var filterStateMATLABSuite = newSuiteOf("FilterState", reference.SourceMATLAB, "lfilter_state",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	filterStateOutputs)
+	filterStateOutputs, isWellConditioned)
 
 // filterStateOutputs pairs dsp.FilterState's output and final state with a vector's
 func filterStateOutputs(v lfilterStateVector) (outputs []Output, err error) {

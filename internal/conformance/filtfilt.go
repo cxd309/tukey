@@ -23,17 +23,17 @@ type filtfiltVector struct {
 
 // filtfiltSciPySuite checks dsp.FiltFilt against scipy.signal.filtfilt
 // measured: worst 7.7e-16 (3 ULP); set ~10x above
-var filtfiltSciPySuite = newSuite("FiltFilt", reference.SourceSciPy, "filtfilt",
+var filtfiltSciPySuite = newSuiteOf("FiltFilt", reference.SourceSciPy, "filtfilt",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	filtfiltOutputs())
+	filtfiltOutputs(), isWellConditioned)
 
 // filtfiltMATLABSuite checks dsp.FiltFilt with MATLABPadLen against MATLAB's filtfilt
 // MATLAB has one edge handling, so its vectors are SciPy's default-padding cases only
 // measured: worst 7.7e-16 (3 ULP) on all 37 vectors, which verifies MATLABPadLen;
 // set to match the SciPy suite
-var filtfiltMATLABSuite = newSuite("FiltFilt", reference.SourceMATLAB, "filtfilt",
+var filtfiltMATLABSuite = newSuiteOf("FiltFilt", reference.SourceMATLAB, "filtfilt",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
-	filtfiltOutputs(dsp.MATLABPadLen()))
+	filtfiltOutputs(dsp.MATLABPadLen()), isWellConditioned)
 
 // filtfiltOutputs pairs dsp.FiltFilt's output with a vector's,
 // with the vector's padding plus any extra options

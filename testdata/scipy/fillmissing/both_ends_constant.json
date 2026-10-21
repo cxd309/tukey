@@ -1,0 +1,27 @@
+{
+  "description": "fillmissing(x, 'constant', 0) from MATLAB's documentation",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      null,
+      1.0,
+      null,
+      3.0,
+      null
+    ],
+    "method": "constant",
+    "value": 0.0
+  },
+  "output": {
+    "y": [
+      0.0,
+      1.0,
+      0.0,
+      3.0,
+      0.0
+    ]
+  }
+}

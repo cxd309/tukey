@@ -22,6 +22,9 @@ BUTTER_LOWHIGH_CASES: Final = [
     (10, 0.3, "lowpass"),  # high order: poly conditioning
     (2, 0.99, "lowpass"),  # near Nyquist: steep tan in prewarp
     (2, 0.01, "highpass"),  # poles right next to zeros at z=+1
+    (2, 0.001, "lowpass"),  # target application requirement
+    (2, 0.003, "lowpass"),  # target application requirement
+    (2, 0.0008, "highpass"),  # target application requirement
 ]
 
 # (order, (low, high), btype) for scipy.signal.butter with two band edges
@@ -36,6 +39,8 @@ BUTTER_BAND_CASES: Final = [
     (2, (0.30, 0.31), "bandpass"),  # narrow band: clustered poles
     (2, (0.01, 0.99), "bandstop"),  # edges ~4000x apart; worst case
     (8, (0.2, 0.5), "bandpass"),  # 16th-order poly: stress test
+    (2, (0.0032, 0.032), "bandpass"),  # target application requirement
+    (1, (0.55, 0.7), "bandpass"),  # target application requirement
 ]
 
 # name -> (z, p, k) for scipy.signal.zpk2sos, beyond what Butterworth designs produce

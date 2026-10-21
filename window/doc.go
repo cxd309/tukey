@@ -50,18 +50,18 @@
 //
 //	Function             SciPy                  MATLAB          SciPy    MATLAB   Tested to
 //	Hann                 hann                   hann            4.4e-16  1.7e-16  1e-14
-//	Hamming              hamming                hamming         3.3e-16  2.2e-16  1e-14
+//	Hamming              hamming                hamming         4.4e-16  2.2e-16  1e-14
 //	Blackman             blackman               blackman        5.6e-16  3.3e-16  1e-14
 //	BlackmanHarris       blackmanharris         blackmanharris  6.7e-16  7.8e-16  1e-14
 //	Nuttall              nuttall                nuttallwin      6.7e-16  8.9e-16  1e-14
-//	FlatTop              flattop                flattopwin      6.9e-16  3.3e-16  1e-14
+//	FlatTop              flattop                flattopwin      7.5e-16  3.3e-16  1e-14
 //	GeneralHamming       general_hamming                        4.4e-16           1e-14
 //	GeneralCosine        general_cosine                         1.7e-15           1e-13
 //	Boxcar               boxcar                 rectwin         exact    exact    exact
 //	Triang               triang                 triang          exact    exact    exact
 //	Bartlett             bartlett               bartlett        1.1e-16  exact    1e-14
 //	Parzen               parzen                 parzenwin       2.2e-16  1.1e-16  1e-14
-//	Bohman               bohman                 bohmanwin       4.4e-16  2.2e-16  1e-14
+//	Bohman               bohman                 bohmanwin       5.6e-16  2.2e-16  1e-14
 //	Barthann             barthann               barthannwin     3.3e-16  3.3e-16  1e-14
 //	Tukey                tukey                  tukeywin        6.7e-16  6.7e-16  1e-14
 //	Hanning              hann(n+2)[1:-1]        hanning         3.3e-16  1.7e-16  1e-14

@@ -21,16 +21,16 @@ type freqzVector struct {
 // freqzSciPySuite checks dsp.Freqz against scipy.signal.freqz
 // measured: worst 1.2e-15 (~6 ULP); Horner as SciPy, differing only in rounding of
 // e^(-jw); fir_avg4, where SciPy uses an FFT instead, agrees as closely; set ~10x above
-var freqzSciPySuite = newSuite("Freqz", reference.SourceSciPy, "freqz",
+var freqzSciPySuite = newSuiteOf("Freqz", reference.SourceSciPy, "freqz",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
-	freqzOutputs)
+	freqzOutputs, isWellConditioned)
 
 // freqzMATLABSuite checks dsp.Freqz against MATLAB's freqz
 // MATLAB errors for n = 0, so that case has no MATLAB vector
 // measured: worst 1.7e-15 (8 ULP); set to match the SciPy suite
-var freqzMATLABSuite = newSuite("Freqz", reference.SourceMATLAB, "freqz",
+var freqzMATLABSuite = newSuiteOf("Freqz", reference.SourceMATLAB, "freqz",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
-	freqzOutputs)
+	freqzOutputs, isWellConditioned)
 
 // freqzOutputs pairs dsp.Freqz's response with a vector's
 func freqzOutputs(v freqzVector) (outputs []Output, err error) {
