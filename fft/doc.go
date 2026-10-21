@@ -28,7 +28,7 @@
 //	Inverse        ifft                     8.5e-16          1e-14
 //	ForwardReal    rfft                     5.8e-16          1e-14
 //	InverseReal    irfft                    5.0e-16          1e-14
-//	Norm, N        norm=, n=                6.4e-16          1e-14
+//	Norm, N        norm=, n=                6.9e-16          1e-14
 //	Freq           fftfreq, rfftfreq        exact            exact
 //	Shift          fftshift, ifftshift      exact            exact
 //
