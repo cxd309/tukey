@@ -1,0 +1,24 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - uses: astral-sh/setup-uv@v10.3.0 # uv, for ruff and MISS_HIT; no major tag, so the release
+      - uses: extractions/setup-just@v4
+      - run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.64.1
+      - run: echo "$HOME/.dprint/bin" >> "$GITHUB_PATH"
+      - run: just lint
