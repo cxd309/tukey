@@ -1,0 +1,12 @@
+{"description": "fillmissing(x, \"linear\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      0.0,
+      null,
+      null,
+      null,
+      4.0,
+      3.0
+    ],
+    "method": "linear",
+    "value": null
+  }, "output": {"y": [0, 1, 2, 3, 4, 3]}}

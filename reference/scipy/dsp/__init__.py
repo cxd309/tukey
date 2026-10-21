@@ -1,5 +1,11 @@
 """Reference vectors for tukey/dsp: filter design, filtering and frequency response"""
 
+from dsp.conditioning import (
+    generate_detrend,
+    generate_fillmissing,
+    generate_interp1,
+    generate_rms,
+)
 from dsp.design import generate_butter, generate_zpk2sos
 from dsp.filtering import (
     generate_filter,
@@ -20,4 +26,8 @@ GENERATORS = [
     generate_filtfilt,
     generate_sos_filtering,
     generate_freqz,
+    generate_detrend,
+    generate_interp1,
+    generate_fillmissing,
+    generate_rms,
 ]

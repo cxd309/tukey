@@ -30,4 +30,6 @@ FILTERS: Final = {
     "fir_avg4": ([0.25] * 4, [1.0]),  # a is length 1: no feedback
     "unnormalised": ([2.0, 1.0], [2.0, -0.5]),  # a[0] != 1
     "short_b": ([1.0], [1.0, -0.9]),  # len(b) < len(a)
+    "butter2_lp0.001": sc.signal.butter(2, 0.001),  # very low cutoff: poles near z = 1
+    "butter2_hp0.0008": sc.signal.butter(2, 0.0008, "highpass"),
 }

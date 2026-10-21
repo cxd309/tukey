@@ -1,0 +1,20 @@
+{
+  "description": "scipy.signal.detrend(x, type='constant')",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      1.0,
+      4.0
+    ],
+    "type": "constant"
+  },
+  "output": {
+    "y": [
+      -1.5,
+      1.5
+    ]
+  }
+}
