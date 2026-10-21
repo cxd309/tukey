@@ -53,6 +53,10 @@ EDGE_SIGNALS: Final = {
     # prominence (4.5 at 7): with distance 3 and prominence 0.3, applying the
     # distance rule first loses both, applying prominence first keeps 7
     "distance_vs_prominence": [0.0, 5, 4.8, 4.8, 4.8, 4.9, 4.0, 4.5, 0],
+    # a tall narrow spike (5 at 2, width 1) next to a shorter wide hump (3 at
+    # 6, width 3): with distance 5 and width 2, applying the distance rule
+    # first loses both, applying width first keeps 6
+    "distance_vs_width": [0.0, 0, 5, 0, 1, 2, 3, 2, 1, 0, 0],
 }
 
 
@@ -79,12 +83,19 @@ def generate_find_peaks() -> None:
         x = np.array(values)
         cases.append((name, x, {}))
         cases.append((f"{name}_distance3", x, {"distance": 3}))
-    # the two options together, which decides the order they're applied in
+    # each pair of options together, which decides the order they're applied in
     cases.append(
         (
             "distance_vs_prominence_both",
             np.array(EDGE_SIGNALS["distance_vs_prominence"]),
             {"distance": 3, "prominence": 0.3},
+        )
+    )
+    cases.append(
+        (
+            "distance_vs_width_both",
+            np.array(EDGE_SIGNALS["distance_vs_width"]),
+            {"distance": 5, "width": 2},
         )
     )
 

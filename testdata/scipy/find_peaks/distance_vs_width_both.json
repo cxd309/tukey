@@ -1,0 +1,28 @@
+{
+  "description": "scipy.signal.find_peaks(x, distance=5, width=2)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      0.0,
+      0.0,
+      5.0,
+      0.0,
+      1.0,
+      2.0,
+      3.0,
+      2.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    "distance": 5,
+    "width": 2
+  },
+  "output": {
+    "peaks": [],
+    "heights": []
+  }
+}
