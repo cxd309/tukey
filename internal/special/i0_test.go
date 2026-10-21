@@ -34,13 +34,14 @@ func TestI0MatchesSeries(t *testing.T) {
 	}
 }
 
-// beyond exp's overflow at ~709.78, I0 is finite up to ~713.99; checked
-// against the asymptotic expansion e^x / sqrt(2 pi x) (1 + 1/(8x) + 9/(128x^2)),
-// whose next term is ~2e-10 here, evaluated in logs so it doesn't overflow
-func TestI0BeyondExpOverflow(t *testing.T) {
-	for _, x := range []float64{710, 712, 713.9} {
-		want := math.Exp(x-0.5*math.Log(2*math.Pi*x)) * (1 + 1/(8*x) + 9/(128*x*x))
-		assert.InEpsilon(t, want, I0(x), 1e-9, "I0(%g)", x)
+// near and beyond exp's overflow (~709.44 on amd64, ~709.78 elsewhere), I0 is
+// finite up to ~713.99; checked against the asymptotic expansion
+// e^x / sqrt(2 pi x) (1 + 1/(8x) + 9/(128x^2)), whose next term is ~2e-10 here,
+// compared in logs so neither side overflows
+func TestI0NearExpOverflow(t *testing.T) {
+	for x := 700.0; x <= 713.9; x += 0.1 {
+		want := x - 0.5*math.Log(2*math.Pi*x) + math.Log1p(1/(8*x)+9/(128*x*x))
+		assert.InDelta(t, want, math.Log(I0(x)), 1e-9, "I0(%g)", x)
 	}
 	assert.True(t, math.IsInf(I0(714), 1), "I0(714) overflows")
 }

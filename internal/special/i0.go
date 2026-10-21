@@ -35,8 +35,10 @@ var (
 	}
 )
 
-// maxLog is the log of the largest float64: exp overflows above it
-const maxLog = 7.097827128933839730962063185871e2
+// expSplit is where I0 starts applying exp in two halves, safely below exp's
+// overflow on every architecture: the true limit is log(MaxFloat64) ~ 709.78,
+// but Go's amd64 math.Exp overflows from ~709.44
+const expSplit = 700
 
 // I0 is the modified Bessel function of the first kind, order zero:
 // the sum over k of ((x/2)^k / k!)^2
@@ -48,7 +50,7 @@ const maxLog = 7.097827128933839730962063185871e2
 // the method and coefficients are Cephes's i0, via SciPy's xsf (see THIRD_PARTY_NOTICES):
 // a Chebyshev expansion of exp(-x) I0(x) on [0, 8], and of exp(-x) sqrt(x) I0(x)
 // in 32/x beyond; as current xsf, and unlike SciPy 1.18, it stays finite past
-// exp's overflow at x ~ 709.78
+// exp's overflow at x ~ 709.78 (~709.44 with Go's amd64 math.Exp)
 func I0(x float64) (y float64) {
 	x = math.Abs(x)
 	switch {
@@ -56,8 +58,8 @@ func I0(x float64) (y float64) {
 		y = math.Exp(x) * chebyshev(x/2-2, i0Small[:])
 	case math.IsInf(x, 1):
 		y = x // the formula below would give Inf/Inf
-	case x > maxLog:
-		// exp(x) overflows here though I0(x) is finite up to ~713.99,
+	case x > expSplit:
+		// exp(x) overflows near here though I0(x) is finite up to ~713.99,
 		// so the exponential is applied in two halves
 		e := math.Exp(x / 2)
 		y = e * chebyshev(32/x-2, i0Large[:]) / math.Sqrt(x) * e
