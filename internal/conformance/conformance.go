@@ -95,6 +95,14 @@ func (s Suite) Run() (results []FileResult, err error) {
 // newSuite builds a Suite from outputs, which runs the dsp function
 // on one decoded vector and pairs each of its outputs with the vector's
 func newSuite[T any](name string, source reference.Source, category string, tol reference.Tolerance, outputs func(v T) ([]Output, error)) (s Suite) {
+	s = newSuiteOf(name, source, category, tol, outputs, func(string) bool { return true })
+	return
+}
+
+// newSuiteOf is newSuite over only the vectors whose file name match accepts.
+// It splits a category's hard cases into a suite of their own, so they can have
+// a looser tolerance without loosening it for every other vector.
+func newSuiteOf[T any](name string, source reference.Source, category string, tol reference.Tolerance, outputs func(v T) ([]Output, error), match func(file string) bool) (s Suite) {
 	s = Suite{Name: name, Source: source, Category: category, Tolerance: tol}
 	s.run = func() (results []FileResult, err error) {
 		files, err := reference.Load[T](source, category)
@@ -102,6 +110,9 @@ func newSuite[T any](name string, source reference.Source, category string, tol 
 			return nil, err
 		}
 		for _, f := range files {
+			if !match(f.Name) {
+				continue
+			}
 			results = append(results, compareFile(f.Name, f.Vector, tol, outputs))
 		}
 		return

@@ -20,20 +20,23 @@ type sosfiltVector struct {
 
 // sosFilterSciPySuite checks dsp.SOSFilter against scipy.signal.sosfilt, and
 // dsp.SOSFilterState against sosfilt with zi, including the final state
-// measured: worst 4.1e-14 (~183 ULP) on butter8_lp0.01, whose poles sit very close
-// to z = 1: the feedback amplifies single-rounding differences between Go and SciPy
-// (same coefficients and algorithm; likely FMA). Other filters, including the narrow
-// order-20 bandpass, agree within a few ULP; set ~10x above the worst
+// measured: worst 4.1e-14 (~183 ULP) on arm64 and 1.3e-15 on amd64, both on
+// butter8_lp0.01, whose poles sit very close to z = 1, so its feedback amplifies
+// single-rounding differences. The arm64 gap is fused multiply-add: Go fuses on
+// arm64 and NumPy doesn't. Other filters, including the narrow order-20 bandpass,
+// agree within a few ULP. Set ~10x above the worst.
 var sosFilterSciPySuite = newSuite("SOSFilter", reference.SourceSciPy, "sosfilt",
 	reference.Tolerance{Rel: 1e-12, Scaled: 1e-12},
 	sosFilterOutputs)
 
 // sosFilterMATLABSuite checks dsp.SOSFilter against MATLAB's sosfilt
 // sosfilt takes no initial state, so the with-state cases have no MATLAB vector
-// measured: worst 9.0e-15 (41 ULP) on butter8_lp0.01, 4.5x closer than SciPy on the
-// same filter, consistent with the SciPy difference being FMA; set ~10x above the worst
+// measured: worst 9.0e-15 (41 ULP) on arm64 and 4.5e-14 on amd64, both on
+// butter8_lp0.01. That's the mirror image of the SciPy suite: tukey agrees best
+// with MATLAB when it fuses multiply-adds, so MATLAB evidently does too.
+// Set ~10x above the worst, the same as the SciPy suite.
 var sosFilterMATLABSuite = newSuite("SOSFilter", reference.SourceMATLAB, "sosfilt",
-	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
+	reference.Tolerance{Rel: 1e-12, Scaled: 1e-12},
 	sosFilterOutputs)
 
 // sosFilterOutputs pairs dsp.SOSFilter's output with a vector's,

@@ -16,4 +16,6 @@ var (
 	ErrInvalidSOS          = errors.New("dsp: invalid second-order sections")
 	ErrInvalidState        = errors.New("dsp: invalid filter state")
 	ErrInvalidLength       = errors.New("dsp: invalid length")
+	ErrInvalidMode         = errors.New("dsp: invalid mode")
+	ErrInvalidSamplePoints = errors.New("dsp: invalid sample points")
 )
