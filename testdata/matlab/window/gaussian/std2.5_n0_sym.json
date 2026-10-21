@@ -1,0 +1,5 @@
+{"description": "gausswin(0, -0.20000000000000001)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 0,
+    "sym": true,
+    "std": 2.5
+  }, "output": {"w": []}}

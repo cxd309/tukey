@@ -1,0 +1,15 @@
+{
+  "description": "scipy.signal.windows.kaiser_bessel_derived(0, beta=12.0, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 0,
+    "sym": true,
+    "beta": 12.0
+  },
+  "output": {
+    "w": []
+  }
+}

@@ -1,0 +1,4 @@
+{"description": "blackmanharris(2, \"symmetric\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 2,
+    "sym": true
+  }, "output": {"w": [6.0000000000001025e-05, 6.0000000000001025e-05]}}

@@ -1,0 +1,17 @@
+{
+  "description": "scipy.signal.windows.lanczos(2, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 2,
+    "sym": true
+  },
+  "output": {
+    "w": [
+      3.8981718325193755e-17,
+      3.8981718325193755e-17
+    ]
+  }
+}

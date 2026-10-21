@@ -1,0 +1,5 @@
+{"description": "kaiser(2, 5)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 2,
+    "sym": true,
+    "beta": 5.0
+  }, "output": {"w": [0.036710892271286669, 0.036710892271286669]}}

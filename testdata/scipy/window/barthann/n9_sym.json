@@ -1,0 +1,24 @@
+{
+  "description": "scipy.signal.windows.barthann(9, sym=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 9,
+    "sym": true
+  },
+  "output": {
+    "w": [
+      0.0,
+      0.17129942314911195,
+      0.5,
+      0.8287005768508882,
+      1.0,
+      0.8287005768508882,
+      0.5,
+      0.17129942314911195,
+      0.0
+    ]
+  }
+}

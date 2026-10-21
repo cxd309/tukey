@@ -1,0 +1,23 @@
+{
+  "description": "scipy.signal.windows.triang(8, sym=False)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "n": 8,
+    "sym": false
+  },
+  "output": {
+    "w": [
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0,
+      0.8,
+      0.6,
+      0.4
+    ]
+  }
+}

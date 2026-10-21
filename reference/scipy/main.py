@@ -18,10 +18,11 @@ from pathlib import Path
 
 import dsp
 import fft
+import window
 import write
 
 # every generator in all generators
-GENERATORS = dsp.GENERATORS + fft.GENERATORS
+GENERATORS = dsp.GENERATORS + fft.GENERATORS + window.GENERATORS
 
 
 def main() -> None:

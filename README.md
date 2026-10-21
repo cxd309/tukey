@@ -22,6 +22,13 @@ spectrum, err := fft.ForwardReal(x)  // any length, O(n log n)
 freqs := fft.RealFreq(len(x), 1/fs)  // each bin's frequency in Hz
 ```
 
+```go
+import "github.com/cxd309/tukey/window"
+
+w, err := window.Hann(len(x), window.Periodic()) // periodic for spectral analysis
+w, err = window.Kaiser(64, 8.6)                  // symmetric, for filter design
+```
+
 Named after [John Tukey](https://en.wikipedia.org/wiki/John_Tukey), who co-invented the FFT and considered by some as the father of Data Science.
 
 ## Why
@@ -87,16 +94,48 @@ The `fft` package matches `scipy.fft` the same way, at 23 lengths covering power
 
 And against MATLAB, whose `fft` is FFTW, an independent implementation:
 
-| Function          | MATLAB equivalent          | Worst measured | Tested to |
-| ----------------- | -------------------------- | -------------- | --------- |
-| `fft.Forward`     | `fft`                      | 9.5e-16        | 1e-14     |
-| `fft.Inverse`     | `ifft`                     | 8.3e-16        | 1e-14     |
-| `fft.ForwardReal` | `fft`, first n/2+1 bins    | 6.7e-16        | 1e-14     |
-| `fft.InverseReal` | `ifft(x, n, 'symmetric')`  | 5.3e-16        | 1e-14     |
-| `fft.N`           | `fft(x, n)`, `ifft(x, n)`  | 7.2e-16        | 1e-14     |
-| `fft.Shift`       | `fftshift`, `ifftshift`    | exact          | exact     |
+| Function          | MATLAB equivalent         | Worst measured | Tested to |
+| ----------------- | ------------------------- | -------------- | --------- |
+| `fft.Forward`     | `fft`                     | 9.5e-16        | 1e-14     |
+| `fft.Inverse`     | `ifft`                    | 8.3e-16        | 1e-14     |
+| `fft.ForwardReal` | `fft`, first n/2+1 bins   | 6.7e-16        | 1e-14     |
+| `fft.InverseReal` | `ifft(x, n, 'symmetric')` | 5.3e-16        | 1e-14     |
+| `fft.N`           | `fft(x, n)`, `ifft(x, n)` | 7.2e-16        | 1e-14     |
+| `fft.Shift`       | `fftshift`, `ifftshift`   | exact          | exact     |
 
 MATLAB has no normalisation option or `fftfreq`, so `fft.Norm` and `fft.Freq` are checked against SciPy only.
+
+The `window` package has every `scipy.signal.windows` window except `dpss`, plus MATLAB's `hanning`. Each is checked against SciPy, and against MATLAB where MATLAB has it, on identical inputs at n = 0, 1, 2, 3, 8, 9, 64 and 255, symmetric and periodic:
+
+| Function                     | SciPy                   | MATLAB           | SciPy worst | MATLAB worst | Tested to |
+| ---------------------------- | ----------------------- | ---------------- | ----------- | ------------ | --------- |
+| `window.Hann`                | `hann`                  | `hann`           | 4.4e-16     | 1.7e-16      | 1e-14     |
+| `window.Hamming`             | `hamming`               | `hamming`        | 3.3e-16     | 2.2e-16      | 1e-14     |
+| `window.Blackman`            | `blackman`              | `blackman`       | 5.6e-16     | 3.3e-16      | 1e-14     |
+| `window.BlackmanHarris`      | `blackmanharris`        | `blackmanharris` | 6.7e-16     | 7.8e-16      | 1e-14     |
+| `window.Nuttall`             | `nuttall`               | `nuttallwin`     | 6.7e-16     | 8.9e-16      | 1e-14     |
+| `window.FlatTop`             | `flattop`               | `flattopwin`     | 6.9e-16     | 3.3e-16      | 1e-14     |
+| `window.GeneralHamming`      | `general_hamming`       |                  | 4.4e-16     |              | 1e-14     |
+| `window.GeneralCosine`       | `general_cosine`        |                  | 1.7e-15     |              | 1e-13     |
+| `window.Boxcar`              | `boxcar`                | `rectwin`        | exact       | exact        | exact     |
+| `window.Triang`              | `triang`                | `triang`         | exact       | exact        | exact     |
+| `window.Bartlett`            | `bartlett`              | `bartlett`       | 1.1e-16     | exact        | 1e-14     |
+| `window.Parzen`              | `parzen`                | `parzenwin`      | 2.2e-16     | 1.1e-16      | 1e-14     |
+| `window.Bohman`              | `bohman`                | `bohmanwin`      | 4.4e-16     | 2.2e-16      | 1e-14     |
+| `window.Barthann`            | `barthann`              | `barthannwin`    | 3.3e-16     | 3.3e-16      | 1e-14     |
+| `window.Tukey`               | `tukey`                 | `tukeywin`       | 6.7e-16     | 6.7e-16      | 1e-14     |
+| `window.Hanning`             | `hann(n+2)[1:-1]`       | `hanning`        | 3.3e-16     | 1.7e-16      | 1e-14     |
+| `window.Cosine`              | `cosine`                |                  | 4.6e-16     |              | 1e-14     |
+| `window.Lanczos`             | `lanczos`               |                  | 2.2e-16     |              | 1e-14     |
+| `window.Gaussian`            | `gaussian`              | `gausswin`       | 1.1e-16     | 1.7e-16      | 1e-14     |
+| `window.GeneralGaussian`     | `general_gaussian`      |                  | 1.1e-16     |              | 1e-14     |
+| `window.Exponential`         | `exponential`           |                  | 1.1e-16     |              | 1e-14     |
+| `window.Kaiser`              | `kaiser`                | `kaiser`         | 1.7e-15     | 2.0e-15      | 1e-13     |
+| `window.KaiserBesselDerived` | `kaiser_bessel_derived` |                  | exact       |              | 1e-13     |
+| `window.Taylor`              | `taylor`                | `taylorwin`      | 5.6e-16     | 3.4e-16      | 1e-14     |
+| `window.Chebwin`             | `chebwin`               | `chebwin`        | 1.5e-12     | 3.7e-13      | 1e-11     |
+
+Kaiser's error grows with beta, as the Bessel function's sensitivity to its argument does. Chebwin's comes from evaluating a Chebyshev polynomial of degree n−1 near ±1, where an ULP of difference in its argument is magnified; SciPy and MATLAB differ from each other by as much. MATLAB's windows without a `'periodic'` option are checked symmetric only.
 
 These tables are generated by:
 
@@ -146,6 +185,21 @@ The `fft` package's names read after the package rather than repeating it:
 `fft.Freq` lists the upper half of the bins as negative frequencies, same as SciPy.
 MATLAB's usual `(0:n-1)*fs/n` lists them as frequencies above Nyquist. `fft.InverseReal` needs its length because n/2 + 1 bins come from both an even and an odd length.
 
+Windows take their shape as an option, `window.Periodic()`, for MATLAB's `'periodic'` and SciPy's `sym=False`. Most map by name, these differ:
+
+| MATLAB                    | SciPy                               | tukey                                                 |
+| ------------------------- | ----------------------------------- | ----------------------------------------------------- |
+| `hann(n, 'periodic')`     | `hann(n, sym=False)`                | `window.Hann(n, window.Periodic())`                   |
+| `rectwin(n)`              | `boxcar(n)`                         | `window.Boxcar(n)`                                    |
+| `nuttallwin(n)`           | `nuttall(n)`                        | `window.Nuttall(n)`                                   |
+| `flattopwin(n)`           | `flattop(n)`                        | `window.FlatTop(n)`                                   |
+| `tukeywin(n, r)`          | `tukey(n, r)`                       | `window.Tukey(n, r)`                                  |
+| `gausswin(n, alpha)`      | `gaussian(n, (n-1)/(2*alpha))`      | `window.Gaussian(n, (n-1)/(2*alpha))`                 |
+| `taylorwin(n, nbar, sll)` | `taylor(n, nbar, -sll, norm=False)` | `window.Taylor(n, nbar, -sll, window.Unnormalised())` |
+| `hanning(n)`              |                                     | `window.Hanning(n)`                                   |
+
+`gausswin` takes the reciprocal of a width relative to the window's half-length, where SciPy and tukey take the standard deviation in samples. `taylorwin` takes its sidelobe level as negative dB and doesn't normalise; at n = 1 it evaluates its formula, where `window.Taylor` returns `[1]`, as every window does. `hanning` is the Hann window without its zero endpoints.
+
 ## Conventions
 
 - Offline and stateless
@@ -165,7 +219,7 @@ MATLAB's usual `(0:n-1)*fs/n` lists them as frequencies above Nyquist. `fft.Inve
 
 tukey is currently in initial development and the interface will signficantly change until v1.0.
 
-The library will grow into three packages, mirroring SciPy:
+The library is three packages, mirroring SciPy:
 
 | Package        | Mirrors                | For                                                               |
 | -------------- | ---------------------- | ----------------------------------------------------------------- |
@@ -178,7 +232,7 @@ The library will grow into three packages, mirroring SciPy:
 | v0.1    | Complete | Zero-phase filtering   | `Butter`, `Filter`, `FiltFilt`                                                                                                                   |
 | v0.2    | Complete | Filter representations | Filters as zeros/poles/gain with `(b, a)` and second-order-sections output, SOS filtering, filter state for block processing, frequency response |
 | v0.3    | Complete | FFT                    | `tukey/fft`: complex and real transforms of any length in O(n log n), normalisation and padding options, frequency and shift helpers             |
-| v0.4    | Planned  | window                 | `tukey/window`                                                                                                                                   |
+| v0.4    | Complete | Windows                | `tukey/window`: every SciPy window except `dpss`, plus MATLAB's `hanning`, symmetric or periodic                                                 |
 | tbd     | Concept  | Signal analysis        |                                                                                                                                                  |
 | tbd     | Concept  | Filter design breadth  |                                                                                                                                                  |
 | tbd     | Planned  | MATLAB compatibility   | MATLAB-compatibility mode for `SOSFiltFilt`                                                                                                      |
@@ -201,6 +255,8 @@ just vectors    # regenerate reference vectors: SciPy, then MATLAB from SciPy's 
 ```
 
 Reference vectors are committed in `testdata/scipy/` and `testdata/matlab/`, so neither Python nor MATLAB is needed to run the tests. Their generators are in `reference/`: `reference/scipy` (uv, pinned SciPy) and `reference/matlab`, which reruns each SciPy vector's inputs through MATLAB so both are checked on identical inputs.
+
+`just bectors-matlab` needs MATLAB with the Signal Processing Toolbox, on the `PATH` or set as `MATLAB=/path/to/matlab`.
 
 ### How tukey was built
 

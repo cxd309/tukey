@@ -1,0 +1,4 @@
+{"description": "hann(3, \"periodic\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "n": 3,
+    "sym": false
+  }, "output": {"w": [0, 0.74999999999999989, 0.74999999999999989]}}
