@@ -1,0 +1,25 @@
+{
+  "description": "scipy.signal.hilbert(x)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      0.6257293982571508,
+      2.164325358952666
+    ]
+  },
+  "output": {
+    "analytic": {
+      "re": [
+        0.6257293982571509,
+        2.164325358952666
+      ],
+      "im": [
+        -0.0,
+        0.0
+      ]
+    }
+  }
+}

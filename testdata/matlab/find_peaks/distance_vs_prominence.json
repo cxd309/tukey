@@ -1,0 +1,13 @@
+{"description": "findpeaks(x)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      0.0,
+      5.0,
+      4.8,
+      4.8,
+      4.8,
+      4.9,
+      4.0,
+      4.5,
+      0.0
+    ]
+  }, "output": {"peaks": [1, 5, 7], "heights": [5, 4.9000000000000004, 4.5]}}
