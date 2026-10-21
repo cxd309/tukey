@@ -4,6 +4,8 @@ scipy_reference_dir := "reference/scipy"
 matlab := env("MATLAB", "matlab")
 # architectures to run on. each is skipped where this machine not able to run
 goarchs := "amd64 arm64"
+# MISS_HIT's style checker and formatter, pinned so every machine formats MATLAB the same way
+miss_hit := "miss-hit-core==0.9.44"
 
 clean-vectors source:
     rm -rf {{testdata}}/{{source}}
@@ -22,12 +24,15 @@ lint:
     go vet ./...
     cd {{scipy_reference_dir}} && uv run ruff format --check .
     cd {{scipy_reference_dir}} && uv run ruff check .
+    uvx --from {{miss_hit}} mh_style reference/matlab
 
 fmt:
     dprint fmt
     go fmt ./...
     cd {{scipy_reference_dir}} && uv run ruff format .
     cd {{scipy_reference_dir}} && uv run ruff check --fix .
+    uvx --from {{miss_hit}} mh_style --fix reference/matlab
+
 # run command once per architecture in all goarchs that can be run on this machine
 # result can differ between them (FMA, math assembly), so each is worth checking
 # go vet first, so build errors are not mistaken for "can't run"
@@ -37,7 +42,7 @@ each-arch +command:
     set -euo pipefail
     for arch in {{goarchs}}; do
         export GOARCH=$arch
-    go vet ./...
+        go vet ./...
         if ! go test -run '^$' ./... >/dev/null 2>&1; then
             echo "== $arch: skipped, not able to be run on this machine"
             continue
