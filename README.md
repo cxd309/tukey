@@ -256,6 +256,8 @@ just vectors    # regenerate reference vectors: SciPy, then MATLAB from SciPy's 
 
 Reference vectors are committed in `testdata/scipy/` and `testdata/matlab/`, so neither Python nor MATLAB is needed to run the tests. Their generators are in `reference/`: `reference/scipy` (uv, pinned SciPy) and `reference/matlab`, which reruns each SciPy vector's inputs through MATLAB so both are checked on identical inputs.
 
+`just bectors-matlab` needs MATLAB with the Signal Processing Toolbox, on the `PATH` or set as `MATLAB=/path/to/matlab`.
+
 ### How tukey was built
 
 tukey was developed with an LLM (Claude). Design decisions, review and most of the code was written directly by me, written from proposal snippets from the LLM.
