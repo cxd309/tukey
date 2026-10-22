@@ -10,7 +10,8 @@
 // since a real signal's spectrum mirrors itself
 //
 // Freq and RealFreq give each bin's frequency,
-// Shift and InverseShift move zero frequency to the centre and back, for plotting
+// Shift and InverseShift move zero frequency to the centre and back, for plotting,
+// and FastLength gives the next length with only 2, 3 and 5 as factors, to zero-pad to
 //
 // Options apply to every transform:
 // Norm chooses where the 1/n scaling goes

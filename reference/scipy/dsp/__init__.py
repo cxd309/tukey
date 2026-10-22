@@ -1,5 +1,6 @@
 """Reference vectors for tukey/dsp: filter design, filtering and frequency response"""
 
+from dsp.alignment import generate_findsignal
 from dsp.conditioning import (
     generate_detrend,
     generate_fillmissing,
@@ -41,4 +42,5 @@ GENERATORS = [
     generate_peak_widths,
     generate_hilbert,
     generate_envelope,
+    generate_findsignal,
 ]

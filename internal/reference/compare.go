@@ -5,13 +5,9 @@ import (
 	"math"
 	"math/cmplx"
 	"testing"
-)
 
-// Epsilon is the gap between 1.0 and the next float64 (2^-52)
-// used to express relative error in ULPs
-// it can undercount by up to 2x, since the relative gap between neighbouring
-// float64s varies between 2^-53 and 2^-52 within each power of two
-const Epsilon = 0x1p-52
+	"github.com/cxd309/tukey/internal/floats"
+)
 
 // Tolerance says how close got must be to want for a slice comparison
 // a value passes if |got-want| <= Scaled*scale + Rel*|want|, where scale is
@@ -95,7 +91,7 @@ func AssertClose[T Number](t testing.TB, name string, got, want []T, tol Toleran
 		t.Errorf("%s[%d]: got %v, want %v (diff %.3e, allowed %.3e)", name, m.Index, got[m.Index], want[m.Index], m.Diff, m.Allowed)
 	}
 	if testing.Verbose() {
-		t.Logf("%s: worst %.3e (%.0f ULPs)", name, c.Worst, c.Worst/Epsilon)
+		t.Logf("%s: worst %.3e (%.0f ULPs)", name, c.Worst, c.Worst/floats.Epsilon)
 	}
 }
 

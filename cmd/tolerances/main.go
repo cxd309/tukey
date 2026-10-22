@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/cxd309/tukey/internal/conformance"
-	"github.com/cxd309/tukey/internal/reference"
+	"github.com/cxd309/tukey/internal/floats"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 			s.vectors,
 			s.failing,
 			s.worst,
-			s.worst/reference.Epsilon,
+			s.worst/floats.Epsilon,
 			suite.Tolerance.Scaled,
 			headroom(suite.Tolerance.Scaled, s.worst),
 			s.worstCase,

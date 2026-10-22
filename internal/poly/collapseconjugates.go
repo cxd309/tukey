@@ -6,11 +6,13 @@ import (
 	"math"
 	"math/cmplx"
 	"slices"
+
+	"github.com/cxd309/tukey/internal/floats"
 )
 
 // conjugateTolerance is SciPy's tolerance for treating a root as real, or two roots as conjugates
 // 100 machine epsilons, relative to the root's magnitude
-const conjugateTolerance = 100 * 0x1p-52
+const conjugateTolerance = 100 * floats.Epsilon
 
 // CollapseConjugates replaces each conjugate pair with one root:
 // the member with positive imaginary part, averaged with the other's conjugate to cancel rounding
