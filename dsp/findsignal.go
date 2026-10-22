@@ -89,7 +89,7 @@ func findSignalDirect(data, signal []float64) (match SignalMatch) {
 	m := len(signal)
 	match.Distance = windowDistance(data[:m], signal)
 	for start := 1; start+m <= len(data); start++ {
-		if d := windowDistance(data[start:start+m], signal); d < match.Distance {
+		if d := windowDistance(data[start:start+m], signal); closer(d, match.Distance) {
 			match.Start, match.Distance = start, d
 		}
 	}
@@ -117,7 +117,7 @@ func findSignalFast(data, signal []float64) (match SignalMatch, err error) {
 		return match, err
 	}
 	for i, d := range profile {
-		if d < profile[match.Start] {
+		if closer(d, profile[match.Start]) {
 			match.Start = i
 		}
 	}
