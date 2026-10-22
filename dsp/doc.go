@@ -24,7 +24,7 @@
 //	SOSFreqz       freqz_sos                           3.7e-13          1e-11
 //	Detrend        detrend                             5.6e-16          1e-14
 //	Interp1        interp1d(bounds_error=False)        1.3e-16          1e-14
-//	RMS            sqrt(mean(x**2)), from NumPy        3.1e-16          1e-14
+//	RMS            sqrt(mean(x**2)), from NumPy        1.4e-16          1e-14
 //
 // Errors are relative to the largest expected value, or for filtering to the
 // largest input value if that's larger. For scale, 1e-16 is about one unit in
@@ -62,7 +62,7 @@
 //	Detrend                  detrend                         1.2e-15          1e-13
 //	Interp1                  interp1                         2.2e-16          1e-14
 //	FillMissing              fillmissing                     exact            1e-14
-//	RMS                      rms                             3.1e-16          1e-14
+//	RMS                      rms                             1.2e-16          1e-14
 //
 // The largest figures come from the same difficult filter, where MATLAB and
 // SciPy differ from each other by as much. Second-order sections aren't

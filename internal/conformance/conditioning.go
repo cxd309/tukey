@@ -125,7 +125,8 @@ type rmsVector struct {
 	} `json:"output"`
 }
 
-// rms measured: worst 3.1e-16 (1 ULP) against both. Set ~10x above.
+// rms measured: worst 1.4e-16 (1 ULP) against SciPy and 1.2e-16 (1 ULP) against MATLAB,
+// on both architectures, with the squares summed with compensation. Set ~10x above.
 var (
 	rmsSciPySuite  = newSuite("RMS", reference.SourceSciPy, "rms", tolerance(1e-14), rmsOutputs)
 	rmsMATLABSuite = newSuite("RMS", reference.SourceMATLAB, "rms", tolerance(1e-14), rmsOutputs)
