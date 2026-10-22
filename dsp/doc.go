@@ -1,6 +1,7 @@
 // Package dsp is offline, zero-phase signal processing for Go: IIR filter
 // design, filtering as (b, a) or second-order sections, frequency response,
-// signal conditioning, peak finding and envelopes, matching SciPy and MATLAB.
+// signal conditioning, peak finding, envelopes and alignment, matching SciPy and
+// MATLAB.
 //
 // # Compatibility
 //
@@ -73,6 +74,8 @@
 //	PeakWidths               [~, ~, w] = findpeaks           2.7e-15          1e-13
 //	Hilbert                  hilbert                         5.8e-16          1e-14
 //	Envelope                 envelope(x), (x, n, "rms")      4.5e-15          1e-13
+//	FindSignal               findsignal(data, signal)        5.9e-16          1e-14
+//	FindSignal + SearchFast  findsignal(data, signal)        1.5e-15          1e-13
 //
 // The largest figures come from the same difficult filter, where MATLAB and
 // SciPy differ from each other by as much. Second-order sections aren't
@@ -83,7 +86,10 @@
 // fillmissing, so FillMissing is checked against MATLAB's documented definition
 // as well as MATLAB itself. MATLAB's RMS envelope is 4.5e-15 from an exactly
 // summed answer, where Envelope's compensated sum is within 1e-15 of it, so
-// that gap is MATLAB's.
+// that gap is MATLAB's. SciPy has no findsignal either, so FindSignal is also
+// checked against MATLAB's definition summed exactly, which it matches exactly.
+// MATLAB's distance is measured relative to the window's and signal's sums of
+// squares, the scale it rounds at: its perfect matches are up to 2^-29, not 0.
 //
 // Where MATLAB's behaviour differs from SciPy's, SciPy's is the default and
 // MATLAB's is an option, e.g. MATLABPadLen for filtfilt's padding length.
@@ -138,6 +144,24 @@
 // SciPy's envelope differs, dropping the Nyquist bin and having no RMS method,
 // so Envelope is checked against MATLAB's definition built from SciPy's
 // hilbert and NumPy, as well as against MATLAB itself.
+//
+// # Alignment
+//
+// FindSignal finds the window of data closest to a signal, by the sum of
+// squared differences, with ties to the earliest window, as MATLAB's
+// findsignal does with its default options. SignalSearch chooses how every
+// window is scored. Measured for a 30,000-sample signal in 400,000 samples:
+//
+//	SearchMethod   Time    Distance
+//	SearchHybrid   29 ms   exact (the default)
+//	SearchFast     28 ms   rounded at the scale of the sums of squares, as MATLAB's
+//	SearchDirect   77 s    exact
+//
+// Hybrid scores every window by FFT correlation, then rescores exactly each
+// window that could, within the correlation's rounding, be the closest, so it
+// gives Direct's answer at close to Fast's cost. On near-periodic data, where
+// many windows are almost equally close, it rescores them all and takes about
+// twice as long as Fast, whose choice between them is then down to rounding.
 //
 // # Conventions
 //
