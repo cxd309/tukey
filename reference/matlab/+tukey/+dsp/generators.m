@@ -7,5 +7,6 @@ function g = generators()
     % One file per family, as reference/scipy/dsp, each returning its own
     % categories and run functions.
     g = [tukey.dsp.design(), tukey.dsp.filtering(), tukey.dsp.response(), ...
-         tukey.dsp.conditioning(), tukey.dsp.peaks(), tukey.dsp.envelopes()];
+         tukey.dsp.conditioning(), tukey.dsp.peaks(), ...
+         tukey.dsp.envelopes(), tukey.dsp.alignment()];
 end
