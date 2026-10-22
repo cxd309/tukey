@@ -58,3 +58,11 @@ func InverseShift[T any](x []T) (y []T) {
 	y = slices.Concat(x[cut:], x[:cut])
 	return
 }
+
+// FastLength returns the smallest length of at least n whose only prime
+// factors are 2, 3, 5, the lengths tukey's FFTs transform fastest.
+// Zero-pad to it when any length of at least n will do, as for a correlation.
+func FastLength(n int) (length int) {
+	length = smoothSize(n)
+	return
+}
