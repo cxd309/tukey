@@ -1,6 +1,10 @@
 package dsp
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cxd309/tukey/internal/floats"
+)
 
 // digitalFilter is a validated IIR filter in transfter-function form
 // normalised so a[0] == 1, with b and a zero-padded to the same length
@@ -56,11 +60,7 @@ func (f digitalFilter) apply(x, initial []float64) (y, final []float64) {
 // zi[k] = b[k+1] - a[k+1]*g + zi[k+1]
 // equivalent to scipy.signal.lfilter_zi, which solves the same equations as a linear system
 func (f digitalFilter) steadyState() (zi []float64, err error) {
-	sumB, sumA := 0.0, 0.0
-	for i := range f.a {
-		sumB += f.b[i]
-		sumA += f.a[i]
-	}
+	sumB, sumA := f.sums()
 	if sumA == 0 {
 		return nil, fmt.Errorf("%w: it has a pole at z=1 (sum(a) == 0)", ErrNoSteadyState)
 	}
@@ -95,12 +95,15 @@ func Filter(b, a, x []float64) (y []float64, err error) {
 	return
 }
 
-// sums returns sum(b) and sum(a): the numerator and denominator at z = 1, which is DC
+// sums returns sum(b) and sum(a): the numerator and denominator at z = 1, which is DC.
+// They're summed with compensation, as a sharp filter's coefficients nearly cancel
 func (f digitalFilter) sums() (sumB, sumA float64) {
+	var b, a floats.Sum
 	for i := range f.a {
-		sumB += f.b[i]
-		sumA += f.a[i]
+		b.Add(f.b[i])
+		a.Add(f.a[i])
 	}
+	sumB, sumA = b.Total(), a.Total()
 	return
 }
 

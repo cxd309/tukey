@@ -38,6 +38,11 @@ var Suites = slices.Concat(
 		interp1SciPySuite,
 		fillMissingSciPySuite,
 		rmsSciPySuite,
+		findPeaksSciPySuite,
+		peakProminencesSciPySuite,
+		peakWidthsSciPySuite,
+		hilbertSciPySuite,
+		envelopeSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -65,6 +70,11 @@ var Suites = slices.Concat(
 		interp1MATLABSuite,
 		fillMissingMATLABSuite,
 		rmsMATLABSuite,
+		findPeaksMATLABSuite,
+		peakProminencesMATLABSuite,
+		peakWidthsMATLABSuite,
+		hilbertMATLABSuite,
+		envelopeMATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )

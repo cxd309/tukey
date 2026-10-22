@@ -1,0 +1,5 @@
+{"description": "hilbert(x)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      -0.7901524999630146
+    ]
+  }, "output": {"analytic": {"re": [-0.79015249996301462], "im": [0]}}}

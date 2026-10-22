@@ -1,6 +1,10 @@
 package dsp
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cxd309/tukey/internal/floats"
+)
 
 // DetrendMode selects what Detrend removes
 type DetrendMode int
@@ -59,15 +63,15 @@ func detrendConstant(x []float64) (y []float64) {
 func detrendLinear(x []float64) (y []float64) {
 	centre := float64(len(x)-1) / 2
 	m := mean(x)
-	var sxy, sxx float64
+	var sxy, sxx floats.Sum
 	for i, v := range x {
 		t := float64(i) - centre
-		sxy += t * (v - m)
-		sxx += t * t
+		sxy.Add(t * (v - m))
+		sxx.Add(t * t)
 	}
 	slope := 0.0
-	if sxx > 0 { // a single sample has no slope
-		slope = sxy / sxx
+	if sxx.Total() > 0 { // a single sample has no slope
+		slope = sxy.Total() / sxx.Total()
 	}
 	y = make([]float64, len(x))
 	for i, v := range x {

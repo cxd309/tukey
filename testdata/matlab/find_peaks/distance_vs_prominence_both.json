@@ -1,0 +1,15 @@
+{"description": "findpeaks(x, \"MinPeakDistance\", 3, \"MinPeakProminence\", 0.3)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      0.0,
+      5.0,
+      4.8,
+      4.8,
+      4.8,
+      4.9,
+      4.0,
+      4.5,
+      0.0
+    ],
+    "distance": 3,
+    "prominence": 0.3
+  }, "output": {"peaks": [1, 7], "heights": [5, 4.5]}}

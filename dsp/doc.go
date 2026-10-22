@@ -1,6 +1,6 @@
 // Package dsp is offline, zero-phase signal processing for Go: IIR filter
 // design, filtering as (b, a) or second-order sections, frequency response,
-// and signal conditioning, matching SciPy and MATLAB.
+// signal conditioning, peak finding and envelopes, matching SciPy and MATLAB.
 //
 // # Compatibility
 //
@@ -9,22 +9,27 @@
 // figure is the worst on either amd64 or arm64, which round slightly
 // differently because arm64 fuses multiply-adds.
 //
-//	Function       SciPy equivalent                    Worst measured   Tested to
-//	Butter         butter (b, a)                       7.6e-15          1e-13
-//	Butter + SOS   butter(output='sos')                7.3e-15          1e-13
-//	ZPK.SOS        zpk2sos                             1.1e-16          1e-14
-//	Filter         lfilter                             6.4e-16          1e-14
-//	FilterState    lfilter with zi                     2.3e-16          1e-14
-//	FilterZi       lfilter_zi                          3.3e-16          1e-14
-//	FiltFilt       filtfilt                            8.8e-16          1e-14
-//	SOSFilter      sosfilt, with and without zi        4.1e-14          1e-12
-//	SOSFilterZi    sosfilt_zi                          9.8e-17          1e-14
-//	SOSFiltFilt    sosfiltfilt                         1.7e-13          1e-11
-//	Freqz          freqz                               1.4e-15          1e-13
-//	SOSFreqz       freqz_sos                           3.7e-13          1e-11
-//	Detrend        detrend                             5.6e-16          1e-14
-//	Interp1        interp1d(bounds_error=False)        1.3e-16          1e-14
-//	RMS            sqrt(mean(x**2)), from NumPy        3.1e-16          1e-14
+//	Function         SciPy equivalent                    Worst measured   Tested to
+//	Butter           butter (b, a)                       7.6e-15          1e-13
+//	Butter + SOS     butter(output='sos')                7.3e-15          1e-13
+//	ZPK.SOS          zpk2sos                             1.1e-16          1e-14
+//	Filter           lfilter                             6.4e-16          1e-14
+//	FilterState      lfilter with zi                     2.3e-16          1e-14
+//	FilterZi         lfilter_zi                          3.3e-16          1e-14
+//	FiltFilt         filtfilt                            8.8e-16          1e-14
+//	SOSFilter        sosfilt, with and without zi        4.1e-14          1e-12
+//	SOSFilterZi      sosfilt_zi                          9.8e-17          1e-14
+//	SOSFiltFilt      sosfiltfilt                         1.7e-13          1e-11
+//	Freqz            freqz                               1.4e-15          1e-13
+//	SOSFreqz         freqz_sos                           3.7e-13          1e-11
+//	Detrend          detrend                             5.6e-16          1e-14
+//	Interp1          interp1d(bounds_error=False)        1.3e-16          1e-14
+//	RMS              sqrt(mean(x**2)), from NumPy        1.4e-16          1e-14
+//	FindPeaks        find_peaks                          exact            exact
+//	PeakProminences  peak_prominences                    exact            1e-14
+//	PeakWidths       peak_widths                         exact            1e-14
+//	Hilbert          hilbert                             5.7e-16          1e-14
+//	Envelope         MATLAB's envelope, from hilbert     1.0e-15          1e-14
 //
 // Errors are relative to the largest expected value, or for filtering to the
 // largest input value if that's larger. For scale, 1e-16 is about one unit in
@@ -62,7 +67,12 @@
 //	Detrend                  detrend                         1.2e-15          1e-13
 //	Interp1                  interp1                         2.2e-16          1e-14
 //	FillMissing              fillmissing                     exact            1e-14
-//	RMS                      rms                             3.1e-16          1e-14
+//	RMS                      rms                             1.2e-16          1e-14
+//	FindPeaks + MATLABPeaks  findpeaks                       exact            exact
+//	PeakProminences          [~, ~, ~, p] = findpeaks        exact            1e-14
+//	PeakWidths               [~, ~, w] = findpeaks           2.7e-15          1e-13
+//	Hilbert                  hilbert                         5.8e-16          1e-14
+//	Envelope                 envelope(x), (x, n, "rms")      4.5e-15          1e-13
 //
 // The largest figures come from the same difficult filter, where MATLAB and
 // SciPy differ from each other by as much. Second-order sections aren't
@@ -71,7 +81,9 @@
 // in different sections. SOSFiltFilt doesn't yet match MATLAB's
 // filtfilt(sos, g, x), which filters section by section. SciPy has no
 // fillmissing, so FillMissing is checked against MATLAB's documented definition
-// as well as MATLAB itself.
+// as well as MATLAB itself. MATLAB's RMS envelope is 4.5e-15 from an exactly
+// summed answer, where Envelope's compensated sum is within 1e-15 of it, so
+// that gap is MATLAB's.
 //
 // Where MATLAB's behaviour differs from SciPy's, SciPy's is the default and
 // MATLAB's is an option, e.g. MATLABPadLen for filtfilt's padding length.
@@ -100,6 +112,32 @@
 // differs there: it repeats the end values.) FillMissing replaces NaN samples,
 // by linear interpolation across each gap and linear extrapolation at the ends,
 // or with a constant, as MATLAB's fillmissing. RMS is the root mean square.
+//
+// # Peaks and envelopes
+//
+// FindPeaks finds every local maximum, then narrows them down with
+// MinPeakHeight, PeakThreshold, MinPeakProminence, MinPeakWidth and
+// MinPeakDistance. PeakProminences and PeakWidths measure given peaks.
+//
+// FindPeaks follows SciPy's find_peaks by default. MATLAB's findpeaks differs
+// in three rules, each its own option, so any combination is available.
+// MATLABPeaks sets all three:
+//
+//	Rule                                    SciPy (default)   MATLAB    Option
+//	Sample reported for a flat-topped peak  middle            first     Plateau
+//	Which of two close, equal peaks stays   later             earlier   Ties
+//	When MinPeakDistance is applied         first             last      DistanceLast
+//
+// MATLAB's MinPeakDistance d keeps peaks more than d apart, and
+// MinPeakDistance keeps them at least d apart, so MATLAB's d is
+// MinPeakDistance(d+1).
+//
+// Hilbert gives the analytic signal. Envelope gives a signal's upper and lower
+// envelopes: its mean plus and minus either the analytic signal's magnitude
+// (EnvelopeAnalytic) or a moving RMS (EnvelopeRMS), as MATLAB's envelope does.
+// SciPy's envelope differs, dropping the Nyquist bin and having no RMS method,
+// so Envelope is checked against MATLAB's definition built from SciPy's
+// hilbert and NumPy, as well as against MATLAB itself.
 //
 // # Conventions
 //

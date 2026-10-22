@@ -62,8 +62,8 @@ type lfilterZiVector struct {
 
 // filterZiSciPySuite checks dsp.FilterZi against scipy.signal.lfilter_zi
 // MATLAB has no equivalent function
-// measured (as steadyState, before it was public): five of six filters
-// bit-identical, worst 1 ULP (1.7e-16); set to match Filter
+// measured: exact on amd64, and worst 3.3e-16 (2 ULP) on arm64, on butter2_lp0.001;
+// set to match Filter
 var filterZiSciPySuite = newSuite("FilterZi", reference.SourceSciPy, "lfilter_zi",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v lfilterZiVector) (outputs []Output, err error) {

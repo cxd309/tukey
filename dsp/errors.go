@@ -18,4 +18,5 @@ var (
 	ErrInvalidLength       = errors.New("dsp: invalid length")
 	ErrInvalidMode         = errors.New("dsp: invalid mode")
 	ErrInvalidSamplePoints = errors.New("dsp: invalid sample points")
+	ErrInvalidParameter    = errors.New("dsp: invalid parameter")
 )
