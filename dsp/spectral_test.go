@@ -222,3 +222,128 @@ func TestSTFTInvalid(t *testing.T) {
 		})
 	}
 }
+
+// Parseval: density summed over frequency is the windowed signal's power,
+// sum((w·x)²) / sum(w²), so a boxcar's is x's mean square. One-sided, at even
+// and odd lengths, as doubling every bin but DC and Nyquist keeps the total.
+func TestPeriodogramParseval(t *testing.T) {
+	const fs = 50.0
+	for _, n := range []int{256, 255} {
+		x := noise(n, 11)
+		boxcar := make([]float64, n)
+		for i := range boxcar {
+			boxcar[i] = 1
+		}
+		for name, win := range map[string][]float64{"boxcar": boxcar, "hann": hann(t, n)} {
+			t.Run(name+"/"+map[bool]string{true: "even", false: "odd"}[n%2 == 0], func(t *testing.T) {
+				spectrum, err := Periodogram(x, fs, win)
+				require.NoError(t, err)
+				var total, power, squares float64
+				for _, p := range spectrum.Power {
+					total += p * fs / float64(n)
+				}
+				for i, v := range x {
+					power += (win[i] * v) * (win[i] * v)
+					squares += win[i] * win[i]
+				}
+				assert.InDelta(t, power/squares, total, 1e-12*power/squares)
+			})
+		}
+	}
+}
+
+// With ScalingSpectrum, a sine on a bin reads its power, A²/2, at its frequency.
+func TestPeriodogramSineSpectrum(t *testing.T) {
+	const n, fs, amplitude = 64, 64.0, 3.0
+	x := make([]float64, n)
+	boxcar := make([]float64, n)
+	for i := range x {
+		x[i] = amplitude * math.Sin(2*math.Pi*8*float64(i)/fs) // 8 Hz is bin 8
+		boxcar[i] = 1
+	}
+	spectrum, err := Periodogram(x, fs, boxcar, Scaling(ScalingSpectrum))
+	require.NoError(t, err)
+	assert.Equal(t, 8.0, spectrum.Frequencies[8])
+	assert.InDelta(t, amplitude*amplitude/2, spectrum.Power[8], 1e-12)
+}
+
+// One-sided power is two-sided power folded over: each positive frequency plus
+// its negative mirror, with DC, and Nyquist for an even NFFT, left as they are.
+func TestSpectrogramOneSidedFoldsTwoSided(t *testing.T) {
+	x, win := noise(400, 12), hann(t, 32)
+	for _, nfft := range []int{32, 33} {
+		t.Run(map[bool]string{true: "even", false: "odd"}[nfft%2 == 0], func(t *testing.T) {
+			one, err := Spectrogram(x, 1, win, NFFT(nfft))
+			require.NoError(t, err)
+			two, err := Spectrogram(x, 1, win, NFFT(nfft), TwoSided())
+			require.NoError(t, err)
+			require.Len(t, one.Values, len(two.Values))
+			for i, folded := range two.Values {
+				want := make([]float64, nfft/2+1)
+				want[0] = folded[0]
+				for k := 1; k < len(want); k++ {
+					want[k] = folded[k] + folded[nfft-k]
+					if nfft%2 == 0 && k == nfft/2 {
+						want[k] = folded[k] // Nyquist is its own mirror
+					}
+				}
+				assert.InDeltaSlice(t, want, one.Values[i], 1e-12*slices.Max(want), "segment %d", i)
+			}
+		})
+	}
+}
+
+// Over a single segment there's nothing to average, so Welch is that segment's
+// periodogram, with either average: the median of one value has no bias.
+func TestWelchOneSegmentIsPeriodogram(t *testing.T) {
+	x, win := noise(64, 13), hann(t, 64)
+	want, err := Periodogram(x, 10, win)
+	require.NoError(t, err)
+	for _, average := range []SpectralAverage{AverageMean, AverageMedian} {
+		got, err := Welch(x, 10, win, Average(average))
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	}
+}
+
+// The median of n exponentially distributed values falls below their mean by
+// 1 − 1/2 + 1/3 − … to the 1/n term for odd n, approaching ln 2 as n grows.
+func TestMedianBias(t *testing.T) {
+	cases := []struct {
+		n    int
+		want float64
+	}{
+		{1, 1},
+		{2, 1},
+		{3, 1 - 1.0/2 + 1.0/3},
+		{4, 1 - 1.0/2 + 1.0/3},
+		{5, 1 - 1.0/2 + 1.0/3 - 1.0/4 + 1.0/5},
+	}
+	for _, c := range cases {
+		assert.InDelta(t, c.want, medianBias(c.n), 1e-15, "n=%d", c.n)
+	}
+	assert.InDelta(t, math.Ln2, medianBias(10001), 1e-4)
+}
+
+func TestPowerSpectraInvalid(t *testing.T) {
+	x, win := ramp(16), []float64{1, 1, 1, 1}
+	cases := []struct {
+		name string
+		call func() error
+		want error
+	}{
+		{"Periodogram window shorter than x", func() error { _, err := Periodogram(x, 1, win); return err }, ErrInvalidLength},
+		{"Overlap on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Overlap(1)); return err }, ErrInvalidParameter},
+		{"Average on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
+		{"Average on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
+		{"AtFrequencies on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidParameter},
+		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidParameter},
+		{"Scaling on STFT", func() error { _, err := STFT(x, 1, win, Scaling(ScalingSpectrum)); return err }, ErrInvalidParameter},
+		{"Average on STFT", func() error { _, err := STFT(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.ErrorIs(t, c.call(), c.want)
+		})
+	}
+}
