@@ -1,7 +1,7 @@
 // Package dsp is offline, zero-phase signal processing for Go: IIR filter
 // design, filtering as (b, a) or second-order sections, frequency response,
-// signal conditioning, peak finding, envelopes, alignment and spectral analysis,
-// checked against SciPy and MATLAB.
+// signal conditioning, peak finding, envelopes, alignment, spectral analysis and
+// reductions, checked against SciPy and MATLAB.
 //
 // # Compatibility
 //
@@ -35,6 +35,14 @@
 //	Spectrogram      spectrogram(mode='psd')             7.3e-16          1e-14
 //	Welch            welch                               1.1e-15          1e-13
 //	Periodogram      periodogram                         1.1e-15          1e-13
+//	Sum              sum, exactly (math.fsum)            exact            1e-14
+//	Mean             mean, exactly                       exact            1e-14
+//	Diff             numpy.diff                          exact            1e-14
+//	Grad             numpy.gradient                      exact            1e-14
+//	CumSum           cumsum, exactly                     exact            1e-14
+//	Trapz            trapezoid, exactly                  exact            1e-14
+//	CumTrapz         cumulative_trapezoid, exactly       exact            1e-14
+//	Percentile       numpy.percentile                    exact            1e-14
 //
 // Errors are relative to the largest expected value, or for filtering to the
 // largest input value if that's larger. For scale, 1e-16 is about one unit in
@@ -85,6 +93,14 @@
 //	Spectrogram              [~, F, T, P] = spectrogram      7.3e-16          1e-14
 //	Welch                    pwelch                          1.3e-15          1e-13
 //	Periodogram              periodogram                     5.0e-16          1e-14
+//	Sum                      sum                             9.0e-14          1e-12
+//	Mean                     mean                            9.0e-14          1e-12
+//	Diff                     diff                            exact            1e-14
+//	Grad                     gradient(x, dx)                 2.1e-14          1e-12
+//	CumSum                   cumsum                          3.6e-13          1e-11
+//	Trapz                    trapz(dx, y)                    9.0e-14          1e-12
+//	CumTrapz                 cumtrapz(dx, y)                 3.6e-13          1e-11
+//	Percentile + Hazen       prctile                         4.0e-17          1e-14
 //
 // The largest figures come from the same difficult filter, where MATLAB and
 // SciPy differ from each other by as much. Second-order sections aren't
@@ -102,6 +118,11 @@
 // STFT with AtFrequencies is within 1 ULP of exact sums, which SciPy has no
 // equivalent for. MATLAB's spectrogram at a frequency vector is 2.4e-13 from
 // them, even at the FFT's own bins, where its FFT path agrees within 3e-16.
+// The sums are compensated, and match exact sums on every SciPy-side case.
+// MATLAB sums plainly, so its sums are measured relative to the sum of the
+// magnitudes summed, the scale it rounds at: its running sum of 20,000 tenths
+// drifts by 3.6e-13 of that, and 1e8 among 20,000 thousandths, then cancelled,
+// sums to 20.00001 where Sum gives 20.
 //
 // SciPy and MATLAB are references for the maths, not specifications. Where
 // they differ, dsp usually follows SciPy, with MATLAB's behaviour as an option,
@@ -221,6 +242,23 @@
 // differently: SciPy's welch, for instance, uses a 256-sample periodic Hann
 // window, half overlapped, and subtracts each segment's mean. Pass the same
 // window, Overlap, NFFT and SegmentDetrend to match either.
+//
+// # Reductions
+//
+// Sum, Mean, CumSum, Trapz and CumTrapz sum with compensation, so neither a
+// long signal nor a few large values among many small ones lose the small
+// values' low bits, as a plain sum does. Diff gives the difference between
+// each sample and the next, and Grad the slope at each sample: central
+// differences inside, one-sided at the ends. Trapz integrates by the
+// trapezoidal rule, and CumTrapz gives the integral up to each sample, starting
+// at 0, so it lines up with the signal. Any of them given too few samples to
+// act on returns an empty slice or 0, never nil, except where there's no
+// answer: Mean of an empty signal and Grad of fewer than 2 samples are errors.
+//
+// Percentile interpolates between the sorted samples, linearly by default, as
+// NumPy's default, R's and Excel's PERCENTILE.INC. PercentileBy(PercentileHazen)
+// is MATLAB's prctile. Any NaN gives NaN, as a missing sample leaves the
+// percentile unknown, where prctile ignores it: FillMissing first to fill gaps.
 //
 // # Conventions
 //
