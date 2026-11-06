@@ -3,10 +3,47 @@ package dsp
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/cxd309/tukey/fft"
 	"github.com/cxd309/tukey/internal/floats"
+)
+
+// spectralOptionKind identifies a SpectralOption, to check which apply to a function
+type spectralOptionKind int
+
+const (
+	optionOverlap spectralOptionKind = iota
+	optionNFFT
+	optionAtFrequencies
+	optionTwoSided
+	optionSegmentDetrend
+	optionScaling
+	optionAverage
+	spectralOptionCount // the number of options, keep last
+)
+
+// SpectralScaling is the units power is given in
+type SpectralScaling int
+
+const (
+	// ScalingDensity gives power spectral density, in units^2/Hz:
+	// comparable across samples rates and windows, and the default
+	ScalingDensity SpectralScaling = iota
+	// ScalingSpectrum gives power spectrum, in units^2: a sine's peak reads its power
+	ScalingSpectrum
+)
+
+// SpectralAverage is how Welch combines its segments' spectra
+type SpectralAverage int
+
+const (
+	// AverageMean averages them, default option
+	AverageMean SpectralAverage = iota
+	// AverageMedian takes their median, corrected for its bias,
+	// which is robust to a few segments with transients in them
+	AverageMedian
 )
 
 // TimeFrequency is a signal's spectrum over time: one spectrum per segment
@@ -20,18 +57,6 @@ type TimeFrequency[T complex128 | float64] struct {
 // A function given an option that doesn't apply to it returns ErrInvalidParameter
 type SpectralOption func(*spectralConfig)
 
-// spectralOptionKing identifies a SpectralOption, to check which apply to a function
-type spectralOptionKind int
-
-const (
-	optionOverlap spectralOptionKind = iota
-	optionNFFT
-	optionAtFrequencies
-	optionTwoSided
-	optionSegmentDetrend
-	spectralOptionCount // the number of options, keep last
-)
-
 // spectralOptionNames names each option, for error messages.
 var spectralOptionNames = [spectralOptionCount]string{
 	optionOverlap:        "Overlap",
@@ -39,6 +64,8 @@ var spectralOptionNames = [spectralOptionCount]string{
 	optionAtFrequencies:  "AtFrequencies",
 	optionTwoSided:       "TwoSided",
 	optionSegmentDetrend: "SegmentDetrend",
+	optionScaling:        "Scaling",
+	optionAverage:        "Average",
 }
 
 // spectralConfig is a spectral function's settings built from SpectralOptions
@@ -49,6 +76,14 @@ type spectralConfig struct {
 	twoSided    bool
 	detrend     DetrendMode
 	given       [spectralOptionCount]bool // which options were passed
+	scaling     SpectralScaling
+	average     SpectralAverage
+}
+
+// Spectrum is a power spectrum: one value per frequency
+type Spectrum struct {
+	Frequencies []float64 // Hz
+	Power       []float64 // units^2/Hz, or units^2 with ScalingSpectrum
 }
 
 // Overlap sets how many samples neighbouring segments share.
@@ -115,14 +150,169 @@ func STFT(x []float64, fs float64, window []float64, opts ...SpectralOption) (tf
 		tf.Values = transformAt(windowed, cfg.frequencies, fs)
 		return
 	}
-	if cfg.twoSided {
-		tf.Frequencies = fft.Freq(cfg.nfft, 1/fs)
-	} else {
-		tf.Frequencies = fft.RealFreq(cfg.nfft, 1/fs)
-	}
+	tf.Frequencies = binFrequencies(cfg, fs)
 	tf.Values, err = transformBins(windowed, cfg.nfft, cfg.twoSided)
 	return
 
+}
+
+// Scaling sets the units power is given . ScalingDensity by default.
+func Scaling(s SpectralScaling) SpectralOption {
+	return func(c *spectralConfig) { c.scaling, c.given[optionScaling] = s, true }
+}
+
+// Average sets how Welch combines its segments' spectra. AverageMean by default
+func Average(a SpectralAverage) SpectralOption {
+	return func(c *spectralConfig) { c.average, c.given[optionAverage] = a, true }
+}
+
+// Spectrogram returns the power of x's STFT (see STFT): one power spectrum per segment
+//
+// Returns same as STFT. AtFrequencies doesn't apply
+//
+// Equivalent to scipy.signal.spectrogram(x, fs, window, detrend=False, mode='psd'), transposed.
+// Equivalent to MATLAB [~, F, T, P] = spectrogram(x, window, nooverlap, nfft, fs), with P transposed and "power" for ScalingSpectrum
+func Spectrogram(x []float64, fs float64, window []float64, opts ...SpectralOption) (tf TimeFrequency[float64], err error) {
+	cfg, err := newSpectralConfig("Spectrogram", x, fs, window, opts, optionOverlap, optionNFFT, optionTwoSided, optionSegmentDetrend, optionScaling)
+	if err != nil {
+		return
+	}
+	power, times, err := segmentPowers(x, fs, window, cfg)
+	if err != nil {
+		return
+	}
+	tf = TimeFrequency[float64]{Frequencies: binFrequencies(cfg, fs), Times: times, Values: power}
+	return
+}
+
+// Welch returns x's power spectrum by Welch's method:
+// the average of its segments' power spectra, which is much less noisy than one periodogram,
+// at the cost of the coarser frequency spacing of a segment's length.
+//
+// Returns as STFT does. AtFrequencies doesn't apply.
+//
+// Equivalent to scipy.signal.welch(x, fs, window, detrend=False).
+// Equivalent with AverageMean to MATLAB [pxx, f] = pwelch(x, window, noverlap, nfft, fs), "power" for ScalingSpectrum
+func Welch(x []float64, fs float64, window []float64, opts ...SpectralOption) (spectrum Spectrum, err error) {
+	cfg, err := newSpectralConfig("Welch", x, fs, window, opts, optionOverlap, optionNFFT, optionTwoSided, optionSegmentDetrend, optionScaling, optionAverage)
+	if err != nil {
+		return
+	}
+	power, _, err := segmentPowers(x, fs, window, cfg)
+	if err != nil {
+		return
+	}
+	spectrum = Spectrum{Frequencies: binFrequencies(cfg, fs), Power: averaged(power, cfg.average)}
+	return
+}
+
+// Periodogram returns x's power spectrum from one transform of the whole signal,
+// multiplied by window, which must be as long as x.
+// window.Boxcar(len(x)) gives the plain periodogram.
+//
+// Returns ErrInvalidLength for a window that isn't x's length, otherwise as STFT does.
+// Overlap, AtFrequencies and Average don't apply.
+//
+// Equivalent to scipy.signal.periodogram(x, fs, window, detrend=False).
+// Equivalent to MATLAB [pxx, f] = periodogram(x, window, nfft, fs), "power" for ScalingSpectrum.
+func Periodogram(x []float64, fs float64, window []float64, opts ...SpectralOption) (spectrum Spectrum, err error) {
+	if len(window) != len(x) {
+		return spectrum, fmt.Errorf("%w: window of length %d for x of length %d, must be the same", ErrInvalidLength, len(window), len(x))
+	}
+	cfg, err := newSpectralConfig("Periodogram", x, fs, window, opts, optionNFFT, optionTwoSided, optionSegmentDetrend, optionScaling)
+	if err != nil {
+		return
+	}
+	power, _, err := segmentPowers(x, fs, window, cfg) // one segment: the whole signal
+	if err != nil {
+		return
+	}
+	spectrum = Spectrum{Frequencies: binFrequencies(cfg, fs), Power: power[0]}
+	return
+}
+
+// binFrequencies is the frequency of each FFT bin, in Hz.
+func binFrequencies(cfg spectralConfig, fs float64) (frequencies []float64) {
+	if cfg.twoSided {
+		return fft.Freq(cfg.nfft, 1/fs)
+	}
+	return fft.RealFreq(cfg.nfft, 1/fs)
+}
+
+// segmentPowers is each segment's power spectrum, scaled as cfg says.
+// One-sided, each frequency is doubled to count the negative frequency it mirrors, except DC, and Nyquest when nfft is even, which have no mirror
+func segmentPowers(x []float64, fs float64, window []float64, cfg spectralConfig) (power [][]float64, times []float64, err error) {
+	windowed, times, err := segments(x, fs, window, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	values, err := transformBins(windowed, cfg.nfft, cfg.twoSided)
+	if err != nil {
+		return nil, nil, err
+	}
+	var sum, squares floats.Sum
+	for _, w := range window {
+		sum.Add(w)
+		squares.Add(w * w)
+	}
+	scale := 1 / (fs * squares.Total())
+	if cfg.scaling == ScalingSpectrum {
+		scale = 1 / (sum.Total() * sum.Total())
+	}
+	power = make([][]float64, len(values))
+	for i, spectrum := range values {
+		power[i] = make([]float64, len(spectrum))
+		for k, v := range spectrum {
+			p := (real(v)*real(v) + imag(v)*imag(v)) * scale
+			if !cfg.twoSided && k > 0 && !(cfg.nfft%2 == 0 && k == cfg.nfft/2) {
+				p *= 2
+			}
+			power[i][k] = p
+		}
+	}
+	return
+}
+
+// averaged is the mean or median of each frequency's power across segments.
+// The median is divided by its bias for exponentially distributed powers.
+func averaged(power [][]float64, average SpectralAverage) (combined []float64) {
+	combined = make([]float64, len(power[0]))
+	column := make([]float64, len(power))
+	for k := range combined {
+		for i := range power {
+			column[i] = power[i][k]
+		}
+		if average == AverageMedian {
+			combined[k] = median(column) / medianBias(len(column))
+			continue
+		}
+		var sum floats.Sum
+		for _, p := range column {
+			sum.Add(p)
+		}
+		combined[k] = sum.Total() / float64(len(column))
+	}
+	return
+}
+
+// median is the middle value of x, or the mean of the middle two. It sorts x
+func median(x []float64) (m float64) {
+	slices.Sort(x)
+	n := len(x)
+	if n%2 == 1 {
+		return x[n/2]
+	}
+	return (x[n/2-1] + x[n/2]) / 2
+}
+
+// medianBias is how far below their mean the median of n exponentially distributed values falls:
+// 1 - 1/2 + 1/3 - ... to the 1/n term for odd n, same as how scipy welch corrects
+func medianBias(n int) (bias float64) {
+	bias = 1
+	for k := 1; k <= (n-1)/2; k++ {
+		bias += 1/float64(2*k+1) - 1/float64(2*k)
+	}
+	return
 }
 
 // newSpectralConfig builds a spectral function's settings from opts,
