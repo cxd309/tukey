@@ -1,0 +1,13 @@
+{
+  "description": "numpy.diff(x)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": []
+  },
+  "output": {
+    "d": []
+  }
+}

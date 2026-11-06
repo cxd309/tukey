@@ -22,6 +22,16 @@ from dsp.peaks import (
     generate_peak_prominences,
     generate_peak_widths,
 )
+from dsp.reductions import (
+    generate_cumsum,
+    generate_cumulative_trapezoid,
+    generate_diff,
+    generate_gradient,
+    generate_mean,
+    generate_percentile,
+    generate_sum,
+    generate_trapezoid,
+)
 from dsp.spectral import (
     generate_periodogram,
     generate_spectrogram,
@@ -55,4 +65,12 @@ GENERATORS = [
     generate_spectrogram,
     generate_welch,
     generate_periodogram,
+    generate_sum,
+    generate_mean,
+    generate_diff,
+    generate_gradient,
+    generate_cumsum,
+    generate_trapezoid,
+    generate_cumulative_trapezoid,
+    generate_percentile,
 ]
