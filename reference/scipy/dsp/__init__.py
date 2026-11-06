@@ -22,6 +22,13 @@ from dsp.peaks import (
     generate_peak_prominences,
     generate_peak_widths,
 )
+from dsp.spectral import (
+    generate_periodogram,
+    generate_spectrogram,
+    generate_stft,
+    generate_stft_frequencies,
+    generate_welch,
+)
 
 # every dsp generator; each writes one or more categories
 GENERATORS = [
@@ -43,4 +50,9 @@ GENERATORS = [
     generate_hilbert,
     generate_envelope,
     generate_findsignal,
+    generate_stft,
+    generate_stft_frequencies,
+    generate_spectrogram,
+    generate_welch,
+    generate_periodogram,
 ]

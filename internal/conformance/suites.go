@@ -46,6 +46,11 @@ var Suites = slices.Concat(
 		findSignalDirectSciPySuite,
 		findSignalFastSciPySuite,
 		findSignalHybridSciPySuite,
+		stftSciPySuite,
+		stftFrequenciesSciPySuite,
+		spectrogramSciPySuite,
+		welchSciPySuite,
+		periodogramSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -81,6 +86,11 @@ var Suites = slices.Concat(
 		findSignalDirectMATLABSuite,
 		findSignalFastMATLABSuite,
 		findSignalHybridMATLABSuite,
+		stftMATLABSuite,
+		stftFrequenciesMATLABSuite,
+		spectrogramMATLABSuite,
+		welchMATLABSuite,
+		periodogramMATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )
