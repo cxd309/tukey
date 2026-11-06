@@ -1,0 +1,25 @@
+{
+  "description": "numpy.percentile(x, p, method='hazen')",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      7.0
+    ],
+    "p": [
+      0.0,
+      50.0,
+      100.0
+    ],
+    "method": "hazen"
+  },
+  "output": {
+    "values": [
+      7.0,
+      7.0,
+      7.0
+    ]
+  }
+}

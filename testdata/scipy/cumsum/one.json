@@ -1,0 +1,17 @@
+{
+  "description": "each prefix of x summed exactly",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      2.5
+    ]
+  },
+  "output": {
+    "s": [
+      2.5
+    ]
+  }
+}
