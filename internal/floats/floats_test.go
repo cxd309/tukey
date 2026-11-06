@@ -1,6 +1,7 @@
 package floats
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,10 @@ func TestSum(t *testing.T) {
 		{"small lost against large", []float64{1, 1e100, 1, -1e100}, 2},
 		// 0.1 isn't exact in binary, so a plain sum of ten drifts to 0.9999999999999999
 		{"many small", []float64{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1}, 1},
+		// an infinite value or an overflowing total is infinite, as for a plain sum
+		{"infinity", []float64{1, math.Inf(1), 2}, math.Inf(1)},
+		{"negative infinity first", []float64{math.Inf(-1), 1}, math.Inf(-1)},
+		{"overflow", []float64{math.MaxFloat64, math.MaxFloat64}, math.Inf(1)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

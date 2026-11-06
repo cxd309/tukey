@@ -26,8 +26,14 @@ func (s *Sum) Add(v float64) {
 	s.sum = total
 }
 
-// Total is the sum of everything added, with the lost bits restored
+// Total is the sum of everything added, with the lost bits restored. An
+// infinite or NaN sum is returned as it is, as its lost bits are then
+// Inf − Inf, NaN, and mean nothing beside it.
 func (s Sum) Total() (total float64) {
+	if math.IsInf(s.sum, 0) || math.IsNaN(s.sum) {
+		total = s.sum
+		return
+	}
 	total = s.sum + s.lost
 	return
 }
