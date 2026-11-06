@@ -59,6 +59,10 @@ var Suites = slices.Concat(
 		trapzSciPySuite,
 		cumTrapzSciPySuite,
 		percentileSciPySuite,
+		convolveDirectSciPySuite,
+		convolveFFTSciPySuite,
+		correlateDirectSciPySuite,
+		correlateFFTSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -107,6 +111,10 @@ var Suites = slices.Concat(
 		trapzMATLABSuite,
 		cumTrapzMATLABSuite,
 		percentileMATLABSuite,
+		convolveDirectMATLABSuite,
+		convolveFFTMATLABSuite,
+		correlateDirectMATLABSuite,
+		correlateFFTMATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )

@@ -1,0 +1,8 @@
+{"description": "conv(a, v), conv(a, v, \"same\"), conv(a, v, \"valid\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "a": [
+      3.0
+    ],
+    "v": [
+      -2.0
+    ]
+  }, "output": {"full": [-6], "same": [-6], "valid": [-6]}}

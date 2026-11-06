@@ -7,6 +7,7 @@ from dsp.conditioning import (
     generate_interp1,
     generate_rms,
 )
+from dsp.convolution import generate_convolve, generate_correlate
 from dsp.design import generate_butter, generate_zpk2sos
 from dsp.envelope import generate_envelope, generate_hilbert
 from dsp.filtering import (
@@ -73,4 +74,6 @@ GENERATORS = [
     generate_trapezoid,
     generate_cumulative_trapezoid,
     generate_percentile,
+    generate_convolve,
+    generate_correlate,
 ]
