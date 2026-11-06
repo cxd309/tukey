@@ -1,7 +1,7 @@
 // Package dsp is offline, zero-phase signal processing for Go: IIR filter
 // design, filtering as (b, a) or second-order sections, frequency response,
-// signal conditioning, peak finding, envelopes and alignment, matching SciPy and
-// MATLAB.
+// signal conditioning, peak finding, envelopes, alignment and spectral analysis,
+// checked against SciPy and MATLAB.
 //
 // # Compatibility
 //
@@ -31,6 +31,10 @@
 //	PeakWidths       peak_widths                         exact            1e-14
 //	Hilbert          hilbert                             5.7e-16          1e-14
 //	Envelope         MATLAB's envelope, from hilbert     1.0e-15          1e-14
+//	STFT             stft, unpadded, times sum(window)   4.2e-16          1e-14
+//	Spectrogram      spectrogram(mode='psd')             7.3e-16          1e-14
+//	Welch            welch                               1.1e-15          1e-13
+//	Periodogram      periodogram                         1.1e-15          1e-13
 //
 // Errors are relative to the largest expected value, or for filtering to the
 // largest input value if that's larger. For scale, 1e-16 is about one unit in
@@ -76,6 +80,11 @@
 //	Envelope                 envelope(x), (x, n, "rms")      4.5e-15          1e-13
 //	FindSignal               findsignal(data, signal)        5.9e-16          1e-14
 //	FindSignal + SearchFast  findsignal(data, signal)        1.5e-15          1e-13
+//	STFT                     [S, F, T] = spectrogram         4.2e-16          1e-14
+//	STFT + AtFrequencies     spectrogram(x, w, n, f, fs)     2.4e-13          1e-11
+//	Spectrogram              [~, F, T, P] = spectrogram      7.3e-16          1e-14
+//	Welch                    pwelch                          1.3e-15          1e-13
+//	Periodogram              periodogram                     5.0e-16          1e-14
 //
 // The largest figures come from the same difficult filter, where MATLAB and
 // SciPy differ from each other by as much. Second-order sections aren't
@@ -90,9 +99,14 @@
 // checked against MATLAB's definition summed exactly, which it matches exactly.
 // MATLAB's distance is measured relative to the window's and signal's sums of
 // squares, the scale it rounds at: its perfect matches are up to 2^-29, not 0.
+// STFT with AtFrequencies is within 1 ULP of exact sums, which SciPy has no
+// equivalent for. MATLAB's spectrogram at a frequency vector is 2.4e-13 from
+// them, even at the FFT's own bins, where its FFT path agrees within 3e-16.
 //
-// Where MATLAB's behaviour differs from SciPy's, SciPy's is the default and
-// MATLAB's is an option, e.g. MATLABPadLen for filtfilt's padding length.
+// SciPy and MATLAB are references for the maths, not specifications. Where
+// they differ, dsp usually follows SciPy, with MATLAB's behaviour as an option,
+// e.g. MATLABPadLen for filtfilt's padding length. Where neither default suits
+// general use, dsp chooses its own and says why, as the spectral functions do.
 //
 // # Filter representations
 //
@@ -162,6 +176,51 @@
 // gives Direct's answer at close to Fast's cost. On near-periodic data, where
 // many windows are almost equally close, it rescores them all and takes about
 // twice as long as Fast, whose choice between them is then down to rounding.
+//
+// # Spectral analysis
+//
+// STFT transforms a signal segment by segment, and Spectrogram gives each
+// segment's power. Welch averages those powers into one spectrum, much less
+// noisy than a single transform, and Periodogram transforms the whole signal at
+// once. All four take the window as a slice, from tukey/window or anywhere, and
+// its length is the segment length. There's no default window or segment
+// length: together they set the trade-off between time and frequency
+// resolution, and the right choice depends on the signal.
+//
+// The options share one set of rules:
+//
+//	Option          Default                                   Applies to
+//	Overlap         half the window                           all but Periodogram
+//	NFFT            the window's length                       all
+//	TwoSided        one-sided, as the signal is real          all
+//	SegmentDetrend  none: call Detrend on the whole signal    all
+//	Scaling         ScalingDensity, units^2/Hz                all but STFT
+//	Average         AverageMean                               Welch
+//	AtFrequencies   the FFT's bins                            STFT
+//
+// STFT is the plain transform of each windowed segment, with its phase measured
+// from the segment's start: divide by the window's sum for amplitudes. Each
+// segment's time is its centre, (start + len(window)/2)/fs, and a partial last
+// segment is dropped. TimeFrequency values are indexed [segment][frequency],
+// the transpose of SciPy's and MATLAB's layout. TwoSided orders frequencies as
+// fft.Freq does, with the upper half negative, where MATLAB labels it above
+// Nyquist.
+//
+// ScalingDensity is comparable across sample rates and windows: multiplied by
+// the frequency spacing and summed, it gives the windowed signal's power.
+// ScalingSpectrum, in units^2, reads a sine's power at its peak. One-sided,
+// every frequency but DC and Nyquist is doubled to count its negative mirror.
+// Welch's median is divided by its bias, so it estimates the same power as the
+// mean while ignoring a few segments with transients in them.
+//
+// AtFrequencies evaluates STFT at any frequencies, to look closely at a band
+// without a huge NFFT. Each angle is reduced to a fraction of a turn exactly
+// before it's rounded, so the result is within 1 ULP of exact sums.
+//
+// SciPy and MATLAB choose a window, segment length and overlap for you, and
+// differently: SciPy's welch, for instance, uses a 256-sample periodic Hann
+// window, half overlapped, and subtracts each segment's mean. Pass the same
+// window, Overlap, NFFT and SegmentDetrend to match either.
 //
 // # Conventions
 //
