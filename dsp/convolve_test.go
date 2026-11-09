@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"fmt"
 	"math"
 	"slices"
 	"testing"
@@ -115,6 +116,30 @@ func TestConvolveAuto(t *testing.T) {
 	}
 }
 
+// At lengths where Auto would pick FFT, a NaN or infinite sample in either
+// input makes it use direct, so outputs the sample isn't summed into are kept.
+func TestConvolveAutoFallsBackOnNonFinite(t *testing.T) {
+	const n, bad = 64, 10
+	require.Equal(t, ConvolveFFT, fasterMethod(n, n), "the case tests nothing if Auto would pick direct anyway")
+	clean, err := Convolve(ramp(n), ramp(n), ConvolveBy(ConvolveDirect))
+	require.NoError(t, err)
+	for _, sample := range []float64{nan, math.Inf(1)} {
+		for _, inA := range []bool{true, false} {
+			a, v := ramp(n), ramp(n)
+			if inA {
+				a[bad] = sample
+			} else {
+				v[bad] = sample
+			}
+			full, err := Convolve(a, v)
+			require.NoError(t, err)
+			// outputs bad−1 and bad+n don't include the sample, the two either side of it
+			assert.Equal(t, clean[bad-1], full[bad-1], "sample %g, in a: %t", sample, inA)
+			assert.Equal(t, clean[bad+n], full[bad+n], "sample %g, in a: %t", sample, inA)
+		}
+	}
+}
+
 // Same and valid are parts of the full result, sliced so that appending to
 // one reallocates rather than writing over the outputs after it.
 func TestConvolvePartsHaveNoSpareCapacity(t *testing.T) {
@@ -198,6 +223,29 @@ func TestCorrelateFindsDelay(t *testing.T) {
 			require.NoError(t, err)
 			i := slices.Index(corr.Values, slices.Max(corr.Values))
 			assert.Equal(t, delay, corr.Lags[i], m.name)
+		}
+	}
+}
+
+// convolveBenchmarkLengths are equal lengths, then a long signal with
+// kernels of increasing length, to find where FFT overtakes direct.
+var convolveBenchmarkLengths = [][2]int{
+	{8, 8}, {16, 16}, {32, 32}, {64, 64}, {128, 128}, {256, 256}, {512, 512}, {1024, 1024}, {2048, 2048},
+	{4096, 8}, {4096, 16}, {4096, 32}, {4096, 64}, {4096, 128}, {4096, 256}, {4096, 512},
+}
+
+func BenchmarkConvolve(b *testing.B) {
+	for _, lengths := range convolveBenchmarkLengths {
+		a, v := noise(lengths[0], 1), noise(lengths[1], 2)
+		for _, m := range convolveMethods[1:] { // auto is one of the other two
+			b.Run(fmt.Sprintf("%dx%d/%s", len(a), len(v), m.name), func(b *testing.B) {
+				b.ReportAllocs()
+				for range b.N {
+					if _, err := Convolve(a, v, ConvolveBy(m.method)); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
 		}
 	}
 }

@@ -12,8 +12,11 @@ import (
 type ConvolveMethod int
 
 const (
-	// ConvolveAuto chooses ConvolveDirect or ConvolveFFT by which is faster for the inputs' lengths.
-	// The default option
+	// ConvolveAuto chooses ConvolveDirect or ConvolveFFT by which is faster for the inputs' lengths,
+	// ConvolveFFT for all but the shortest inputs.
+	// If either input has a NaN or infinite sample it uses ConvolveDirect,
+	// so the same affects only the outputs it's summed into.
+	// The default option. For inputs with high dynamic range, set ConvolveDirect.
 	ConvolveAuto ConvolveMethod = iota
 	// ConvolveDirect sums every product directly, each kept exactly and summed with compensation,
 	// so each output is within about 1 ULP of its exact value, however small it is beside the others.
@@ -22,6 +25,7 @@ const (
 	// ConvolveFFT multiplies the inputs' spectra, O(n log n).
 	// Its error is relative to the largest output, so outputs much smaller than that lose relative accuracy:
 	// 1e-3 noise beside a 1e8 spikes keeps only a few digits.
+	// A NaN or infinite sample spreads to every output.
 	ConvolveFFT
 )
 
@@ -166,13 +170,34 @@ func Correlate(a, v []float64, opts ...ConvolveOption) (c Correlation, err error
 // convolveFull is the full convolution of a and v, by method
 func convolveFull(a, v []float64, method ConvolveMethod) (full []float64, err error) {
 	if method == ConvolveAuto {
-		method = fasterMethod(len(a), len(v))
+		method = autoMethod(a, v)
 	}
 	if method == ConvolveFFT {
 		return convolveFFT(a, v)
 	}
 	full = convolveDirect(a, v)
 	return
+}
+
+// autoMethod is the faster method for a and v,
+// or ConvolveDirect if either has a NaN or infinite sample,
+// which an FFT would spread to every output
+func autoMethod(a, v []float64) (method ConvolveMethod) {
+	method = fasterMethod(len(a), len(v))
+	if method == ConvolveFFT && !(allFinite(a) && allFinite(v)) {
+		method = ConvolveDirect
+	}
+	return
+}
+
+// allFinite reports whether x has no NaN or infinite samples
+func allFinite(x []float64) bool {
+	for _, s := range x {
+		if math.IsNaN(s) || math.IsInf(s, 0) {
+			return false
+		}
+	}
+	return true
 }
 
 // convolveDirect sums each output's products directly.
@@ -218,15 +243,18 @@ func convolveFFT(a, v []float64) (full []float64, err error) {
 	return
 }
 
-// fftCostRatio is how many direct multiply-adds cost the same as one unit of an FFT's size·log2(size).
-// Provisional, to be set by benchmark
-const fftCostRatio = 20
+// The FFT'a measured cost, in units of one direct compensated product:
+// a fixed overhead, then a cost per size·log2(size)
+const (
+	fftCostOverhead = 130
+	fftCostPerUnit  = 0.4
+)
 
 // fasterMethod is ConvolveDirect or ConvolveFFT,
-// whichever the cost model says is faster for inputs of na and nv samples.
+// whichever the cost model determines is faster for inputs of na and nv samples
 func fasterMethod(na, nv int) (method ConvolveMethod) {
 	size := float64(fft.FastLength(na + nv - 1))
-	if float64(na)*float64(nv) <= fftCostRatio*size*math.Log2(size) {
+	if float64(na)*float64(nv) <= fftCostOverhead+fftCostPerUnit*size*math.Log2(size) {
 		return ConvolveDirect
 	}
 	return ConvolveFFT
