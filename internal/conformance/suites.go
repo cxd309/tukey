@@ -63,6 +63,10 @@ var Suites = slices.Concat(
 		convolveFFTSciPySuite,
 		correlateDirectSciPySuite,
 		correlateFFTSciPySuite,
+		cheby1SciPySuite,
+		cheby1SOSSciPySuite,
+		cheby2SciPySuite,
+		cheby2SOSSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -115,6 +119,8 @@ var Suites = slices.Concat(
 		convolveFFTMATLABSuite,
 		correlateDirectMATLABSuite,
 		correlateFFTMATLABSuite,
+		cheby1MATLABSuite,
+		cheby2MATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )
