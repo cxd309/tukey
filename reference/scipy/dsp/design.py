@@ -1,5 +1,9 @@
-"""Filter design: Butterworth coefficients and zpk to second-order sections"""
+"""
+Filter design: Butterworth and Chebyshev coefficients and zpk to second-order
+sections
+"""
 
+from collections.abc import Callable
 from typing import Final
 
 import scipy as sc
@@ -41,6 +45,34 @@ BUTTER_BAND_CASES: Final = [
     (8, (0.2, 0.5), "bandpass"),  # 16th-order poly: stress test
     (2, (0.0032, 0.032), "bandpass"),  # target application requirement
     (1, (0.55, 0.7), "bandpass"),  # target application requirement
+]
+
+# (order, passband ripple dB, stopband attenuation dB, wn, btype), for
+# scipy.signal.cheby1, which uses the ripple, and cheby2, the attenuation
+CHEBY_CASES: Final = [
+    (1, 1.0, 40.0, 0.3, "lowpass"),  # simplest: one real pole
+    (2, 1.0, 40.0, 0.3, "lowpass"),  # even order: cheby1's DC gain is -ripple
+    (3, 0.5, 30.0, 0.3, "lowpass"),  # odd: cheby1 unity at DC, cheby2 a zero at infinity
+    (4, 1.0, 40.0, 0.3, "lowpass"),  # multiple conjugate pairs
+    (4, 0.01, 80.0, 0.3, "lowpass"),  # tiny ripple, deep stopband
+    (4, 6.0, 10.0, 0.3, "lowpass"),  # large ripple, shallow stopband
+    (2, 1.0, 40.0, 0.5, "lowpass"),  # prewarp == fs2
+    (10, 1.0, 40.0, 0.3, "lowpass"),  # high order: poly conditioning
+    (8, 0.5, 60.0, 0.01, "lowpass"),  # poles packed against z = 1
+    (2, 1.0, 40.0, 0.99, "lowpass"),  # near Nyquist: steep tan in prewarp
+    (2, 1.0, 40.0, 0.001, "lowpass"),  # very low cutoff
+    (4, 1.0, 40.0, 0.3, "highpass"),  # through lp2hp
+    (5, 1.0, 40.0, 0.7, "highpass"),  # odd order; cutoff above 0.5
+    (2, 1.0, 40.0, 0.0008, "highpass"),  # very low cutoff
+    (1, 1.0, 40.0, (0.2, 0.5), "bandpass"),  # one prototype pole
+    (2, 1.0, 40.0, (0.2, 0.5), "bandpass"),  # pole count doubles
+    (3, 1.0, 40.0, (0.2, 0.5), "bandpass"),  # odd order
+    (8, 1.0, 40.0, (0.2, 0.5), "bandpass"),  # 16th-order poly: stress test
+    (2, 1.0, 40.0, (0.30, 0.31), "bandpass"),  # narrow band: clustered poles
+    (2, 1.0, 40.0, (0.2, 0.5), "bandstop"),  # zeros on the unit circle
+    (3, 1.0, 40.0, (0.2, 0.5), "bandstop"),  # odd order
+    (4, 1.0, 40.0, (0.2, 0.5), "bandstop"),  # multiple pairs through lp2bs
+    (2, 1.0, 40.0, (0.01, 0.99), "bandstop"),  # edges far apart
 ]
 
 # name -> (z, p, k) for scipy.signal.zpk2sos, beyond what Butterworth designs produce
@@ -102,6 +134,47 @@ def generate_butter() -> None:
                 "sos": sc.signal.butter(order, wn, btype=btype, output="sos").tolist(),
             },
         )
+
+
+def write_cheby(
+    category: str, design: Callable, db_param: str, db_values: list[float]
+) -> None:
+    """
+    b, a and sos from a Chebyshev design, one vector per CHEBY_CASES row, with
+    db_values[i] the dB argument for row i, written to params as db_param.
+    """
+    for (order, _, _, wn, btype), db in zip(CHEBY_CASES, db_values, strict=True):
+        wn_name = f"{wn[0]}-{wn[1]}" if isinstance(wn, tuple) else wn
+        wn_param = list(wn) if isinstance(wn, tuple) else wn
+        b, a = design(order, db, wn, btype=btype)
+        write_vector(
+            category,
+            f"{btype}_order{order}_db{db}_wn{wn_name}",
+            f"scipy.signal.{category}({order}, {db}, {wn_param}, btype='{btype}')",
+            {"order": order, db_param: db, "wn": wn_param, "btype": btype},
+            {
+                "b": b.tolist(),
+                "a": a.tolist(),
+                "sos": design(order, db, wn, btype=btype, output="sos").tolist(),
+            },
+        )
+
+
+def generate_cheby1() -> None:
+    """b, a and sos from scipy.signal.cheby1: equal ripple in the passband"""
+    write_cheby(
+        "cheby1", sc.signal.cheby1, "ripple_db", [case[1] for case in CHEBY_CASES]
+    )
+
+
+def generate_cheby2() -> None:
+    """
+    b, a and sos from scipy.signal.cheby2: equal ripple in the stopband, whose
+    start is wn
+    """
+    write_cheby(
+        "cheby2", sc.signal.cheby2, "attenuation_db", [case[2] for case in CHEBY_CASES]
+    )
 
 
 def generate_zpk2sos() -> None:

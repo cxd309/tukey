@@ -1,25 +1,46 @@
 function g = design()
-    % DESIGN Filter design: butter.
+    % DESIGN Filter design: butter, cheby1 and cheby2.
     %
     % Not reproduced: zpk2sos, as zp2sos factorises differently (the same
     % filter in different sections).
-    g = struct("category", {"butter"}, "run", {@butterVector});
+    categories = {"butter", "cheby1", "cheby2"};
+    runs = {@butterVector, @cheby1Vector, @cheby2Vector};
+    g = struct("category", categories, "run", runs);
 end
 
 function [output, description] = butterVector(params)
-    % butter's (b, a), and its zpk through zp2sos for the sos output
+    [output, description] = designVector(@butter, "butter", params, {});
+end
+
+function [output, description] = cheby1Vector(params)
+    [output, description] = designVector(@cheby1, "cheby1", params, ...
+                                         {params.ripple_db});
+end
+
+function [output, description] = cheby2Vector(params)
+    [output, description] = designVector(@cheby2, "cheby2", params, ...
+                                         {params.attenuation_db});
+end
+
+function [output, description] = designVector(design, name, params, dbArgs)
+    % A design's (b, a), and its zpk through zp2sos for the sos output.
+    % dbArgs is the design's dB argument, if it has one.
     bandTypes = dictionary( ...
                            ["lowpass", "highpass", "bandpass", "bandstop"], ...
                            ["low", "high", "bandpass", "stop"]);
     btype = bandTypes(params.btype);
     wn = params.wn';
 
-    [b, a] = butter(params.order, wn, btype);
-    [z, p, k] = butter(params.order, wn, btype);
+    [b, a] = design(params.order, dbArgs{:}, wn, btype);
+    [z, p, k] = design(params.order, dbArgs{:}, wn, btype);
     sos = zp2sos(z, p, k);
 
     output = struct("b", encode.vec(b), "a", encode.vec(a), ...
                     "sos", encode.rows(sos));
-    description = sprintf("butter(%d, %s, ""%s""); zp2sos of its zpk", ...
-                          params.order, mat2str(wn), btype);
+    dbText = "";
+    if ~isempty(dbArgs)
+        dbText = sprintf("%g, ", dbArgs{1});
+    end
+    description = sprintf("%s(%d, %s%s, ""%s""); zp2sos of its zpk", ...
+                          name, params.order, dbText, mat2str(wn), btype);
 end

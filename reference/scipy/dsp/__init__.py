@@ -8,7 +8,12 @@ from dsp.conditioning import (
     generate_rms,
 )
 from dsp.convolution import generate_convolve, generate_correlate
-from dsp.design import generate_butter, generate_zpk2sos
+from dsp.design import (
+    generate_butter,
+    generate_cheby1,
+    generate_cheby2,
+    generate_zpk2sos,
+)
 from dsp.envelope import generate_envelope, generate_hilbert
 from dsp.filtering import (
     generate_filter,
@@ -44,6 +49,8 @@ from dsp.spectral import (
 # every dsp generator; each writes one or more categories
 GENERATORS = [
     generate_butter,
+    generate_cheby1,
+    generate_cheby2,
     generate_zpk2sos,
     generate_filter,
     generate_lfilter_zi,
