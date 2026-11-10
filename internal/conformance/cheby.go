@@ -11,8 +11,8 @@ type chebyVector struct {
 	reference.Meta
 	Params struct {
 		Order         int             `json:"order"`
-		RippleDB      float64         `json:"ripple_db"`      // cheby1 only
-		AttenuationDB float64         `json:"attenuation_db"` // cheby2 only
+		RippleDB      float64         `json:"ripple_db"`      // cheby1 and ellip
+		AttenuationDB float64         `json:"attenuation_db"` // cheby2 and ellip
 		Wn            json.RawMessage `json:"wn"`
 		BType         string          `json:"btype"`
 	} `json:"params"`
