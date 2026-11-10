@@ -12,6 +12,7 @@ from dsp.design import (
     generate_butter,
     generate_cheby1,
     generate_cheby2,
+    generate_ellip,
     generate_zpk2sos,
 )
 from dsp.envelope import generate_envelope, generate_hilbert
@@ -51,6 +52,7 @@ GENERATORS = [
     generate_butter,
     generate_cheby1,
     generate_cheby2,
+    generate_ellip,
     generate_zpk2sos,
     generate_filter,
     generate_lfilter_zi,

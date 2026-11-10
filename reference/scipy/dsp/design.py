@@ -1,13 +1,15 @@
 """
-Filter design: Butterworth and Chebyshev coefficients and zpk to second-order
+Filter design: Butterworth, Chebyshev and elliptic coefficients and zpk to second-order
 sections
 """
 
 from collections.abc import Callable
 from typing import Final
 
+import numpy as np
 import scipy as sc
 
+from dsp.elliptic import exact_ellip
 from write import complex_json, write_vector
 
 # (order, wn, btype) for scipy.signal.butter with a single cutoff
@@ -52,7 +54,7 @@ BUTTER_BAND_CASES: Final = [
 CHEBY_CASES: Final = [
     (1, 1.0, 40.0, 0.3, "lowpass"),  # simplest: one real pole
     (2, 1.0, 40.0, 0.3, "lowpass"),  # even order: cheby1's DC gain is -ripple
-    (3, 0.5, 30.0, 0.3, "lowpass"),  # odd: cheby1 unity at DC, cheby2 a zero at infinity
+    (3, 0.5, 30.0, 0.3, "lowpass"),  # odd: cheby1 0 dB at DC, cheby2 zero at inf
     (4, 1.0, 40.0, 0.3, "lowpass"),  # multiple conjugate pairs
     (4, 0.01, 80.0, 0.3, "lowpass"),  # tiny ripple, deep stopband
     (4, 6.0, 10.0, 0.3, "lowpass"),  # large ripple, shallow stopband
@@ -74,6 +76,18 @@ CHEBY_CASES: Final = [
     (4, 1.0, 40.0, (0.2, 0.5), "bandstop"),  # multiple pairs through lp2bs
     (2, 1.0, 40.0, (0.01, 0.99), "bandstop"),  # edges far apart
 ]
+
+# CHEBY_CASES, then the sharp transitions where the elliptic maths is most
+# delicate, for scipy.signal.ellip, which uses both the ripple and attenuation
+ELLIP_CASES: Final = CHEBY_CASES + [
+    (12, 0.5, 120.0, 0.3, "lowpass"),  # high order, very deep stopband
+    (8, 0.01, 120.0, 0.2, "lowpass"),  # tiny ripple and deep stopband: modulus near 1
+    (3, 3.0, 6.0, 0.3, "lowpass"),  # attenuation barely above ripple
+    (6, 1.0, 60.0, (0.2, 0.25), "bandpass"),  # narrow band at high order
+]
+
+# where each dB parameter sits in a CHEBY_CASES or ELLIP_CASES row
+DB_COLUMNS: Final = {"ripple_db": 1, "attenuation_db": 2}
 
 # name -> (z, p, k) for scipy.signal.zpk2sos, beyond what Butterworth designs produce
 ZPK2SOS_CASES = {
@@ -136,35 +150,42 @@ def generate_butter() -> None:
         )
 
 
-def write_cheby(
-    category: str, design: Callable, db_param: str, db_values: list[float]
+def write_iir(
+    category: str, design: Callable, cases: list, db_params: tuple[str, ...]
 ) -> None:
     """
-    b, a and sos from a Chebyshev design, one vector per CHEBY_CASES row, with
-    db_values[i] the dB argument for row i, written to params as db_param.
+    b, a and sos from a design taking dB arguments, one vector per case row,
+    passing the row's db_params (see DB_COLUMNS) in order, by those names
     """
-    for (order, _, _, wn, btype), db in zip(CHEBY_CASES, db_values, strict=True):
+    for case in cases:
+        order, wn, btype = case[0], case[3], case[4]
+        dbs = [case[DB_COLUMNS[param]] for param in db_params]
+        db_name = f"db{dbs[0]}" if len(dbs) == 1 else f"rp{dbs[0]}_rs{dbs[1]}"
         wn_name = f"{wn[0]}-{wn[1]}" if isinstance(wn, tuple) else wn
         wn_param = list(wn) if isinstance(wn, tuple) else wn
-        b, a = design(order, db, wn, btype=btype)
+        db_args = ", ".join(str(db) for db in dbs)
+        b, a = design(order, *dbs, wn, btype=btype)
         write_vector(
             category,
-            f"{btype}_order{order}_db{db}_wn{wn_name}",
-            f"scipy.signal.{category}({order}, {db}, {wn_param}, btype='{btype}')",
-            {"order": order, db_param: db, "wn": wn_param, "btype": btype},
+            f"{btype}_order{order}_{db_name}_wn{wn_name}",
+            f"scipy.signal.{category}({order}, {db_args}, {wn_param}, btype='{btype}')",
+            {
+                "order": order,
+                **dict(zip(db_params, dbs, strict=True)),
+                "wn": wn_param,
+                "btype": btype,
+            },
             {
                 "b": b.tolist(),
                 "a": a.tolist(),
-                "sos": design(order, db, wn, btype=btype, output="sos").tolist(),
+                "sos": design(order, *dbs, wn, btype=btype, output="sos").tolist(),
             },
         )
 
 
 def generate_cheby1() -> None:
     """b, a and sos from scipy.signal.cheby1: equal ripple in the passband"""
-    write_cheby(
-        "cheby1", sc.signal.cheby1, "ripple_db", [case[1] for case in CHEBY_CASES]
-    )
+    write_iir("cheby1", sc.signal.cheby1, CHEBY_CASES, ("ripple_db",))
 
 
 def generate_cheby2() -> None:
@@ -172,9 +193,39 @@ def generate_cheby2() -> None:
     b, a and sos from scipy.signal.cheby2: equal ripple in the stopband, whose
     start is wn
     """
-    write_cheby(
-        "cheby2", sc.signal.cheby2, "attenuation_db", [case[2] for case in CHEBY_CASES]
-    )
+    write_iir("cheby2", sc.signal.cheby2, CHEBY_CASES, ("attenuation_db",))
+
+
+def generate_ellip() -> None:
+    """
+    The exact elliptic design (see dsp.elliptic): equal ripple in both bands,
+    the passband's edge at wn as for cheby1. b and a are exact, rounded once;
+    sos is scipy.signal.zpk2sos of the exact zeros, poles and gain, each rounded
+    once. Asserts scipy.signal.ellip agrees to within its own accuracy.
+    """
+    for order, rp, rs, wn, btype in ELLIP_CASES:
+        z, p, k, b, a = exact_ellip(order, rp, rs, wn, btype)
+        scipy_b, scipy_a = sc.signal.ellip(order, rp, rs, wn, btype=btype)
+        for exact, got in ((b, scipy_b), (a, scipy_a)):
+            scale = np.max(np.abs(exact))
+            case = (order, rp, rs, wn)
+            assert np.allclose(got, exact, rtol=0, atol=1e-11 * scale), case
+        wn_name = f"{wn[0]}-{wn[1]}" if isinstance(wn, tuple) else wn
+        wn_param = list(wn) if isinstance(wn, tuple) else wn
+        write_vector(
+            "ellip",
+            f"{btype}_order{order}_rp{rp}_rs{rs}_wn{wn_name}",
+            f"the exact elliptic design, as scipy.signal.ellip({order}, {rp}, {rs}, "
+            f"{wn_param}, btype='{btype}')",
+            {
+                "order": order,
+                "ripple_db": rp,
+                "attenuation_db": rs,
+                "wn": wn_param,
+                "btype": btype,
+            },
+            {"b": b, "a": a, "sos": sc.signal.zpk2sos(z, p, k).tolist()},
+        )
 
 
 def generate_zpk2sos() -> None:
