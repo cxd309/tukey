@@ -10,9 +10,13 @@ from dsp.conditioning import (
 from dsp.convolution import generate_convolve, generate_correlate
 from dsp.design import (
     generate_butter,
+    generate_buttord,
+    generate_cheb1ord,
+    generate_cheb2ord,
     generate_cheby1,
     generate_cheby2,
     generate_ellip,
+    generate_ellipord,
     generate_zpk2sos,
 )
 from dsp.envelope import generate_envelope, generate_hilbert
@@ -53,6 +57,10 @@ GENERATORS = [
     generate_cheby1,
     generate_cheby2,
     generate_ellip,
+    generate_buttord,
+    generate_cheb1ord,
+    generate_cheb2ord,
+    generate_ellipord,
     generate_zpk2sos,
     generate_filter,
     generate_lfilter_zi,

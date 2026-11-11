@@ -1,0 +1,22 @@
+{
+  "description": "the exact order selection, as scipy.signal.buttord(0.002, 0.001, 1.0, 30.0), with wn matching each band",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "wp": 0.002,
+    "ws": 0.001,
+    "ripple_db": 1.0,
+    "attenuation_db": 30.0
+  },
+  "output": {
+    "order": 6,
+    "wn_passband": [
+      0.0017870148990434273
+    ],
+    "wn_stopband": [
+      0.0017781279906748852
+    ]
+  }
+}

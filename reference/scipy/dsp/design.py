@@ -10,6 +10,7 @@ import numpy as np
 import scipy as sc
 
 from dsp.elliptic import exact_ellip
+from dsp.order import band_type, exact_order
 from write import complex_json, write_vector
 
 # (order, wn, btype) for scipy.signal.butter with a single cutoff
@@ -88,6 +89,26 @@ ELLIP_CASES: Final = CHEBY_CASES + [
 
 # where each dB parameter sits in a CHEBY_CASES or ELLIP_CASES row
 DB_COLUMNS: Final = {"ripple_db": 1, "attenuation_db": 2}
+
+# (wp, ws, ripple dB, attenuation dB) for the order selections; the band type
+# follows from the edges, as in scipy.signal's *ord
+ORD_CASES: Final = [
+    (0.2, 0.3, 1.0, 40.0),  # lowpass: the documentation's shape
+    (0.3, 0.32, 0.5, 60.0),  # narrow transition: high order
+    (0.1, 0.5, 3.0, 6.0),  # wide transition, shallow stopband: order 1 or 2
+    (0.01, 0.015, 0.01, 80.0),  # low edges, tiny ripple, deep stopband
+    (0.9, 0.95, 1.0, 40.0),  # near Nyquist: steep tan in the prewarp
+    (0.3, 0.2, 1.0, 40.0),  # highpass
+    (0.7, 0.6, 0.1, 60.0),  # highpass above 0.5
+    (0.002, 0.001, 1.0, 30.0),  # highpass with very low edges
+    ((0.2, 0.5), (0.1, 0.6), 1.0, 40.0),  # bandpass
+    ((0.2, 0.3), (0.1, 0.5), 1.0, 40.0),  # bandpass, the upper stopband edge slack
+    ((0.3, 0.31), (0.28, 0.33), 0.5, 50.0),  # narrow bandpass
+    ((0.1, 0.6), (0.2, 0.5), 1.0, 40.0),  # bandstop: the lower passband edge moves
+    ((0.1, 0.8), (0.2, 0.3), 1.0, 40.0),  # bandstop: the upper passband edge moves
+    ((0.05, 0.9), (0.4, 0.5), 0.5, 60.0),  # bandstop, wide transitions
+    ((0.3, 0.5), (0.35, 0.45), 3.0, 30.0),  # bandstop, narrow
+]
 
 # name -> (z, p, k) for scipy.signal.zpk2sos, beyond what Butterworth designs produce
 ZPK2SOS_CASES = {
@@ -226,6 +247,66 @@ def generate_ellip() -> None:
             },
             {"b": b, "a": a, "sos": sc.signal.zpk2sos(z, p, k).tolist()},
         )
+
+
+def write_ord(category: str, kind: str, scipy_ord: Callable) -> None:
+    """
+    The exact order and both natural frequencies (see dsp.order), one vector
+    per ORD_CASES row. Asserts scipy_ord agrees on the order, and on the
+    passband-matched wn to within its own accuracy: about 1e-5 for bandstop,
+    whose edges SciPy finds by a numerical minimiser.
+    """
+    for wp, ws, rp, rs in ORD_CASES:
+        order, wn_passband, wn_stopband = exact_order(kind, wp, ws, rp, rs)
+        scipy_order, scipy_wn = scipy_ord(wp, ws, rp, rs)
+        case = (category, wp, ws, rp, rs)
+        assert scipy_order == order, (case, scipy_order, order)
+        tolerance = 1e-5 if band_type(wp, ws) == "bandstop" else 1e-12
+        assert np.allclose(scipy_wn, wn_passband, rtol=0, atol=tolerance), case
+
+        def edges(w):
+            return f"{w[0]}-{w[1]}" if isinstance(w, tuple) else w
+
+        def param(w):
+            return list(w) if isinstance(w, tuple) else w
+
+        write_vector(
+            category,
+            f"{band_type(wp, ws)}_wp{edges(wp)}_ws{edges(ws)}_rp{rp}_rs{rs}",
+            f"the exact order selection, as scipy.signal.{category}({param(wp)}, "
+            f"{param(ws)}, {rp}, {rs}), with wn matching each band",
+            {
+                "wp": param(wp),
+                "ws": param(ws),
+                "ripple_db": rp,
+                "attenuation_db": rs,
+            },
+            {
+                "order": order,
+                "wn_passband": wn_passband,
+                "wn_stopband": wn_stopband,
+            },
+        )
+
+
+def generate_buttord() -> None:
+    """Butterworth order selection: Wn is the -3 dB point"""
+    write_ord("buttord", "butter", sc.signal.buttord)
+
+
+def generate_cheb1ord() -> None:
+    """Chebyshev type I order selection: Wn is the passband edge"""
+    write_ord("cheb1ord", "cheby1", sc.signal.cheb1ord)
+
+
+def generate_cheb2ord() -> None:
+    """Chebyshev type II order selection: Wn is the stopband edge"""
+    write_ord("cheb2ord", "cheby2", sc.signal.cheb2ord)
+
+
+def generate_ellipord() -> None:
+    """Elliptic order selection: Wn is the passband edge"""
+    write_ord("ellipord", "ellip", sc.signal.ellipord)
 
 
 def generate_zpk2sos() -> None:

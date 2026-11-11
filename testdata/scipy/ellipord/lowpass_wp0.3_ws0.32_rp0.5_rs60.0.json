@@ -1,0 +1,22 @@
+{
+  "description": "the exact order selection, as scipy.signal.ellipord(0.3, 0.32, 0.5, 60.0), with wn matching each band",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "wp": 0.3,
+    "ws": 0.32,
+    "ripple_db": 0.5,
+    "attenuation_db": 60.0
+  },
+  "output": {
+    "order": 9,
+    "wn_passband": [
+      0.3
+    ],
+    "wn_stopband": [
+      0.30178651081869967
+    ]
+  }
+}

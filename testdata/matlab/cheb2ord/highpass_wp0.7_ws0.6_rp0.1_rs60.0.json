@@ -1,0 +1,6 @@
+{"description": "cheb2ord(0.7, 0.6, 0.1, 60)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "wp": 0.7,
+    "ws": 0.6,
+    "ripple_db": 0.1,
+    "attenuation_db": 60.0
+  }, "output": {"order": 11, "wn": [0.59999999999999998]}}

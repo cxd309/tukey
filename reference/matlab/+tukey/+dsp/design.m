@@ -1,11 +1,29 @@
 function g = design()
-    % DESIGN Filter design: butter, cheby1, cheby2 and ellip.
+    % DESIGN Filter design: butter, cheby1, cheby2 and ellip, and their
+    % order selections buttord, cheb1ord, cheb2ord and ellipord.
     %
     % Not reproduced: zpk2sos, as zp2sos factorises differently (the same
     % filter in different sections).
-    categories = {"butter", "cheby1", "cheby2", "ellip"};
-    runs = {@butterVector, @cheby1Vector, @cheby2Vector, @ellipVector};
+    categories = {"butter", "cheby1", "cheby2", "ellip", ...
+                  "buttord", "cheb1ord", "cheb2ord", "ellipord"};
+    runs = {@butterVector, @cheby1Vector, @cheby2Vector, @ellipVector, ...
+            @(params) ordVector(@buttord, "buttord", params), ...
+            @(params) ordVector(@cheb1ord, "cheb1ord", params), ...
+            @(params) ordVector(@cheb2ord, "cheb2ord", params), ...
+            @(params) ordVector(@ellipord, "ellipord", params)};
     g = struct("category", categories, "run", runs);
+end
+
+function [output, description] = ordVector(select, name, params)
+    % An order selection's order and wn. MATLAB's buttord and cheb2ord meet
+    % the stopband edge exactly, where SciPy meets the passband, and its
+    % bandstop edges come from a numerical minimiser.
+    wp = params.wp';
+    ws = params.ws';
+    [order, wn] = select(wp, ws, params.ripple_db, params.attenuation_db);
+    output = struct("order", sprintf("%d", order), "wn", encode.vec(wn));
+    description = sprintf("%s(%s, %s, %g, %g)", name, mat2str(wp), ...
+                          mat2str(ws), params.ripple_db, params.attenuation_db);
 end
 
 function [output, description] = butterVector(params)
@@ -24,7 +42,8 @@ end
 
 function [output, description] = ellipVector(params)
     [output, description] = designVector(@ellip, "ellip", params, ...
-                                         {params.ripple_db, params.attenuation_db});
+                                         {params.ripple_db, ...
+                                          params.attenuation_db});
 end
 
 function [output, description] = designVector(design, name, params, dbArgs)
