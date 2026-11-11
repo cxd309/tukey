@@ -1,7 +1,6 @@
 package dsp
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/cxd309/tukey/internal/poly"
@@ -115,14 +114,8 @@ func jacobiInQuarter(u, uc, m, mc float64) (sn, cn, dn float64) {
 //   - scipy.signal.ellip(order, rippleDB, attenuationDB, wn, btype, output='zpk')
 //   - matlab ellip(order, rippleDB, attenuationDB, wn, ftype)
 func Ellip(order int, rippleDB, attenuationDB float64, band Band) (f ZPK, err error) {
-	if err = checkDB("rippleDB", rippleDB); err != nil {
+	if err = checkRippleAttenuation(rippleDB, attenuationDB); err != nil {
 		return f, err
-	}
-	if err = checkDB("attenuationDB", attenuationDB); err != nil {
-		return f, err
-	}
-	if attenuationDB <= rippleDB {
-		return f, fmt.Errorf("%w: attenuationDB must be greater than rippleDB, got %g and %g", ErrInvalidParameter, attenuationDB, rippleDB)
 	}
 	return designDigital(order, band, func() analogZPK { return ellipticPrototype(order, rippleDB, attenuationDB) })
 }

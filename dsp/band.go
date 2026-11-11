@@ -109,3 +109,9 @@ func (band Band) transform(proto analogZPK) (analog analogZPK) {
 	}
 	return
 }
+
+// Edges returns a copy of the band's edges: the cutoff for a lowpass or
+// highpass, low and high for a bandpass or bandstop
+func (band Band) Edges() (edges []float64) {
+	return append([]float64(nil), band.edges...)
+}
