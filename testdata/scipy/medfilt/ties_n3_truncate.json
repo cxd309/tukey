@@ -1,0 +1,31 @@
+{
+  "description": "the median filter, n = 3, truncate at the ends",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      2.0,
+      2.0,
+      1.0,
+      2.0,
+      1.0,
+      1.0,
+      2.0
+    ],
+    "n": 3,
+    "edge": "truncate"
+  },
+  "output": {
+    "y": [
+      2.0,
+      2.0,
+      2.0,
+      1.0,
+      1.0,
+      1.0,
+      1.5
+    ]
+  }
+}

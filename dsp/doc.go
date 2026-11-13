@@ -1,6 +1,7 @@
-// Package dsp is offline, zero-phase signal processing for Go: IIR filter
-// design, filtering as (b, a) or second-order sections, frequency response,
-// signal conditioning, peak finding, envelopes, alignment, spectral analysis and
+// Package dsp is offline, zero-phase signal processing for Go: IIR and FIR
+// filter design and order selection, filtering as (b, a) or second-order
+// sections, frequency response and group delay, signal conditioning, smoothing,
+// convolution, peak finding, envelopes, alignment, spectral analysis and
 // reductions, checked against SciPy and MATLAB.
 //
 // # Compatibility
@@ -10,39 +11,62 @@
 // figure is the worst on either amd64 or arm64, which round slightly
 // differently because arm64 fuses multiply-adds.
 //
-//	Function         SciPy equivalent                    Worst measured   Tested to
-//	Butter           butter (b, a)                       7.6e-15          1e-13
-//	Butter + SOS     butter(output='sos')                7.3e-15          1e-13
-//	ZPK.SOS          zpk2sos                             1.1e-16          1e-14
-//	Filter           lfilter                             6.4e-16          1e-14
-//	FilterState      lfilter with zi                     2.3e-16          1e-14
-//	FilterZi         lfilter_zi                          3.3e-16          1e-14
-//	FiltFilt         filtfilt                            8.8e-16          1e-14
-//	SOSFilter        sosfilt, with and without zi        4.1e-14          1e-12
-//	SOSFilterZi      sosfilt_zi                          9.8e-17          1e-14
-//	SOSFiltFilt      sosfiltfilt                         1.7e-13          1e-11
-//	Freqz            freqz                               1.4e-15          1e-13
-//	SOSFreqz         freqz_sos                           3.7e-13          1e-11
-//	Detrend          detrend                             5.6e-16          1e-14
-//	Interp1          interp1d(bounds_error=False)        1.3e-16          1e-14
-//	RMS              sqrt(mean(x**2)), from NumPy        1.4e-16          1e-14
-//	FindPeaks        find_peaks                          exact            exact
-//	PeakProminences  peak_prominences                    exact            1e-14
-//	PeakWidths       peak_widths                         exact            1e-14
-//	Hilbert          hilbert                             5.7e-16          1e-14
-//	Envelope         MATLAB's envelope, from hilbert     1.0e-15          1e-14
-//	STFT             stft, unpadded, times sum(window)   4.2e-16          1e-14
-//	Spectrogram      spectrogram(mode='psd')             7.3e-16          1e-14
-//	Welch            welch                               1.1e-15          1e-13
-//	Periodogram      periodogram                         1.1e-15          1e-13
-//	Sum              sum, exactly (math.fsum)            exact            1e-14
-//	Mean             mean, exactly                       exact            1e-14
-//	Diff             numpy.diff                          exact            1e-14
-//	Grad             numpy.gradient                      exact            1e-14
-//	CumSum           cumsum, exactly                     exact            1e-14
-//	Trapz            trapezoid, exactly                  exact            1e-14
-//	CumTrapz         cumulative_trapezoid, exactly       exact            1e-14
-//	Percentile       numpy.percentile                    exact            1e-14
+//	Function         SciPy equivalent                       Worst measured   Tested to
+//	Butter           butter (b, a)                          7.6e-15          1e-13
+//	Butter + SOS     butter(output='sos')                   7.3e-15          1e-13
+//	Cheby1           cheby1 (b, a)                          6.8e-15          1e-13
+//	Cheby1 + SOS     cheby1(output='sos')                   6.8e-15          1e-13
+//	Cheby2           cheby2 (b, a)                          5.7e-14          1e-12
+//	Cheby2 + SOS     cheby2(output='sos')                   5.7e-14          1e-12
+//	Ellip            ellip (b, a), exactly                  3.9e-15          1e-13
+//	Ellip + SOS      ellip(output='sos'), exactly           3.0e-15          1e-13
+//	Bessel           bessel (b, a), exactly                 6.7e-15          1e-13
+//	Bessel + SOS     bessel(output='sos'), exactly          6.7e-15          1e-13
+//	ButterOrd        buttord, exactly                       4.2e-16          1e-14
+//	Cheby1Ord        cheb1ord, exactly                      2.9e-16          1e-14
+//	Cheby2Ord        cheb2ord, exactly                      3.9e-16          1e-14
+//	EllipOrd         ellipord, exactly                      7.5e-16          1e-14
+//	IIRNotch         iirnotch, exactly                      4.7e-16          1e-14
+//	IIRPeak          iirpeak, exactly                       4.7e-16          1e-14
+//	FIRWin           firwin, exactly                        3.5e-16          1e-14
+//	ZPK.SOS          zpk2sos                                1.1e-16          1e-14
+//	Filter           lfilter                                6.4e-16          1e-14
+//	FilterState      lfilter with zi                        2.3e-16          1e-14
+//	FilterZi         lfilter_zi                             3.3e-16          1e-14
+//	FiltFilt         filtfilt                               8.8e-16          1e-14
+//	SOSFilter        sosfilt, with and without zi           4.1e-14          1e-12
+//	SOSFilterZi      sosfilt_zi                             9.8e-17          1e-14
+//	SOSFiltFilt      sosfiltfilt                            1.7e-13          1e-11
+//	Freqz            freqz                                  1.4e-15          1e-13
+//	SOSFreqz         freqz_sos                              3.7e-13          1e-11
+//	GroupDelay       group_delay, exactly                   7.2e-15          1e-13
+//	SOSGroupDelay    group_delay of the sections, exactly   1.0e-14          1e-13
+//	Detrend          detrend                                5.6e-16          1e-14
+//	Interp1          interp1d(bounds_error=False)           1.3e-16          1e-14
+//	RMS              sqrt(mean(x**2)), from NumPy           1.4e-16          1e-14
+//	MedFilt          medfilt, exactly, and truncated        exact            1e-14
+//	SavGolFilter     savgol_filter(mode='interp'), exactly  3.6e-16          1e-14
+//	Convolve         convolve, exactly                      exact            1e-14
+//	Convolve + FFT   convolve, exactly                      5.5e-16          1e-14
+//	Correlate        correlate, exactly                     exact            1e-14
+//	Correlate + FFT  correlate, exactly                     4.7e-16          1e-14
+//	FindPeaks        find_peaks                             exact            exact
+//	PeakProminences  peak_prominences                       exact            1e-14
+//	PeakWidths       peak_widths                            exact            1e-14
+//	Hilbert          hilbert                                5.7e-16          1e-14
+//	Envelope         MATLAB's envelope, from hilbert        1.0e-15          1e-14
+//	STFT             stft, unpadded, times sum(window)      4.2e-16          1e-14
+//	Spectrogram      spectrogram(mode='psd')                7.3e-16          1e-14
+//	Welch            welch                                  1.1e-15          1e-13
+//	Periodogram      periodogram                            1.1e-15          1e-13
+//	Sum              sum, exactly (math.fsum)               exact            1e-14
+//	Mean             mean, exactly                          exact            1e-14
+//	Diff             numpy.diff                             exact            1e-14
+//	Grad             numpy.gradient                         exact            1e-14
+//	CumSum           cumsum, exactly                        exact            1e-14
+//	Trapz            trapezoid, exactly                     exact            1e-14
+//	CumTrapz         cumulative_trapezoid, exactly          exact            1e-14
+//	Percentile       numpy.percentile                       exact            1e-14
 //
 // Errors are relative to the largest expected value, or for filtering to the
 // largest input value if that's larger. For scale, 1e-16 is about one unit in
@@ -50,6 +74,17 @@
 // deliberately difficult filter (order 8, cutoff 0.01), whose poles sit so close
 // to z = 1 that single rounding differences between Go and SciPy are amplified.
 // Every other filter agrees within a few units in the last place.
+//
+// Where SciPy's own answer is measurably off, its reference is instead the
+// exact answer, computed with mpmath at 50 digits or in rational arithmetic and
+// rounded once, marked "exactly" above. SciPy itself is off by 1.5e-13 for
+// ellip, 2.7e-14 for bessel, 6.1e-13 for iirpeak at w0 = 0.002, Q = 30, as it
+// forms the gain as 1 − 1/(1 + β), and 3.0e-15 for firwin. Its four order
+// selections move a bandstop's edges by a numerical minimiser, good to about
+// 1e-5. Its group_delay is 0 at a zero on the unit circle and 3% off for
+// butter(8, 0.01). Its savgol_filter fits raw powers of the positions by
+// lstsq, 1e-12 off at n = 21 and wrong by 21% at n = 101, degree 10. And its
+// medfilt only zero-pads, with NaN handled however it happens to sort.
 //
 // Two very low cutoff filters, order 2 at 0.001 low-pass and 0.0008 high-pass,
 // are checked separately. They're the original MATLAB application's own
@@ -69,38 +104,57 @@
 // Functions MATLAB also has are checked against reference vectors generated by
 // MATLAB R2025a (Signal Processing Toolbox 25.1), on the same inputs:
 //
-//	Function                 MATLAB equivalent               Worst measured   Tested to
-//	Butter                   [b, a] = butter                 1.2e-13          1e-11
-//	Filter                   filter                          6.4e-16          1e-14
-//	FilterState              [y, zf] = filter(b, a, x, zi)   3.0e-16          1e-14
-//	FiltFilt + MATLABPadLen  filtfilt(b, a, x)               8.8e-16          1e-14
-//	SOSFilter                sosfilt                         4.5e-14          1e-12
-//	Freqz                    freqz(b, a, n)                  1.9e-15          1e-13
-//	SOSFreqz                 freqz(sos, n)                   1.1e-12          1e-10
-//	Detrend                  detrend                         1.2e-15          1e-13
-//	Interp1                  interp1                         2.2e-16          1e-14
-//	FillMissing              fillmissing                     exact            1e-14
-//	RMS                      rms                             1.2e-16          1e-14
-//	FindPeaks + MATLABPeaks  findpeaks                       exact            exact
-//	PeakProminences          [~, ~, ~, p] = findpeaks        exact            1e-14
-//	PeakWidths               [~, ~, w] = findpeaks           2.7e-15          1e-13
-//	Hilbert                  hilbert                         5.8e-16          1e-14
-//	Envelope                 envelope(x), (x, n, "rms")      4.5e-15          1e-13
-//	FindSignal               findsignal(data, signal)        5.9e-16          1e-14
-//	FindSignal + SearchFast  findsignal(data, signal)        1.5e-15          1e-13
-//	STFT                     [S, F, T] = spectrogram         4.2e-16          1e-14
-//	STFT + AtFrequencies     spectrogram(x, w, n, f, fs)     2.4e-13          1e-11
-//	Spectrogram              [~, F, T, P] = spectrogram      7.3e-16          1e-14
-//	Welch                    pwelch                          1.3e-15          1e-13
-//	Periodogram              periodogram                     5.0e-16          1e-14
-//	Sum                      sum                             9.0e-14          1e-12
-//	Mean                     mean                            9.0e-14          1e-12
-//	Diff                     diff                            exact            1e-14
-//	Grad                     gradient(x, dx)                 2.1e-14          1e-12
-//	CumSum                   cumsum                          3.6e-13          1e-11
-//	Trapz                    trapz(dx, y)                    9.0e-14          1e-12
-//	CumTrapz                 cumtrapz(dx, y)                 3.6e-13          1e-11
-//	Percentile + Hazen       prctile                         4.0e-17          1e-14
+//	Function                   MATLAB equivalent              Worst measured   Tested to
+//	Butter                     [b, a] = butter                1.2e-13          1e-11
+//	Cheby1                     [b, a] = cheby1                6.8e-13          1e-11
+//	Cheby2                     [b, a] = cheby2                1.8e-14          1e-12
+//	Ellip                      [b, a] = ellip                 9.9e-9           1e-7
+//	Bessel + BesselNormPhase   besself, then bilinear         1.6e-13          1e-11
+//	ButterOrd + MatchStopband  buttord                        3.9e-16          1e-14
+//	Cheby1Ord                  cheb1ord                       1.8e-16          1e-14
+//	Cheby2Ord + MatchStopband  cheb2ord                       2.2e-16          1e-14
+//	EllipOrd                   ellipord                       1.8e-16          1e-14
+//	IIRNotch                   iirnotch(w0, w0/q)             3.8e-16          1e-14
+//	IIRPeak                    iirpeak(w0, w0/q)              6.1e-13          1e-11
+//	FIRWin                     fir1(len(w) − 1, wn, w)        3.2e-15          1e-13
+//	Filter                     filter                         6.4e-16          1e-14
+//	FilterState                [y, zf] = filter(b, a, x, zi)  3.0e-16          1e-14
+//	FiltFilt + MATLABPadLen    filtfilt(b, a, x)              8.8e-16          1e-14
+//	SOSFilter                  sosfilt                        4.5e-14          1e-12
+//	Freqz                      freqz(b, a, n)                 1.9e-15          1e-13
+//	SOSFreqz                   freqz(sos, n)                  1.1e-12          1e-10
+//	GroupDelay                 [gd, w] = grpdelay(b, a, n)    3.2e-11          1e-9
+//	SOSGroupDelay              grpdelay(sos, n)               5.7e-9           1e-7
+//	Detrend                    detrend                        1.2e-15          1e-13
+//	Interp1                    interp1                        2.2e-16          1e-14
+//	FillMissing                fillmissing                    exact            1e-14
+//	RMS                        rms                            1.2e-16          1e-14
+//	MedFilt                    medfilt1(x, n, 'truncate')     2.8e-17          1e-14
+//	SavGolFilter               sgolayfilt(x, polyOrder, n)    8.7e-16          1e-14
+//	Convolve                   conv                           1.6e-15          1e-13
+//	Convolve + FFT             conv                           1.8e-15          1e-13
+//	Correlate                  [r, lags] = xcorr(a, v)        3.8e-16          1e-14
+//	Correlate + FFT            [r, lags] = xcorr(a, v)        6.3e-16          1e-14
+//	FindPeaks + MATLABPeaks    findpeaks                      exact            exact
+//	PeakProminences            [~, ~, ~, p] = findpeaks       exact            1e-14
+//	PeakWidths                 [~, ~, w] = findpeaks          2.7e-15          1e-13
+//	Hilbert                    hilbert                        5.8e-16          1e-14
+//	Envelope                   envelope(x), (x, n, "rms")     4.5e-15          1e-13
+//	FindSignal                 findsignal(data, signal)       5.9e-16          1e-14
+//	FindSignal + SearchFast    findsignal(data, signal)       1.5e-15          1e-13
+//	STFT                       [S, F, T] = spectrogram        4.2e-16          1e-14
+//	STFT + AtFrequencies       spectrogram(x, w, n, f, fs)    2.4e-13          1e-11
+//	Spectrogram                [~, F, T, P] = spectrogram     7.3e-16          1e-14
+//	Welch                      pwelch                         1.3e-15          1e-13
+//	Periodogram                periodogram                    5.0e-16          1e-14
+//	Sum                        sum                            9.0e-14          1e-12
+//	Mean                       mean                           9.0e-14          1e-12
+//	Diff                       diff                           exact            1e-14
+//	Grad                       gradient(x, dx)                2.1e-14          1e-12
+//	CumSum                     cumsum                         3.6e-13          1e-11
+//	Trapz                      trapz(dx, y)                   9.0e-14          1e-12
+//	CumTrapz                   cumtrapz(dx, y)                3.6e-13          1e-11
+//	Percentile + Hazen         prctile                        4.0e-17          1e-14
 //
 // The largest figures come from the same difficult filter, where MATLAB and
 // SciPy differ from each other by as much. Second-order sections aren't
@@ -124,10 +178,68 @@
 // drifts by 3.6e-13 of that, and 1e8 among 20,000 thousandths, then cancelled,
 // sums to 20.00001 where Sum gives 20.
 //
+// Of the filter designs, MATLAB's own rounding sets the larger figures. Its
+// ellip forms 1 − k1² for the specification's small modulus k1 and loses its
+// digits, 9.9e-9 from the exact design, where SciPy and dsp keep them. Its
+// iirpeak forms the gain as SciPy's does, 6.1e-13 off, and its cheby1 differs
+// from SciPy's by as much as from dsp's. MATLAB has no digital Bessel design,
+// so Bessel is checked against besself at the prewarped edges through
+// bilinear, in the phase normalisation and up to order 25, besselap's highest,
+// which is itself 1.7e-13 from the exact design. iirnotch and iirpeak are in
+// the DSP System Toolbox. MATLAB's buttord and cheb2ord meet the stopband edge,
+// as Matching(MatchStopband), and its cheb1ord and ellipord the passband's, as
+// the default. Its bandstop buttord edges come from the same minimiser as
+// SciPy's, 5.7e-5 off. Its band is compared only where it follows one of dsp's
+// conventions: for a bandstop, cheb1ord and ellipord return the passband edges
+// unmoved, which for cheb1ord can miss the stopband's specification, and for a
+// bandpass, cheb2ord returns both stopband edges, where dsp meets the tighter.
+//
+// MATLAB's grpdelay loses digits near poles and zeros crowded against the unit
+// circle: 3.2e-11 at worst on (b, a), 2.2e-5 on the two very low cutoff
+// filters, 5.7e-9 on butter(8, 0.01)'s sections, and 7.3% off on its (b, a),
+// which isn't compared, where GroupDelay is exact. MATLAB's xcorr is by FFT,
+// 2.4e-4 off the exact answer on small outputs beside large ones, though within
+// 6.3e-16 of the largest, the scale these comparisons use. Its medfilt1 is 1 ULP
+// off at some even-count midpoints near the truncated ends, and rounds a
+// midpoint of two subnormals twice. Its sgolayfilt loses digits at a 101-sample
+// window of degree 10, 2.5e-14 off, compared separately.
+//
 // SciPy and MATLAB are references for the maths, not specifications. Where
 // they differ, dsp usually follows SciPy, with MATLAB's behaviour as an option,
 // e.g. MATLABPadLen for filtfilt's padding length. Where neither default suits
 // general use, dsp chooses its own and says why, as the spectral functions do.
+//
+// # Filter design
+//
+// Butter, Cheby1, Cheby2, Ellip and Bessel design IIR filters: an analog
+// lowpass prototype moved onto the band, then the bilinear transform. For a
+// given order, Butter is maximally flat in its passband. Cheby1 ripples by
+// rippleDB in its passband and falls faster beyond it. Cheby2 is flat in its
+// passband, and ripples in its stopband at least attenuationDB down: its band
+// edge is where that stopband starts, as in SciPy and MATLAB. Ellip ripples in
+// both, for the sharpest transition. Bessel has a maximally flat group delay,
+// so a pulse in its passband keeps its shape, with the gentlest transition. Its
+// edge is the −3 dB point by default, as Butter's, where SciPy's default is
+// BesselNormPhase. Its poles are found exactly, in big.Float, which takes about
+// 30 ms at order 25.
+//
+// ButterOrd, Cheby1Ord, Cheby2Ord and EllipOrd give the lowest order that
+// keeps the passband within rippleDB and the stopband at least attenuationDB
+// down, and the band to design at. The order usually has margin to spare, and
+// Matching chooses where it goes: MatchPassband, the default, meets the
+// passband edge exactly, and MatchStopband the stopband's.
+//
+// IIRNotch and IIRPeak design a second-order notch or peak at w0, with quality
+// factor q, w0 over the −3 dB bandwidth. FIRWin designs a linear-phase FIR
+// filter by the window method: the ideal response, windowed, and scaled to a
+// gain of 1 in its first passband, unless NoScale. The window's length is the
+// number of taps, and a symmetric window gives linear phase.
+//
+// GroupDelay and SOSGroupDelay give each frequency's delay in samples,
+// computed from the coefficients rather than by differentiating the phase, and
+// in big.Float where (b, a) is ill-conditioned. At a zero on the unit circle,
+// where the phase jumps by π, the delay is its limit from either side, as
+// MATLAB's grpdelay gives.
 //
 // # Filter representations
 //
@@ -153,6 +265,34 @@
 // differs there: it repeats the end values.) FillMissing replaces NaN samples,
 // by linear interpolation across each gap and linear extrapolation at the ends,
 // or with a constant, as MATLAB's fillmissing. RMS is the root mean square.
+//
+// # Convolution and smoothing
+//
+// Convolve and Correlate give every output where the inputs overlap, or the
+// part ConvolveSame or ConvolveValid selects. Correlate's Values[i] is at lag
+// Lags[i], and if a is v delayed by d samples, its largest value is at lag d.
+// ConvolveAuto, the default, sums directly or by FFT, whichever is faster for
+// the lengths, FFT from about 130 products. Direct keeps each output within
+// about 1 ULP of exact, however small beside the others. FFT's error is
+// relative to the largest output, so for inputs of high dynamic range, set
+// ConvolveDirect. A NaN or infinite sample makes ConvolveAuto sum directly, as
+// an FFT would spread it to every output.
+//
+// MedFilt replaces each sample with the median of the n centred on it, which
+// removes spikes without blurring steps. At the ends it takes the median of
+// the samples there are, so the ends stay where the signal is, wherever that
+// is. MedFiltEdges(MedFiltZeroPad) pads with zeros instead, as SciPy's and
+// MATLAB's defaults do, which pulls the ends towards 0. A window holding NaN
+// gives NaN.
+//
+// SavGolFilter fits a polynomial to the n samples centred on each, by least
+// squares, which smooths noise while keeping the height and width of peaks
+// that a moving average flattens. SavGolDeriv gives the fit's derivative
+// instead: a smoothed derivative. At the ends one fit to the first or last n
+// samples is used, as SciPy's mode='interp' and MATLAB's sgolayfilt. The fit is
+// in polynomials orthogonal over the window, built by Arnoldi iteration, so it
+// stays accurate for long windows and high degrees, and each output is taken
+// relative to its own sample, so a constant is kept exactly.
 //
 // # Peaks and envelopes
 //

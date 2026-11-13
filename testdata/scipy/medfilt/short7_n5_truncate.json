@@ -1,0 +1,31 @@
+{
+  "description": "the median filter, n = 5, truncate at the ends",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      5.0,
+      1.0,
+      4.0,
+      2.0,
+      8.0,
+      3.0,
+      9.0
+    ],
+    "n": 5,
+    "edge": "truncate"
+  },
+  "output": {
+    "y": [
+      4.0,
+      3.0,
+      4.0,
+      3.0,
+      4.0,
+      5.5,
+      8.0
+    ]
+  }
+}

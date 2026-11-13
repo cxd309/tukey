@@ -1,0 +1,35 @@
+{
+  "description": "the exact correlation sum a[n + k]\u00b7v[n]; same and valid as scipy.signal.correlate, and the lag k of each output",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "a": [
+      3.0
+    ],
+    "v": [
+      -2.0
+    ]
+  },
+  "output": {
+    "full": [
+      -6.0
+    ],
+    "full_lags": [
+      0
+    ],
+    "same": [
+      -6.0
+    ],
+    "same_lags": [
+      0
+    ],
+    "valid": [
+      -6.0
+    ],
+    "valid_lags": [
+      0
+    ]
+  }
+}

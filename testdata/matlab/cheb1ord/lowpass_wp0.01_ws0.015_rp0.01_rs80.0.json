@@ -1,0 +1,6 @@
+{"description": "cheb1ord(0.01, 0.015, 0.01, 80)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "wp": 0.01,
+    "ws": 0.015,
+    "ripple_db": 0.01,
+    "attenuation_db": 80.0
+  }, "output": {"order": 14, "wn": [0.01]}}

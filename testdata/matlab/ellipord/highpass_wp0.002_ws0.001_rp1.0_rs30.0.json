@@ -1,0 +1,6 @@
+{"description": "ellipord(0.002, 0.001, 1, 30)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "wp": 0.002,
+    "ws": 0.001,
+    "ripple_db": 1.0,
+    "attenuation_db": 30.0
+  }, "output": {"order": 3, "wn": [0.002]}}

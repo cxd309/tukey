@@ -1,0 +1,30 @@
+{
+  "description": "the exact order selection, as scipy.signal.cheb2ord([0.3, 0.5], [0.35, 0.45], 3.0, 30.0), with wn matching each band",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "wp": [
+      0.3,
+      0.5
+    ],
+    "ws": [
+      0.35,
+      0.45
+    ],
+    "ripple_db": 3.0,
+    "attenuation_db": 30.0
+  },
+  "output": {
+    "order": 4,
+    "wn_passband": [
+      0.33875894833418757,
+      0.46261306256188456
+    ],
+    "wn_stopband": [
+      0.35,
+      0.45
+    ]
+  }
+}

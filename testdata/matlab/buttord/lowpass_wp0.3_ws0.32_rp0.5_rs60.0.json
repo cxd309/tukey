@@ -1,0 +1,6 @@
+{"description": "buttord(0.3, 0.32, 0.5, 60)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "wp": 0.3,
+    "ws": 0.32,
+    "ripple_db": 0.5,
+    "attenuation_db": 60.0
+  }, "output": {"order": 105, "wn": [0.30263561945165118]}}

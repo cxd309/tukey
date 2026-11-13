@@ -7,7 +7,22 @@ from dsp.conditioning import (
     generate_interp1,
     generate_rms,
 )
-from dsp.design import generate_butter, generate_zpk2sos
+from dsp.convolution import generate_convolve, generate_correlate
+from dsp.design import (
+    generate_bessel,
+    generate_butter,
+    generate_buttord,
+    generate_cheb1ord,
+    generate_cheb2ord,
+    generate_cheby1,
+    generate_cheby2,
+    generate_ellip,
+    generate_ellipord,
+    generate_firwin,
+    generate_iirnotch,
+    generate_iirpeak,
+    generate_zpk2sos,
+)
 from dsp.envelope import generate_envelope, generate_hilbert
 from dsp.filtering import (
     generate_filter,
@@ -16,7 +31,7 @@ from dsp.filtering import (
     generate_lfilter_zi,
     generate_sos_filtering,
 )
-from dsp.freqz import generate_freqz
+from dsp.freqz import generate_freqz, generate_group_delay
 from dsp.peaks import (
     generate_find_peaks,
     generate_peak_prominences,
@@ -32,6 +47,7 @@ from dsp.reductions import (
     generate_sum,
     generate_trapezoid,
 )
+from dsp.smoothing import generate_medfilt, generate_savgol_filter
 from dsp.spectral import (
     generate_periodogram,
     generate_spectrogram,
@@ -43,6 +59,17 @@ from dsp.spectral import (
 # every dsp generator; each writes one or more categories
 GENERATORS = [
     generate_butter,
+    generate_cheby1,
+    generate_cheby2,
+    generate_ellip,
+    generate_bessel,
+    generate_buttord,
+    generate_cheb1ord,
+    generate_cheb2ord,
+    generate_ellipord,
+    generate_iirnotch,
+    generate_iirpeak,
+    generate_firwin,
     generate_zpk2sos,
     generate_filter,
     generate_lfilter_zi,
@@ -50,6 +77,7 @@ GENERATORS = [
     generate_filtfilt,
     generate_sos_filtering,
     generate_freqz,
+    generate_group_delay,
     generate_detrend,
     generate_interp1,
     generate_fillmissing,
@@ -73,4 +101,8 @@ GENERATORS = [
     generate_trapezoid,
     generate_cumulative_trapezoid,
     generate_percentile,
+    generate_convolve,
+    generate_correlate,
+    generate_medfilt,
+    generate_savgol_filter,
 ]

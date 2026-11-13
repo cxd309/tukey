@@ -88,7 +88,7 @@ var butterSOSSciPySuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butte
 			return nil, err
 		}
 		outputs = append(outputs, Output{Name: "gain", Got: []float64{gotGain}, Want: []float64{wantGain}})
-		return
+		return matchedSOSOutputs(f, v.Output.Sos)
 	})
 
 // normalizedSections takes the gain out of each section's b, dividing it by its
@@ -145,5 +145,22 @@ func sectionDistance(g, w [6]float64) (d float64) {
 	for i := range g {
 		d = math.Max(d, math.Abs(g[i]-w[i]))
 	}
+	return
+}
+
+// matchedSOSOutputs pairs f's sections with want's, matched as a set, with
+// the overall gain compared separately.
+func matchedSOSOutputs(f dsp.ZPK, want [][6]float64) (outputs []Output, err error) {
+	sos, err := f.SOS()
+	if err != nil {
+		return nil, err
+	}
+	gotSections, gotGain := normalizedSections(sos)
+	wantSections, wantGain := normalizedSections(want)
+	outputs, err = sosOutputs(matchSections(gotSections, wantSections), wantSections)
+	if err != nil {
+		return nil, err
+	}
+	outputs = append(outputs, Output{Name: "gain", Got: []float64{gotGain}, Want: []float64{wantGain}})
 	return
 }
