@@ -65,7 +65,8 @@ func (p passband) response(m float64) (h float64) {
 }
 
 // sinCosPi is sin(π·x) and cos(π·x), reduced exactly to a quarter turn
-// either side of a multiple of π/2, so x far from 0 keeps every digit
+// either side of a multiple of π/2, so x far from 0 is as accurate as x
+// near it: within a few ULP
 func sinCosPi(x float64) (sin, cos float64) {
 	n := math.Round(2 * x)
 	y := x - n/2 // exact: |y| ≤ 1/4
