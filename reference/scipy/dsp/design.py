@@ -11,6 +11,7 @@ import scipy as sc
 
 from dsp.bessel import NORMS, exact_bessel
 from dsp.elliptic import exact_ellip
+from dsp.notch import exact_notch
 from dsp.order import band_type, exact_order
 from write import complex_json, write_vector
 
@@ -108,6 +109,19 @@ BESSEL_CASES: Final = [
     (2, (0.30, 0.31), "bandpass"),  # narrow band: clustered poles
     (3, (0.2, 0.5), "bandstop"),  # odd order through lp2bs
     (2, (0.01, 0.99), "bandstop"),  # edges far apart
+]
+
+# (w0, Q) for scipy.signal.iirnotch and iirpeak, each written for both
+NOTCH_CASES: Final = [
+    (0.3, 10.0),  # the documentation's shape
+    (0.05, 35.0),  # mains hum: 50 Hz at 2 kHz
+    (0.5, 30.0),  # cos(pi·w0) = 0: a[1] is exactly 0
+    (0.1, 1.0),  # wide
+    (0.3, 1000.0),  # very narrow: poles hard against the unit circle
+    (0.002, 30.0),  # very low centre: poles near z = 1
+    (0.95, 5.0),  # near Nyquist
+    (0.25, 0.5),  # beta = 1: a[2] is exactly 0, the poles at ±j/sqrt(2)
+    (0.6, 0.8),  # bandwidth past half Nyquist: beta > 1, real poles
 ]
 
 # where each dB parameter sits in a CHEBY_CASES or ELLIP_CASES row
@@ -297,6 +311,44 @@ def generate_bessel() -> None:
                 {"order": order, "wn": wn_param, "btype": btype, "norm": norm},
                 {"b": b, "a": a, "sos": sc.signal.zpk2sos(z, p, k).tolist()},
             )
+
+
+# how far scipy.signal's notch and peak may be from the exact design, relative
+# to the largest coefficient: its peak's gain is 1 - g, which cancels for a
+# narrow bandwidth, off by 6.1e-13 at w0 = 0.002, Q = 30, where beta/(1 + beta)
+# keeps every digit
+NOTCH_SCIPY_ACCURACY: Final = {"notch": 1e-15, "peak": 1e-12}
+
+
+def write_notch(category: str, ftype: str, scipy_design: Callable) -> None:
+    """
+    The exact second-order notch or peak (see dsp.notch): b, a and the zeros,
+    poles and gain, each exact rounded once. Asserts scipy.signal agrees to
+    within its own accuracy.
+    """
+    for w0, q in NOTCH_CASES:
+        z, p, k, b, a = exact_notch(w0, q, ftype)
+        scipy_b, scipy_a = scipy_design(w0, q)
+        for exact, got in ((b, scipy_b), (a, scipy_a)):
+            atol = NOTCH_SCIPY_ACCURACY[ftype] * np.max(np.abs(exact))
+            assert np.allclose(got, exact, rtol=0, atol=atol), (w0, q)
+        write_vector(
+            category,
+            f"w0{w0}_q{q}",
+            f"the exact design, as scipy.signal.{category}({w0}, {q})",
+            {"w0": w0, "q": q},
+            {"b": b, "a": a, "z": complex_json(z), "p": complex_json(p), "k": k},
+        )
+
+
+def generate_iirnotch() -> None:
+    """a notch at w0, -3 dB at w0 ± w0/(2Q)"""
+    write_notch("iirnotch", "notch", sc.signal.iirnotch)
+
+
+def generate_iirpeak() -> None:
+    """a peak at w0, -3 dB at w0 ± w0/(2Q)"""
+    write_notch("iirpeak", "peak", sc.signal.iirpeak)
 
 
 def write_ord(category: str, kind: str, scipy_ord: Callable) -> None:

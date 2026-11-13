@@ -3,7 +3,8 @@ function g = design()
     % the order selections buttord, cheb1ord, cheb2ord and ellipord.
     %
     % Not reproduced: zpk2sos, as zp2sos factorises differently (the same
-    % filter in different sections).
+    % filter in different sections), and iirnotch and iirpeak, which are in
+    % the DSP System Toolbox, not the Signal Processing Toolbox.
     categories = {"butter", "cheby1", "cheby2", "ellip", "bessel", ...
                   "buttord", "cheb1ord", "cheb2ord", "ellipord"};
     runs = {@butterVector, @cheby1Vector, @cheby2Vector, @ellipVector, ...

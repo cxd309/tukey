@@ -18,6 +18,8 @@ from dsp.design import (
     generate_cheby2,
     generate_ellip,
     generate_ellipord,
+    generate_iirnotch,
+    generate_iirpeak,
     generate_zpk2sos,
 )
 from dsp.envelope import generate_envelope, generate_hilbert
@@ -63,6 +65,8 @@ GENERATORS = [
     generate_cheb1ord,
     generate_cheb2ord,
     generate_ellipord,
+    generate_iirnotch,
+    generate_iirpeak,
     generate_zpk2sos,
     generate_filter,
     generate_lfilter_zi,
