@@ -1,0 +1,25 @@
+{
+  "description": "the Savitzky\u2013Golay filter, n = 3, polyorder = 1, deriv = 0, mode='interp'",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      -0.39530128858657,
+      0.2639148850157296,
+      0.6071282687955677
+    ],
+    "n": 3,
+    "polyorder": 1,
+    "deriv": 0,
+    "delta": 1.0
+  },
+  "output": {
+    "y": [
+      -0.34263415694949306,
+      0.15858062174157575,
+      0.6597954004326446
+    ]
+  }
+}

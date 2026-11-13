@@ -47,7 +47,7 @@ from dsp.reductions import (
     generate_sum,
     generate_trapezoid,
 )
-from dsp.smoothing import generate_medfilt
+from dsp.smoothing import generate_medfilt, generate_savgol_filter
 from dsp.spectral import (
     generate_periodogram,
     generate_spectrogram,
@@ -104,4 +104,5 @@ GENERATORS = [
     generate_convolve,
     generate_correlate,
     generate_medfilt,
+    generate_savgol_filter,
 ]
