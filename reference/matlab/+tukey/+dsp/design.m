@@ -1,19 +1,22 @@
 function g = design()
     % DESIGN Filter design: butter, cheby1, cheby2, ellip and bessel, the
-    % order selections buttord, cheb1ord, cheb2ord and ellipord, and fir1.
+    % order selections buttord, cheb1ord, cheb2ord and ellipord, fir1, and
+    % iirnotch and iirpeak, which are in the DSP System Toolbox.
     %
     % Not reproduced: zpk2sos, as zp2sos factorises differently (the same
-    % filter in different sections), and iirnotch and iirpeak, which are in
-    % the DSP System Toolbox, not the Signal Processing Toolbox.
+    % filter in different sections).
     categories = {"butter", "cheby1", "cheby2", "ellip", "bessel", ...
-                  "buttord", "cheb1ord", "cheb2ord", "ellipord", "firwin"};
+                  "buttord", "cheb1ord", "cheb2ord", "ellipord", "firwin", ...
+                  "iirnotch", "iirpeak"};
     runs = {@butterVector, @cheby1Vector, @cheby2Vector, @ellipVector, ...
             @besselVector, ...
             @(params) ordVector(@buttord, "buttord", params), ...
             @(params) ordVector(@cheb1ord, "cheb1ord", params), ...
             @(params) ordVector(@cheb2ord, "cheb2ord", params), ...
             @(params) ordVector(@ellipord, "ellipord", params), ...
-            @firwinVector};
+            @firwinVector, ...
+            @(params) notchVector(@iirnotch, "iirnotch", params), ...
+            @(params) notchVector(@iirpeak, "iirpeak", params)};
     g = struct("category", categories, "run", runs);
 end
 
@@ -100,6 +103,14 @@ function [output, description] = firwinVector(params)
     output = struct("h", encode.vec(h));
     description = sprintf("fir1(%d, %s, ""%s"", window, ""%s"")", ...
                           numel(window) - 1, mat2str(wn), btype, scaling);
+end
+
+function [output, description] = notchVector(design, name, params)
+    % iirnotch or iirpeak, which take the -3 dB bandwidth w0/q, not q
+    [b, a] = design(params.w0, params.w0 / params.q);
+    output = struct("b", encode.vec(b), "a", encode.vec(a));
+    description = sprintf("%s(%g, %g/%g)", name, params.w0, params.w0, ...
+                          params.q);
 end
 
 function [output, description] = designVector(design, name, params, dbArgs)

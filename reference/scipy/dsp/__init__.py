@@ -31,7 +31,7 @@ from dsp.filtering import (
     generate_lfilter_zi,
     generate_sos_filtering,
 )
-from dsp.freqz import generate_freqz
+from dsp.freqz import generate_freqz, generate_group_delay
 from dsp.peaks import (
     generate_find_peaks,
     generate_peak_prominences,
@@ -76,6 +76,7 @@ GENERATORS = [
     generate_filtfilt,
     generate_sos_filtering,
     generate_freqz,
+    generate_group_delay,
     generate_detrend,
     generate_interp1,
     generate_fillmissing,
