@@ -1,6 +1,7 @@
 """
 Filter design: Butterworth, Chebyshev, elliptic and Bessel coefficients, order
-selection, and zpk to second-order sections
+selection, notch and peak filters, window-method FIR filters, and zpk to
+second-order sections
 """
 
 from collections.abc import Callable
@@ -11,6 +12,7 @@ import scipy as sc
 
 from dsp.bessel import NORMS, exact_bessel
 from dsp.elliptic import exact_ellip
+from dsp.fir import exact_firwin
 from dsp.notch import exact_notch
 from dsp.order import band_type, exact_order
 from write import complex_json, write_vector
@@ -122,6 +124,27 @@ NOTCH_CASES: Final = [
     (0.95, 5.0),  # near Nyquist
     (0.25, 0.5),  # beta = 1: a[2] is exactly 0, the poles at ±j/sqrt(2)
     (0.6, 0.8),  # bandwidth past half Nyquist: beta > 1, real poles
+]
+
+# (numtaps, cutoff, btype, window, scale) for scipy.signal.firwin, the window
+# as get_window takes it
+FIRWIN_CASES: Final = [
+    (31, 0.3, "lowpass", "hamming", True),  # firwin's default window
+    (101, 0.3, "lowpass", "hamming", True),  # longer
+    (32, 0.3, "lowpass", "hamming", True),  # even taps: no centre tap, zero at Nyquist
+    (31, 0.3, "lowpass", "boxcar", True),  # rectangular: the truncated ideal
+    (31, 0.3, "lowpass", "hamming", False),  # unscaled
+    (501, 0.01, "lowpass", "hamming", True),  # very low cutoff, many taps
+    (41, 0.95, "lowpass", "hamming", True),  # near Nyquist
+    (51, 0.25, "lowpass", ("chebwin", 60), True),  # equiripple sidelobes
+    (1, 0.3, "lowpass", "boxcar", True),  # one tap, scaled to 1
+    (61, 0.3, "highpass", "hann", True),  # scaled at Nyquist
+    (41, 0.05, "highpass", ("kaiser", 5.0), True),  # very low cutoff
+    (61, (0.2, 0.5), "bandpass", "blackman", True),  # scaled at the band's centre
+    (62, (0.2, 0.5), "bandpass", "blackman", True),  # even taps
+    (61, (0.2, 0.5), "bandpass", "blackman", False),  # unscaled
+    (51, (0.3, 0.31), "bandpass", "hamming", True),  # narrow
+    (61, (0.2, 0.5), "bandstop", ("kaiser", 8.6), True),  # scaled at DC
 ]
 
 # where each dB parameter sits in a CHEBY_CASES or ELLIP_CASES row
@@ -349,6 +372,40 @@ def generate_iirnotch() -> None:
 def generate_iirpeak() -> None:
     """a peak at w0, -3 dB at w0 ± w0/(2Q)"""
     write_notch("iirpeak", "peak", sc.signal.iirpeak)
+
+
+def generate_firwin() -> None:
+    """
+    The exact window-method design (see dsp.fir), from the window's samples,
+    which are in the params for tukey and MATLAB to use as they are. Asserts
+    scipy.signal.firwin agrees.
+    """
+    for numtaps, cutoff, btype, window, scale in FIRWIN_CASES:
+        samples = sc.signal.get_window(window, numtaps, fftbins=False)
+        edges = list(cutoff) if isinstance(cutoff, tuple) else [cutoff]
+        h = exact_firwin(samples.tolist(), edges, btype, scale)
+        got = sc.signal.firwin(
+            numtaps, cutoff, window=window, pass_zero=btype, scale=scale
+        )
+        case = (numtaps, cutoff, btype, window, scale)
+        assert np.allclose(got, h, rtol=0, atol=1e-14 * np.max(np.abs(h))), case
+
+        name = window if isinstance(window, str) else f"{window[0]}{window[1]}"
+        wn_name = f"{cutoff[0]}-{cutoff[1]}" if isinstance(cutoff, tuple) else cutoff
+        wn_param = list(cutoff) if isinstance(cutoff, tuple) else cutoff
+        write_vector(
+            "firwin",
+            f"{btype}_{name}_n{numtaps}_wn{wn_name}" + ("" if scale else "_noscale"),
+            f"the exact design, as scipy.signal.firwin({numtaps}, {wn_param}, "
+            f"window={window!r}, pass_zero='{btype}', scale={scale})",
+            {
+                "window": samples.tolist(),
+                "wn": wn_param,
+                "btype": btype,
+                "scale": scale,
+            },
+            {"h": h},
+        )
 
 
 def write_ord(category: str, kind: str, scipy_ord: Callable) -> None:

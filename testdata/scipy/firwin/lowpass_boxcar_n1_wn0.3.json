@@ -1,0 +1,20 @@
+{
+  "description": "the exact design, as scipy.signal.firwin(1, 0.3, window='boxcar', pass_zero='lowpass', scale=True)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "window": [
+      1.0
+    ],
+    "wn": 0.3,
+    "btype": "lowpass",
+    "scale": true
+  },
+  "output": {
+    "h": [
+      1.0
+    ]
+  }
+}

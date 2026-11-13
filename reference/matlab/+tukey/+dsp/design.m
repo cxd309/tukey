@@ -1,18 +1,19 @@
 function g = design()
-    % DESIGN Filter design: butter, cheby1, cheby2, ellip and bessel, and
-    % the order selections buttord, cheb1ord, cheb2ord and ellipord.
+    % DESIGN Filter design: butter, cheby1, cheby2, ellip and bessel, the
+    % order selections buttord, cheb1ord, cheb2ord and ellipord, and fir1.
     %
     % Not reproduced: zpk2sos, as zp2sos factorises differently (the same
     % filter in different sections), and iirnotch and iirpeak, which are in
     % the DSP System Toolbox, not the Signal Processing Toolbox.
     categories = {"butter", "cheby1", "cheby2", "ellip", "bessel", ...
-                  "buttord", "cheb1ord", "cheb2ord", "ellipord"};
+                  "buttord", "cheb1ord", "cheb2ord", "ellipord", "firwin"};
     runs = {@butterVector, @cheby1Vector, @cheby2Vector, @ellipVector, ...
             @besselVector, ...
             @(params) ordVector(@buttord, "buttord", params), ...
             @(params) ordVector(@cheb1ord, "cheb1ord", params), ...
             @(params) ordVector(@cheb2ord, "cheb2ord", params), ...
-            @(params) ordVector(@ellipord, "ellipord", params)};
+            @(params) ordVector(@ellipord, "ellipord", params), ...
+            @firwinVector};
     g = struct("category", categories, "run", runs);
 end
 
@@ -74,6 +75,31 @@ function [output, description] = besselVector(params)
     description = sprintf("besself(%d, 4*tan(pi*%s/2), ""%s""); " + ...
                           "bilinear at fs = 2", ...
                           params.order, mat2str(wn), btype);
+end
+
+function [output, description] = firwinVector(params)
+    % fir1 of order numtaps - 1 with the case's window samples. fir1 needs
+    % an order of at least 1, so the one-tap case is skipped.
+    output = [];
+    description = "";
+    window = params.window';
+    if numel(window) < 2
+        return
+    end
+    bandTypes = dictionary( ...
+                           ["lowpass", "highpass", "bandpass", "bandstop"], ...
+                           ["low", "high", "bandpass", "stop"]);
+    btype = bandTypes(params.btype);
+    wn = params.wn';
+    scaling = "scale";
+    if ~params.scale
+        scaling = "noscale";
+    end
+
+    h = fir1(numel(window) - 1, wn, btype, window, scaling);
+    output = struct("h", encode.vec(h));
+    description = sprintf("fir1(%d, %s, ""%s"", window, ""%s"")", ...
+                          numel(window) - 1, mat2str(wn), btype, scaling);
 end
 
 function [output, description] = designVector(design, name, params, dbArgs)
