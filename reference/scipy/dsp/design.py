@@ -1,6 +1,6 @@
 """
-Filter design: Butterworth, Chebyshev and elliptic coefficients and zpk to second-order
-sections
+Filter design: Butterworth, Chebyshev, elliptic and Bessel coefficients, order
+selection, and zpk to second-order sections
 """
 
 from collections.abc import Callable
@@ -9,6 +9,7 @@ from typing import Final
 import numpy as np
 import scipy as sc
 
+from dsp.bessel import NORMS, exact_bessel
 from dsp.elliptic import exact_ellip
 from dsp.order import band_type, exact_order
 from write import complex_json, write_vector
@@ -85,6 +86,28 @@ ELLIP_CASES: Final = CHEBY_CASES + [
     (8, 0.01, 120.0, 0.2, "lowpass"),  # tiny ripple and deep stopband: modulus near 1
     (3, 3.0, 6.0, 0.3, "lowpass"),  # attenuation barely above ripple
     (6, 1.0, 60.0, (0.2, 0.25), "bandpass"),  # narrow band at high order
+]
+
+# (order, wn, btype) for scipy.signal.bessel, each written in every norm
+BESSEL_CASES: Final = [
+    (1, 0.3, "lowpass"),  # simplest: one real pole
+    (2, 0.3, "lowpass"),  # first conjugate pair
+    (3, 0.3, "lowpass"),  # odd order: real pole and a pair
+    (4, 0.3, "lowpass"),  # multiple conjugate pairs
+    (8, 0.3, "lowpass"),  # higher order
+    (25, 0.3, "lowpass"),  # MATLAB's besselap's highest order
+    (30, 0.3, "lowpass"),  # beyond it: SciPy only
+    (10, 0.01, "lowpass"),  # poles packed against z = 1
+    (2, 0.99, "lowpass"),  # near Nyquist: steep tan in prewarp
+    (2, 0.001, "lowpass"),  # very low cutoff
+    (4, 0.3, "highpass"),  # through lp2hp
+    (5, 0.7, "highpass"),  # odd order; cutoff above 0.5
+    (2, 0.0008, "highpass"),  # very low cutoff
+    (1, (0.2, 0.5), "bandpass"),  # one prototype pole
+    (4, (0.2, 0.5), "bandpass"),  # pole count doubles
+    (2, (0.30, 0.31), "bandpass"),  # narrow band: clustered poles
+    (3, (0.2, 0.5), "bandstop"),  # odd order through lp2bs
+    (2, (0.01, 0.99), "bandstop"),  # edges far apart
 ]
 
 # where each dB parameter sits in a CHEBY_CASES or ELLIP_CASES row
@@ -247,6 +270,33 @@ def generate_ellip() -> None:
             },
             {"b": b, "a": a, "sos": sc.signal.zpk2sos(z, p, k).tolist()},
         )
+
+
+def generate_bessel() -> None:
+    """
+    The exact Bessel design (see dsp.bessel) in each of scipy.signal.bessel's
+    normalisations. b and a are exact, rounded once; sos is
+    scipy.signal.zpk2sos of the exact zeros, poles and gain, each rounded once.
+    Asserts scipy.signal.bessel agrees to within its own accuracy.
+    """
+    for order, wn, btype in BESSEL_CASES:
+        for norm in NORMS:
+            z, p, k, b, a = exact_bessel(order, wn, btype, norm)
+            scipy_b, scipy_a = sc.signal.bessel(order, wn, btype=btype, norm=norm)
+            for exact, got in ((b, scipy_b), (a, scipy_a)):
+                scale = np.max(np.abs(exact))
+                case = (order, wn, btype, norm)
+                assert np.allclose(got, exact, rtol=0, atol=1e-11 * scale), case
+            wn_name = f"{wn[0]}-{wn[1]}" if isinstance(wn, tuple) else wn
+            wn_param = list(wn) if isinstance(wn, tuple) else wn
+            write_vector(
+                "bessel",
+                f"{btype}_order{order}_{norm}_wn{wn_name}",
+                f"the exact Bessel design, as scipy.signal.bessel({order}, "
+                f"{wn_param}, btype='{btype}', norm='{norm}')",
+                {"order": order, "wn": wn_param, "btype": btype, "norm": norm},
+                {"b": b, "a": a, "sos": sc.signal.zpk2sos(z, p, k).tolist()},
+            )
 
 
 def write_ord(category: str, kind: str, scipy_ord: Callable) -> None:

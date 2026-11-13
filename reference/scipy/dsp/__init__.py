@@ -9,6 +9,7 @@ from dsp.conditioning import (
 )
 from dsp.convolution import generate_convolve, generate_correlate
 from dsp.design import (
+    generate_bessel,
     generate_butter,
     generate_buttord,
     generate_cheb1ord,
@@ -57,6 +58,7 @@ GENERATORS = [
     generate_cheby1,
     generate_cheby2,
     generate_ellip,
+    generate_bessel,
     generate_buttord,
     generate_cheb1ord,
     generate_cheb2ord,

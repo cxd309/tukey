@@ -1,12 +1,13 @@
 function g = design()
-    % DESIGN Filter design: butter, cheby1, cheby2 and ellip, and their
-    % order selections buttord, cheb1ord, cheb2ord and ellipord.
+    % DESIGN Filter design: butter, cheby1, cheby2, ellip and bessel, and
+    % the order selections buttord, cheb1ord, cheb2ord and ellipord.
     %
     % Not reproduced: zpk2sos, as zp2sos factorises differently (the same
     % filter in different sections).
-    categories = {"butter", "cheby1", "cheby2", "ellip", ...
+    categories = {"butter", "cheby1", "cheby2", "ellip", "bessel", ...
                   "buttord", "cheb1ord", "cheb2ord", "ellipord"};
     runs = {@butterVector, @cheby1Vector, @cheby2Vector, @ellipVector, ...
+            @besselVector, ...
             @(params) ordVector(@buttord, "buttord", params), ...
             @(params) ordVector(@cheb1ord, "cheb1ord", params), ...
             @(params) ordVector(@cheb2ord, "cheb2ord", params), ...
@@ -44,6 +45,34 @@ function [output, description] = ellipVector(params)
     [output, description] = designVector(@ellip, "ellip", params, ...
                                          {params.ripple_db, ...
                                           params.attenuation_db});
+end
+
+function [output, description] = besselVector(params)
+    % MATLAB has no digital Bessel design, so this is besself's analog design
+    % at the prewarped edges, through bilinear at fs = 2, as SciPy's bessel.
+    % besselap is normalised by phase, as SciPy's norm="phase", and stops at
+    % order 25, so only those cases are reproduced.
+    output = [];
+    description = "";
+    if params.norm ~= "phase" || params.order > 25
+        return
+    end
+    bandTypes = dictionary( ...
+                           ["lowpass", "highpass", "bandpass", "bandstop"], ...
+                           ["low", "high", "bandpass", "stop"]);
+    btype = bandTypes(params.btype);
+    wn = params.wn';
+    warped = 4 * tan(pi * wn / 2);
+
+    [z, p, k] = besself(params.order, warped, btype);
+    [z, p, k] = bilinear(z, p, k, 2);
+    b = k * poly(z);
+    a = poly(p);
+    output = struct("b", encode.vec(b), "a", encode.vec(a), ...
+                    "sos", encode.rows(zp2sos(z, p, k)));
+    description = sprintf("besself(%d, 4*tan(pi*%s/2), ""%s""); " + ...
+                          "bilinear at fs = 2", ...
+                          params.order, mat2str(wn), btype);
 end
 
 function [output, description] = designVector(design, name, params, dbArgs)
