@@ -71,6 +71,8 @@ var Suites = slices.Concat(
 		ellipSOSSciPySuite,
 		besselSciPySuite,
 		besselSOSSciPySuite,
+		iirNotchSciPySuite,
+		iirPeakSciPySuite,
 		butterOrdSciPySuite,
 		cheby1OrdSciPySuite,
 		cheby2OrdSciPySuite,
