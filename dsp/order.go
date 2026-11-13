@@ -337,8 +337,8 @@ func Cheby1Ord(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOp
 //   - scipy.signal.cheb2ord(wp, ws, rippleDB, attenuationDB), whose bandstop
 //     edges come from a numerical minimiser, to about 1e-5
 //   - matlab cheb2ord(wp, ws, rippleDB, attenuationDB) with Matching(MatchStopband),
-//     except for a bandpass, where MATLAB meets both stopband edges exactly,
-//     and a bandstop, where it uses the minimiser
+//     except for a bandpass, where MATLAB returns the stopband edges, both
+//     met exactly, and tukey only the tighter
 func Cheby2Ord(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOption) (order int, wn Band, err error) {
 	return selectOrder(orderCheby2, pass, stop, rippleDB, attenuationDB, opts)
 }

@@ -69,6 +69,10 @@ var Suites = slices.Concat(
 		cheby2SOSSciPySuite,
 		ellipSciPySuite,
 		ellipSOSSciPySuite,
+		butterOrdSciPySuite,
+		cheby1OrdSciPySuite,
+		cheby2OrdSciPySuite,
+		ellipOrdSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -124,6 +128,11 @@ var Suites = slices.Concat(
 		cheby1MATLABSuite,
 		cheby2MATLABSuite,
 		ellipMATLABSuite,
+		butterOrdMATLABSuite,
+		butterOrdBandstopMATLABSuite,
+		cheby1OrdMATLABSuite,
+		cheby2OrdMATLABSuite,
+		ellipOrdMATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )
