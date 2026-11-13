@@ -1,0 +1,35 @@
+{
+  "description": "the median filter, n = 5, zeropad at the ends",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "x": [
+      1.0,
+      2.0,
+      3.0,
+      null,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0
+    ],
+    "n": 5,
+    "edge": "zeropad"
+  },
+  "output": {
+    "y": [
+      1.0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      7.0,
+      7.0,
+      7.0
+    ]
+  }
+}

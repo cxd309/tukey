@@ -1,0 +1,15 @@
+{"description": "medfilt1(x, 3, \"truncate\")", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "x": [
+      1.0,
+      2.0,
+      3.0,
+      null,
+      5.0,
+      6.0,
+      7.0,
+      8.0,
+      9.0
+    ],
+    "n": 3,
+    "edge": "truncate"
+  }, "output": {"y": [1.5, 2, null, null, null, 6, 7, 8, 8.5]}}
