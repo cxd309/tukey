@@ -135,6 +135,8 @@ var Suites = slices.Concat(
 		ellipMATLABSuite,
 		besselMATLABSuite,
 		firWinMATLABSuite,
+		iirNotchMATLABSuite,
+		iirPeakMATLABSuite,
 		butterOrdMATLABSuite,
 		butterOrdBandstopMATLABSuite,
 		cheby1OrdMATLABSuite,
