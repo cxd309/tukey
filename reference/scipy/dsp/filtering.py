@@ -166,3 +166,158 @@ def write_sosfiltfilt(
         {"sos": sos.tolist(), "x": x.tolist(), "padtype": padtype, "padlen": padlen},
         {"y": y.tolist()},
     )
+
+
+# MATLAB's filtfilt, from its source (filtfilt.m, R2025a): every section is
+# filtered forward and backward in turn, each odd-extended by the same edge
+# length, max(1, 3·order), where the order is summed over the sections, each
+# counting its longer polynomial's last nonzero coefficient. That's SciPy's
+# filtfilt per section with padlen set to it, so the reference is built from
+# SciPy's, and MATLAB's own vectors check the definition.
+
+
+def effective_order(b, a) -> int:
+    """a filter's order as MATLAB counts it: the longer polynomial's last
+    nonzero coefficient's index, trailing zeros dropped"""
+
+    def last_nonzero(c) -> int:
+        nonzero = np.flatnonzero(np.asarray(c, dtype=float))
+        return int(nonzero[-1]) if nonzero.size else 0
+
+    return max(last_nonzero(b), last_nonzero(a))
+
+
+def matlab_padlen(sections) -> int:
+    """MATLAB filtfilt's edge length for a filter of (b, a) sections"""
+    return max(1, 3 * sum(effective_order(b, a) for b, a in sections))
+
+
+def scipy_ntaps(sos: np.ndarray) -> int:
+    """scipy.signal.sosfiltfilt's tap count, for its default padding of 3·ntaps"""
+    first_order = min(int(np.sum(sos[:, 2] == 0)), int(np.sum(sos[:, 5] == 0)))
+    return 2 * len(sos) + 1 - first_order
+
+
+def filtfilt_by_section(
+    sos: np.ndarray, x: np.ndarray, padtype: str | None, padlen: int
+) -> np.ndarray:
+    """each section forward and backward in turn, each padded by padlen"""
+    y = x
+    for section in sos:
+        y = sc.signal.filtfilt(
+            section[:3], section[3:], y, padtype=padtype, padlen=padlen
+        )
+    return y
+
+
+# sections whose order MATLAB counts differently from SciPy's tap count,
+# name -> (sos, SciPy's ntaps − 1, MATLAB's order), each asserted
+ORDER_COUNT_FILTERS = {
+    # b2 = 0 in one section and a2 = 0 in the other: SciPy counts one
+    # first-order section, MATLAB none: order 3 against 4
+    "mixed_zeros": (
+        np.array([[0.2, 0.3, 0.0, 1.0, -0.5, 0.2], [0.4, 0.1, 0.05, 1.0, -0.3, 0.0]]),
+        3,
+        4,
+    ),
+    # a gain-only section is order 0 to MATLAB, 1 to SciPy: 2 against 3
+    "gain_section": (
+        np.array(
+            [[2.0, 0.0, 0.0, 1.0, 0.0, 0.0], list(SOS_FILTERS["butter3_lp0.3"][1])]
+        ),
+        3,
+        2,
+    ),
+    # a pure gain: order 0, so MATLAB's edge is its minimum, 1 sample
+    "gain_only": (np.array([[2.0, 0.0, 0.0, 1.0, 0.0, 0.0]]), 1, 0),
+}
+
+
+def generate_sosfiltfilt_by_section() -> None:
+    """SOSFiltFilt's BySection: SciPy's filtfilt on each section in turn"""
+    signals = synthetic_signals(SIGNAL_LENGTH)
+
+    def write(name, sos, x, padtype, padlen, matlab):
+        if matlab:
+            n = matlab_padlen([(s[:3], s[3:]) for s in sos])
+        elif padlen is None:
+            n = 3 * scipy_ntaps(sos)
+        else:
+            n = padlen
+        write_vector(
+            "sosfiltfilt_by_section",
+            name,
+            f"scipy.signal.filtfilt on each section in turn, padtype={padtype!r}, padlen={n}",
+            {
+                "sos": sos.tolist(),
+                "x": x.tolist(),
+                "padtype": padtype,
+                "padlen": padlen,
+                "matlab_padlen": matlab,
+            },
+            {"y": filtfilt_by_section(sos, x, padtype, n).tolist()},
+        )
+
+    # MATLAB's filtfilt(sos, 1, x), for every filter and signal
+    for fname, sos in SOS_FILTERS.items():
+        for sname, x in signals.items():
+            write(f"{fname}_{sname}_matlab", sos, x, "odd", None, True)
+        # SciPy's default padding, 3·ntaps, by section
+        write(f"{fname}_sines", sos, signals["sines"], "odd", None, False)
+    # each edge-handling variation, on the filter with a first-order section
+    sos = SOS_FILTERS["butter3_lp0.3"]
+    for case, padtype, padlen in SOSFILTFILT_PADDING_CASES:
+        for sname in ("sines", "step"):
+            write(
+                f"butter3_lp0.3_{sname}_{case}",
+                sos,
+                signals[sname],
+                padtype,
+                padlen,
+                False,
+            )
+    # shortest signal MATLAB allows. Its first section has the real pole and
+    # two zeros, order 2 to MATLAB, where SciPy counts it first-order: order 4,
+    # an edge of 12, so 13 samples
+    n = matlab_padlen([(s[:3], s[3:]) for s in sos])
+    assert n == 12, n
+    write(
+        "butter3_lp0.3_shortest_matlab",
+        sos,
+        signals["sines"][: n + 1],
+        "odd",
+        None,
+        True,
+    )
+    # sections whose order MATLAB counts its own way
+    for fname, (sos, scipy_order, order) in ORDER_COUNT_FILTERS.items():
+        assert scipy_ntaps(sos) - 1 == scipy_order, fname
+        assert sum(effective_order(s[:3], s[3:]) for s in sos) == order, fname
+        for sname in ("sines", "step"):
+            write(f"{fname}_{sname}_matlab", sos, signals[sname], "odd", None, True)
+
+
+# (b, a) filters whose order MATLAB counts by dropping trailing zeros
+TRAILING_ZERO_FILTERS = {
+    "trailing_b": ([0.3, 0.2, 0.0], [1.0, -0.5, 0.0]),  # order 1, not 2
+    "trailing_a": ([0.25, 0.5, 0.25], [1.0, -0.4, 0.0]),  # order 2: b is longer
+    "fir_trailing": ([0.25, 0.5, 0.25, 0.0], [1.0]),  # order 2, not 3
+    "gain": ([2.0], [1.0]),  # order 0: an edge of 1 sample
+    "butter2_lp0.3": FILTERS["butter2_lp0.3"],  # the usual case, order 2
+}
+
+
+def generate_filtfilt_matlab() -> None:
+    """FiltFilt with MATLABPadLen: SciPy's filtfilt with MATLAB's edge length"""
+    signals = synthetic_signals(SIGNAL_LENGTH)
+    for fname, (b, a) in TRAILING_ZERO_FILTERS.items():
+        n = matlab_padlen([(b, a)])
+        for sname in ("sines", "step"):
+            x = signals[sname]
+            write_vector(
+                "filtfilt_matlab",
+                f"{fname}_{sname}",
+                f"scipy.signal.filtfilt(b, a, x, padlen={n}), MATLAB's edge length",
+                {"b": list(b), "a": list(a), "x": x.tolist()},
+                {"y": sc.signal.filtfilt(b, a, x, padlen=n).tolist()},
+            )

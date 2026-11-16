@@ -27,9 +27,11 @@ from dsp.envelope import generate_envelope, generate_hilbert
 from dsp.filtering import (
     generate_filter,
     generate_filtfilt,
+    generate_filtfilt_matlab,
     generate_lfilter_state,
     generate_lfilter_zi,
     generate_sos_filtering,
+    generate_sosfiltfilt_by_section,
 )
 from dsp.freqz import generate_freqz, generate_group_delay
 from dsp.peaks import (
@@ -76,6 +78,8 @@ GENERATORS = [
     generate_lfilter_state,
     generate_filtfilt,
     generate_sos_filtering,
+    generate_sosfiltfilt_by_section,
+    generate_filtfilt_matlab,
     generate_freqz,
     generate_group_delay,
     generate_detrend,
