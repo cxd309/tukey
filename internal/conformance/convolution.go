@@ -43,14 +43,14 @@ type correlateVector struct {
 // mixed_magnitudes' smallest outputs, though within 6.3e-16 of the largest,
 // the scale every comparison here is measured against.
 var (
-	convolveDirectSciPySuite   = newSuite("Convolve (direct)", reference.SourceSciPy, "convolve", tolerance(1e-14), convolveOutputs(dsp.ConvolveDirect, reference.SourceSciPy))
-	convolveDirectMATLABSuite  = newSuite("Convolve (direct)", reference.SourceMATLAB, "convolve", tolerance(1e-13), convolveOutputs(dsp.ConvolveDirect, reference.SourceMATLAB))
-	convolveFFTSciPySuite      = newSuite("Convolve (FFT)", reference.SourceSciPy, "convolve", tolerance(1e-14), convolveOutputs(dsp.ConvolveFFT, reference.SourceSciPy))
-	convolveFFTMATLABSuite     = newSuite("Convolve (FFT)", reference.SourceMATLAB, "convolve", tolerance(1e-13), convolveOutputs(dsp.ConvolveFFT, reference.SourceMATLAB))
-	correlateDirectSciPySuite  = newSuite("Correlate (direct)", reference.SourceSciPy, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveDirect, reference.SourceSciPy))
-	correlateDirectMATLABSuite = newSuite("Correlate (direct)", reference.SourceMATLAB, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveDirect, reference.SourceMATLAB))
-	correlateFFTSciPySuite     = newSuite("Correlate (FFT)", reference.SourceSciPy, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveFFT, reference.SourceSciPy))
-	correlateFFTMATLABSuite    = newSuite("Correlate (FFT)", reference.SourceMATLAB, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveFFT, reference.SourceMATLAB))
+	convolveDirectSciPySuite   = newSuite("Convolve (direct)", reference.SourceSciPy, "convolve", tolerance(1e-14), convolveOutputs(dsp.ConvolveDirect(), reference.SourceSciPy))
+	convolveDirectMATLABSuite  = newSuite("Convolve (direct)", reference.SourceMATLAB, "convolve", tolerance(1e-13), convolveOutputs(dsp.ConvolveDirect(), reference.SourceMATLAB))
+	convolveFFTSciPySuite      = newSuite("Convolve (FFT)", reference.SourceSciPy, "convolve", tolerance(1e-14), convolveOutputs(dsp.ConvolveFFT(), reference.SourceSciPy))
+	convolveFFTMATLABSuite     = newSuite("Convolve (FFT)", reference.SourceMATLAB, "convolve", tolerance(1e-13), convolveOutputs(dsp.ConvolveFFT(), reference.SourceMATLAB))
+	correlateDirectSciPySuite  = newSuite("Correlate (direct)", reference.SourceSciPy, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveDirect(), reference.SourceSciPy))
+	correlateDirectMATLABSuite = newSuite("Correlate (direct)", reference.SourceMATLAB, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveDirect(), reference.SourceMATLAB))
+	correlateFFTSciPySuite     = newSuite("Correlate (FFT)", reference.SourceSciPy, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveFFT(), reference.SourceSciPy))
+	correlateFFTMATLABSuite    = newSuite("Correlate (FFT)", reference.SourceMATLAB, "correlate", tolerance(1e-14), correlateOutputs(dsp.ConvolveFFT(), reference.SourceMATLAB))
 )
 
 // convolveMode is one of a vector's outputs: its name, the option selecting
@@ -85,11 +85,11 @@ func comparedModes(source reference.Source, na, nv int, full, same, valid []floa
 }
 
 // convolveOutputs pairs dsp.Convolve by method, in each compared mode, with a vector's.
-func convolveOutputs(method dsp.ConvolveMethod, source reference.Source) func(v convolveVector) ([]Output, error) {
+func convolveOutputs(method dsp.ConvolveOption, source reference.Source) func(v convolveVector) ([]Output, error) {
 	return func(v convolveVector) (outputs []Output, err error) {
 		a, k := v.Params.A, v.Params.V
 		for _, m := range comparedModes(source, len(a), len(k), v.Output.Full, v.Output.Same, v.Output.Valid) {
-			c, err := dsp.Convolve(a, k, append(m.opts, dsp.ConvolveBy(method))...)
+			c, err := dsp.Convolve(a, k, append(m.opts, method)...)
 			if err != nil {
 				return nil, err
 			}
@@ -101,12 +101,12 @@ func convolveOutputs(method dsp.ConvolveMethod, source reference.Source) func(v 
 
 // correlateOutputs pairs dsp.Correlate by method, in each compared mode, with
 // a vector's values and lags. Lags are compared as floats, exactly.
-func correlateOutputs(method dsp.ConvolveMethod, source reference.Source) func(v correlateVector) ([]Output, error) {
+func correlateOutputs(method dsp.ConvolveOption, source reference.Source) func(v correlateVector) ([]Output, error) {
 	return func(v correlateVector) (outputs []Output, err error) {
 		a, k := v.Params.A, v.Params.V
 		lags := map[string][]int{"full": v.Output.FullLags, "same": v.Output.SameLags, "valid": v.Output.ValidLags}
 		for _, m := range comparedModes(source, len(a), len(k), v.Output.Full, v.Output.Same, v.Output.Valid) {
-			c, err := dsp.Correlate(a, k, append(m.opts, dsp.ConvolveBy(method))...)
+			c, err := dsp.Correlate(a, k, append(m.opts, method)...)
 			if err != nil {
 				return nil, err
 			}

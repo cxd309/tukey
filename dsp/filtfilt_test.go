@@ -20,10 +20,9 @@ func TestFiltFiltRejectsInvalidInput(t *testing.T) {
 		wantErr error
 	}{
 		{"empty b", nil, a, x, nil, ErrInvalidCoefficients},
-		{"unknown padding", b, a, x, []FiltOption{PadType(Padding(7))}, ErrInvalidOption},
 		{"negative padding length", b, a, x, []FiltOption{PadLen(-1)}, ErrInvalidParameter},
 		{"x as long as the padding", b, a, x[:6], nil, ErrSignalTooShort},
-		{"empty x", b, a, nil, []FiltOption{PadType(PaddingNone)}, ErrSignalTooShort},
+		{"empty x", b, a, nil, []FiltOption{PaddingNone()}, ErrSignalTooShort},
 		{"pole at DC", b, []float64{1, -1}, x, nil, ErrNoSteadyState},
 	}
 	for _, c := range cases {
@@ -78,11 +77,11 @@ func TestMATLABPadLenMatchesExplicitPadLen(t *testing.T) {
 	assert.Equal(t, explicit, matlab)
 }
 
-// as in SciPy, PaddingNone means nothing is added, so PadLen is ignored
+// same as SciPy, PaddingNone means nothing is added, so PadLen is ignored
 // and x only has to be non-empty
 func TestFiltFiltPaddingNoneIgnoresPadLen(t *testing.T) {
 	b, a := []float64{0.5, 0.5}, []float64{1, -0.5}
-	_, err := FiltFilt(b, a, []float64{1, 2, 3}, PadType(PaddingNone), PadLen(100))
+	_, err := FiltFilt(b, a, []float64{1, 2, 3}, PaddingNone(), PadLen(100))
 	assert.NoError(t, err)
 }
 
@@ -185,7 +184,7 @@ func TestBySectionOfOneSectionChangesNothing(t *testing.T) {
 	sos := testSOS(t, 2, Lowpass(0.3))
 	b, a := sos[0][:3], sos[0][3:]
 
-	for _, opts := range [][]FiltOption{nil, {MATLABPadLen()}, {PadType(PaddingEven), PadLen(10)}} {
+	for _, opts := range [][]FiltOption{nil, {MATLABPadLen()}, {PaddingEven(), PadLen(10)}} {
 		plain, err := FiltFilt(b, a, x, opts...)
 		require.NoError(t, err)
 		bySection, err := FiltFilt(b, a, x, append(slices.Clone(opts), BySection())...)
@@ -237,9 +236,9 @@ func TestBySectionPreservesConstant(t *testing.T) {
 func TestBySectionOptionOrder(t *testing.T) {
 	sos := testSOS(t, 4, Bandpass(0.2, 0.4))
 	x := testSignal(80)
-	first, err := SOSFiltFilt(sos, x, BySection(), MATLABPadLen(), PadType(PaddingEven))
+	first, err := SOSFiltFilt(sos, x, BySection(), MATLABPadLen(), PaddingEven())
 	require.NoError(t, err)
-	last, err := SOSFiltFilt(sos, x, PadType(PaddingEven), MATLABPadLen(), BySection())
+	last, err := SOSFiltFilt(sos, x, PaddingEven(), MATLABPadLen(), BySection())
 	require.NoError(t, err)
 	assert.Equal(t, first, last)
 }
@@ -256,7 +255,7 @@ func TestBySectionPaddingLength(t *testing.T) {
 	assert.NoError(t, err)
 
 	// as without BySection, PaddingNone ignores the padding length
-	_, err = SOSFiltFilt(sos, x[:3], BySection(), PadType(PaddingNone), PadLen(100))
+	_, err = SOSFiltFilt(sos, x[:3], BySection(), PaddingNone(), PadLen(100))
 	assert.NoError(t, err)
 }
 
@@ -269,7 +268,6 @@ func TestBySectionRejectsInvalidInput(t *testing.T) {
 		opts    []FiltOption
 		wantErr error
 	}{
-		{"unknown padding", sos, []FiltOption{PadType(Padding(7))}, ErrInvalidOption},
 		{"negative padding length", sos, []FiltOption{PadLen(-1)}, ErrInvalidParameter},
 		{"pole at DC", SOS{{1, 0, 0, 1, -1, 0}}, nil, ErrNoSteadyState},
 		{"pole at DC in a later section", append(slices.Clone(sos), [6]float64{1, 0, 0, 1, -1, 0}), nil, ErrNoSteadyState},
@@ -297,16 +295,16 @@ func TestPaddingExtend(t *testing.T) {
 	x := []float64{1, 2, 4, 7}
 	cases := []struct {
 		name    string
-		padding Padding
+		padding padding
 		n       int
 		want    []float64
 	}{
 		// left: 2*1-4, 2*1-2   right: 2*7-4, 2*7-2
-		{"odd", PaddingOdd, 2, []float64{-2, 0, 1, 2, 4, 7, 10, 12}},
-		{"even", PaddingEven, 2, []float64{4, 2, 1, 2, 4, 7, 4, 2}},
-		{"constant", PaddingConstant, 2, []float64{1, 1, 1, 2, 4, 7, 7, 7}},
-		{"longest odd extension, n = len(x)-1", PaddingOdd, 3, []float64{-5, -2, 0, 1, 2, 4, 7, 10, 12, 13}},
-		{"none", PaddingNone, 0, []float64{1, 2, 4, 7}},
+		{"odd", paddingOdd, 2, []float64{-2, 0, 1, 2, 4, 7, 10, 12}},
+		{"even", paddingEven, 2, []float64{4, 2, 1, 2, 4, 7, 4, 2}},
+		{"constant", paddingConstant, 2, []float64{1, 1, 1, 2, 4, 7, 7, 7}},
+		{"longest odd extension, n = len(x)-1", paddingOdd, 3, []float64{-5, -2, 0, 1, 2, 4, 7, 10, 12, 13}},
+		{"none", paddingNone, 0, []float64{1, 2, 4, 7}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -319,7 +317,7 @@ func TestPaddingExtend(t *testing.T) {
 
 func TestPaddingExtendReturnsNewSlice(t *testing.T) {
 	x := []float64{1, 2, 3}
-	extended := PaddingNone.extend(x, 0)
+	extended := paddingNone.extend(x, 0)
 	extended[0] = 99
 	assert.Equal(t, 1.0, x[0], "extend must not alias x")
 }
@@ -327,15 +325,15 @@ func TestPaddingExtendReturnsNewSlice(t *testing.T) {
 func TestPaddingExtendPanicsOnBrokenPreconditions(t *testing.T) {
 	cases := []struct {
 		name    string
-		padding Padding
+		padding padding
 		x       []float64
 		n       int
 	}{
-		{"n = len(x)", PaddingOdd, []float64{1, 2, 3}, 3},
-		{"negative n", PaddingOdd, []float64{1, 2, 3}, -1},
-		{"empty x", PaddingOdd, nil, 0},
-		{"PaddingNone with n > 0", PaddingNone, []float64{1, 2, 3}, 1},
-		{"unknown padding", Padding(7), []float64{1, 2, 3}, 1},
+		{"n = len(x)", paddingOdd, []float64{1, 2, 3}, 3},
+		{"negative n", paddingOdd, []float64{1, 2, 3}, -1},
+		{"empty x", paddingOdd, nil, 0},
+		{"PaddingNone with n > 0", paddingNone, []float64{1, 2, 3}, 1},
+		{"unknown padding", padding(7), []float64{1, 2, 3}, 1},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

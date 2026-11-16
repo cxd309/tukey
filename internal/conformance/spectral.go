@@ -204,16 +204,16 @@ func welchOutputs(v welchVector) (outputs []Output, err error) {
 	switch p.Average {
 	case "mean":
 	case "median":
-		opts = append(opts, dsp.Average(dsp.AverageMedian))
+		opts = append(opts, dsp.AverageMedian())
 	default:
 		return nil, fmt.Errorf("unknown average %q", p.Average)
 	}
 	switch p.Detrend {
 	case "none":
 	case "constant":
-		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendConstant))
+		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendConstant()))
 	case "linear":
-		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendLinear))
+		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendLinear()))
 	default:
 		return nil, fmt.Errorf("unknown detrend %q", p.Detrend)
 	}
@@ -268,7 +268,7 @@ func periodogramOutputs(v periodogramVector) (outputs []Output, err error) {
 // scaling is left as the default, density.
 func powerOptions(scaling string, nfft *int) (opts []dsp.SpectralOption) {
 	if scaling == "spectrum" {
-		opts = append(opts, dsp.Scaling(dsp.ScalingSpectrum))
+		opts = append(opts, dsp.ScalingSpectrum())
 	}
 	if nfft != nil {
 		opts = append(opts, dsp.NFFT(*nfft))

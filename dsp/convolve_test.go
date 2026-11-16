@@ -10,21 +10,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// convolveMethods are every ConvolveMethod, named for subtests.
+// convolveMethods are every method, named for subtests.
 var convolveMethods = []struct {
 	name   string
-	method ConvolveMethod
+	method convolveMethod
 }{
-	{"auto", ConvolveAuto},
-	{"direct", ConvolveDirect},
-	{"FFT", ConvolveFFT},
+	{"auto", methodAuto},
+	{"direct", methodDirect},
+	{"FFT", methodFFT},
+}
+
+// byMethod is the option that sets method, for tests that pick it as a value
+func byMethod(method convolveMethod) ConvolveOption {
+	return func(c *convolveConfig) { c.method = method }
 }
 
 // assertConvolved checks got against want: exactly for the direct method,
 // whose small integer sums are exact, and to rounding for the others.
-func assertConvolved(t *testing.T, method ConvolveMethod, want, got []float64, msg string) {
+func assertConvolved(t *testing.T, method convolveMethod, want, got []float64, msg string) {
 	t.Helper()
-	if method == ConvolveDirect {
+	if method == methodDirect {
 		assert.Equal(t, want, got, msg)
 		return
 	}
@@ -48,7 +53,7 @@ func TestConvolve(t *testing.T) {
 	for _, c := range cases {
 		for _, m := range convolveMethods {
 			t.Run(c.name+", "+m.name, func(t *testing.T) {
-				by := ConvolveBy(m.method)
+				by := byMethod(m.method)
 				full, err := Convolve(c.a, c.v, by)
 				require.NoError(t, err)
 				assertConvolved(t, m.method, c.full, full, "full")
@@ -68,9 +73,9 @@ func TestConvolve(t *testing.T) {
 func TestConvolveIsCommutative(t *testing.T) {
 	a, v := []float64{1, -2, 3, 0.5, 4}, []float64{2, 0.25, -1}
 	for _, opts := range [][]ConvolveOption{nil, {ConvolveValid()}} {
-		av, err := Convolve(a, v, append(opts, ConvolveBy(ConvolveDirect))...)
+		av, err := Convolve(a, v, append(opts, byMethod(methodDirect))...)
 		require.NoError(t, err)
-		va, err := Convolve(v, a, append(opts, ConvolveBy(ConvolveDirect))...)
+		va, err := Convolve(v, a, append(opts, byMethod(methodDirect))...)
 		require.NoError(t, err)
 		assert.Equal(t, av, va)
 	}
@@ -80,7 +85,7 @@ func TestConvolveIsCommutative(t *testing.T) {
 // a small output between large ones that cancel keeps every digit.
 func TestConvolveDirectKeepsSmallOutputs(t *testing.T) {
 	a := []float64{1e8, 1e-3, -1e8}
-	full, err := Convolve(a, []float64{1, 1, 1}, ConvolveBy(ConvolveDirect))
+	full, err := Convolve(a, []float64{1, 1, 1}, byMethod(methodDirect))
 	require.NoError(t, err)
 	assert.Equal(t, 1e-3, full[2])
 }
@@ -89,11 +94,11 @@ func TestConvolveDirectKeepsSmallOutputs(t *testing.T) {
 // infinite product isn't turned into NaN by its rounding error.
 func TestConvolveDirectNonFinite(t *testing.T) {
 	inf := math.Inf(1)
-	full, err := Convolve([]float64{1, inf, 2}, []float64{1, 1}, ConvolveBy(ConvolveDirect))
+	full, err := Convolve([]float64{1, inf, 2}, []float64{1, 1}, byMethod(methodDirect))
 	require.NoError(t, err)
 	assert.Equal(t, []float64{1, inf, inf, 2}, full)
 
-	full, err = Convolve([]float64{1, nan, 2}, []float64{1, 1}, ConvolveBy(ConvolveDirect))
+	full, err = Convolve([]float64{1, nan, 2}, []float64{1, 1}, byMethod(methodDirect))
 	require.NoError(t, err)
 	assert.Equal(t, 1.0, full[0])
 	assert.True(t, math.IsNaN(full[1]))
@@ -104,13 +109,13 @@ func TestConvolveDirectNonFinite(t *testing.T) {
 // Auto picks direct for short inputs and FFT for long ones, and returns
 // exactly what the picked method does.
 func TestConvolveAuto(t *testing.T) {
-	assert.Equal(t, ConvolveDirect, fasterMethod(5, 4))
-	assert.Equal(t, ConvolveFFT, fasterMethod(4000, 4000))
+	assert.Equal(t, methodDirect, fasterMethod(5, 4))
+	assert.Equal(t, methodFFT, fasterMethod(4000, 4000))
 	for _, n := range []int{5, 4000} {
 		a, v := ramp(n), ramp(n-1)
 		auto, err := Convolve(a, v)
 		require.NoError(t, err)
-		picked, err := Convolve(a, v, ConvolveBy(fasterMethod(n, n-1)))
+		picked, err := Convolve(a, v, byMethod(fasterMethod(n, n-1)))
 		require.NoError(t, err)
 		assert.Equal(t, picked, auto, "%d samples", n)
 	}
@@ -120,8 +125,8 @@ func TestConvolveAuto(t *testing.T) {
 // input makes it use direct, so outputs the sample isn't summed into are kept.
 func TestConvolveAutoFallsBackOnNonFinite(t *testing.T) {
 	const n, bad = 64, 10
-	require.Equal(t, ConvolveFFT, fasterMethod(n, n), "the case tests nothing if Auto would pick direct anyway")
-	clean, err := Convolve(ramp(n), ramp(n), ConvolveBy(ConvolveDirect))
+	require.Equal(t, methodFFT, fasterMethod(n, n), "the case tests nothing if Auto would pick direct anyway")
+	clean, err := Convolve(ramp(n), ramp(n), byMethod(methodDirect))
 	require.NoError(t, err)
 	for _, sample := range []float64{nan, math.Inf(1)} {
 		for _, inA := range []bool{true, false} {
@@ -157,9 +162,9 @@ func TestConvolvePartsHaveNoSpareCapacity(t *testing.T) {
 func TestConvolveAndCorrelateLeaveInputsUnchanged(t *testing.T) {
 	a, v := []float64{1, 2, 3}, []float64{4, 5}
 	for _, m := range convolveMethods {
-		_, err := Convolve(a, v, ConvolveBy(m.method))
+		_, err := Convolve(a, v, byMethod(m.method))
 		require.NoError(t, err)
-		_, err = Correlate(a, v, ConvolveBy(m.method))
+		_, err = Correlate(a, v, byMethod(m.method))
 		require.NoError(t, err)
 		assert.Equal(t, []float64{1, 2, 3}, a, m.name)
 		assert.Equal(t, []float64{4, 5}, v, m.name)
@@ -172,12 +177,6 @@ func TestConvolveAndCorrelateErrors(t *testing.T) {
 		assert.ErrorIs(t, err, ErrSignalTooShort, "Convolve of %d and %d samples", len(in[0]), len(in[1]))
 		_, err = Correlate(in[0], in[1])
 		assert.ErrorIs(t, err, ErrSignalTooShort, "Correlate of %d and %d samples", len(in[0]), len(in[1]))
-	}
-	for _, method := range []ConvolveMethod{ConvolveAuto - 1, ConvolveFFT + 1} {
-		_, err := Convolve([]float64{1}, []float64{1}, ConvolveBy(method))
-		assert.ErrorIs(t, err, ErrInvalidOption, "Convolve, method %d", method)
-		_, err = Correlate([]float64{1}, []float64{1}, ConvolveBy(method))
-		assert.ErrorIs(t, err, ErrInvalidOption, "Correlate, method %d", method)
 	}
 }
 
@@ -201,7 +200,7 @@ func TestCorrelate(t *testing.T) {
 	for _, c := range cases {
 		for _, m := range convolveMethods {
 			t.Run(c.name+", "+m.name, func(t *testing.T) {
-				corr, err := Correlate(c.a, c.v, append(c.opts, ConvolveBy(m.method))...)
+				corr, err := Correlate(c.a, c.v, append(c.opts, byMethod(m.method))...)
 				require.NoError(t, err)
 				assertConvolved(t, m.method, c.values, corr.Values, "values")
 				assert.Equal(t, c.lags, corr.Lags)
@@ -219,7 +218,7 @@ func TestCorrelateFindsDelay(t *testing.T) {
 	copy(received[delay:], sent)
 	for _, opts := range [][]ConvolveOption{nil, {ConvolveSame()}, {ConvolveValid()}} {
 		for _, m := range convolveMethods {
-			corr, err := Correlate(received, sent, append(opts, ConvolveBy(m.method))...)
+			corr, err := Correlate(received, sent, append(opts, byMethod(m.method))...)
 			require.NoError(t, err)
 			i := slices.Index(corr.Values, slices.Max(corr.Values))
 			assert.Equal(t, delay, corr.Lags[i], m.name)
@@ -241,7 +240,7 @@ func BenchmarkConvolve(b *testing.B) {
 			b.Run(fmt.Sprintf("%dx%d/%s", len(a), len(v), m.name), func(b *testing.B) {
 				b.ReportAllocs()
 				for range b.N {
-					if _, err := Convolve(a, v, ConvolveBy(m.method)); err != nil {
+					if _, err := Convolve(a, v, byMethod(m.method)); err != nil {
 						b.Fatal(err)
 					}
 				}

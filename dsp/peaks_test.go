@@ -65,7 +65,7 @@ func TestFindPeaksLimits(t *testing.T) {
 }
 
 func TestFindPeaksPlateauFirst(t *testing.T) {
-	peaks, err := FindPeaks([]float64{0, 2, 2, 2, 0}, Plateau(PlateauFirst))
+	peaks, err := FindPeaks([]float64{0, 2, 2, 2, 0}, PlateauFirst())
 	require.NoError(t, err)
 	assert.Equal(t, []int{1}, peakIndices(peaks))
 }
@@ -74,15 +74,15 @@ func TestFindPeaksTies(t *testing.T) {
 	x := []float64{0, 1, 0, 1, 0} // equal peaks 2 apart
 	cases := []struct {
 		name string
-		ties TieBreak
+		ties PeakOption
 		want []int
 	}{
-		{"TieLater", TieLater, []int{3}},
-		{"TieEarlier", TieEarlier, []int{1}},
+		{"TieLater", TieLater(), []int{3}},
+		{"TieEarlier", TieEarlier(), []int{1}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			peaks, err := FindPeaks(x, MinPeakDistance(3), Ties(c.ties))
+			peaks, err := FindPeaks(x, MinPeakDistance(3), c.ties)
 			require.NoError(t, err)
 			assert.Equal(t, c.want, peakIndices(peaks))
 		})
@@ -121,8 +121,8 @@ func TestFindPeaksMATLABPeaksOverridden(t *testing.T) {
 		want []int
 	}{
 		{"MATLABPeaks", []PeakOption{MATLABPeaks()}, []int{1}},
-		{"then PlateauMiddle", []PeakOption{MATLABPeaks(), Plateau(PlateauMiddle)}, []int{2}},
-		{"after PlateauMiddle", []PeakOption{Plateau(PlateauMiddle), MATLABPeaks()}, []int{1}},
+		{"then PlateauMiddle", []PeakOption{MATLABPeaks(), PlateauMiddle()}, []int{2}},
+		{"after PlateauMiddle", []PeakOption{PlateauMiddle(), MATLABPeaks()}, []int{1}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

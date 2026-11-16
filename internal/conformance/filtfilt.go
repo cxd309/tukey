@@ -55,20 +55,20 @@ func filtfiltOutputs(extra ...dsp.FiltOption) (check func(v filtfiltVector) ([]O
 
 // filtfiltOptions translates a vector's SciPy padtype and padlen into FiltOptions
 func filtfiltOptions(padtype *string, padlen *int) (opts []dsp.FiltOption, err error) {
-	padding := dsp.PaddingNone
+	padding := dsp.PaddingNone()
 	if padtype != nil {
 		switch *padtype {
 		case "odd":
-			padding = dsp.PaddingOdd
+			padding = dsp.PaddingOdd()
 		case "even":
-			padding = dsp.PaddingEven
+			padding = dsp.PaddingEven()
 		case "constant":
-			padding = dsp.PaddingConstant
+			padding = dsp.PaddingConstant()
 		default:
 			return nil, fmt.Errorf("unknown padtype %q", *padtype)
 		}
 	}
-	opts = append(opts, dsp.PadType(padding))
+	opts = append(opts, padding)
 	if padlen != nil {
 		opts = append(opts, dsp.PadLen(*padlen))
 	}

@@ -12,10 +12,10 @@ import (
 // whichever normalisation, a forward and inverse pair recovers the signal
 func TestEveryNormalisationRoundTrips(t *testing.T) {
 	x := randomSignal(100)
-	for _, norm := range []Normalisation{NormBackward, NormOrtho, NormForward} {
-		y, err := Forward(x, Norm(norm))
+	for _, norm := range []Option{NormBackward(), NormOrtho(), NormForward()} {
+		y, err := Forward(x, norm)
 		require.NoError(t, err)
-		back, err := Inverse(y, Norm(norm))
+		back, err := Inverse(y, norm)
 		require.NoError(t, err)
 		reference.AssertClose(t, "x", back, x, reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
 	}
@@ -25,7 +25,7 @@ func TestEveryNormalisationRoundTrips(t *testing.T) {
 // with no 1/n correction (compare TestForwardPreservesEnergy)
 func TestOrthoPreservesEnergyDirectly(t *testing.T) {
 	x := randomSignal(256)
-	y, err := Forward(x, Norm(NormOrtho))
+	y, err := Forward(x, NormOrtho())
 	require.NoError(t, err)
 	timeEnergy, freqEnergy := 0.0, 0.0
 	for i := range x {
@@ -40,7 +40,7 @@ func TestDefaultNormalisationIsBackward(t *testing.T) {
 	x := randomSignal(60)
 	plain, err := Forward(x)
 	require.NoError(t, err)
-	explicit, err := Forward(x, Norm(NormBackward))
+	explicit, err := Forward(x, NormBackward())
 	require.NoError(t, err)
 	assert.Equal(t, plain, explicit)
 }
@@ -66,9 +66,7 @@ func TestShiftOrdersFrequencies(t *testing.T) {
 
 func TestOptionsRejectInvalidInput(t *testing.T) {
 	x := randomSignal(8)
-	_, err := Forward(x, Norm(Normalisation(7)))
-	assert.ErrorIs(t, err, ErrInvalidOption, "unknown normalisation")
-	_, err = Forward(x, N(0))
+	_, err := Forward(x, N(0))
 	assert.ErrorIs(t, err, ErrInvalidLength, "N(0)")
 	_, err = InverseReal([]complex128{1, 2}, 2, N(4))
 	assert.ErrorIs(t, err, ErrInvalidOption, "N on InverseReal")

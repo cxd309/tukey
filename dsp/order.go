@@ -16,7 +16,7 @@ import (
 //	f, err := dsp.Butter(order, band)
 //
 // The order usually has margin to spare.
-// By default the passband edge is met exactly and the stopband gets the margin, Matching(MatchStopband) swaps them.
+// By default the passband edge is met exactly and the stopband gets the margin, MatchStopband() swaps them.
 // A bandpass's tighter stopband edge is the one met.
 // A bandstop's passband edges are first moved inward until the stopband's edges are equally hard to meet,
 // the lowest order there is.
@@ -26,12 +26,11 @@ import (
 //     types of band, or if stop's edges aren't beyond pass's
 //   - ErrInvalidParameter if rippleDB or attenuationDB isn't positive and finite,
 //     or attenuationDB isn't greater than rippleDB
-//   - ErrInvalidOption for an unknown MatchBand
 //
 // Equivalent to:
 //   - scipy.signal.buttord(wp, ws, rippleDB, attenuationDB), whose bandstop
 //     edges come from a numerical minimiser, to about 1e-5
-//   - matlab buttord(wp, ws, rippleDB, attenuationDB) with Matching(MatchStopband),
+//   - matlab buttord(wp, ws, rippleDB, attenuationDB) with MatchStopband(),
 //     with the same minimiser for a bandstop
 func ButterOrd(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOption) (order int, wn Band, err error) {
 	return selectOrder(orderButter, pass, stop, rippleDB, attenuationDB, opts)
@@ -68,7 +67,7 @@ func Cheby1Ord(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOp
 // Equivalent to:
 //   - scipy.signal.cheb2ord(wp, ws, rippleDB, attenuationDB), whose bandstop
 //     edges come from a numerical minimiser, to about 1e-5
-//   - matlab cheb2ord(wp, ws, rippleDB, attenuationDB) with Matching(MatchStopband),
+//   - matlab cheb2ord(wp, ws, rippleDB, attenuationDB) with MatchStopband(),
 //     except for a bandpass, where MATLAB returns the stopband edges, both
 //     met exactly, and tukey only the tighter
 func Cheby2Ord(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOption) (order int, wn Band, err error) {
@@ -92,33 +91,36 @@ func EllipOrd(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOpt
 	return selectOrder(orderEllip, pass, stop, rippleDB, attenuationDB, opts)
 }
 
-// MatchBand is the band edge an order selection meets exactly.
-// The smallest order meeting a specification usually has margin to spare,
-// and the band it returns decides where the margin goes.
-type MatchBand int
-
-const (
-	// MatchPassband meets the passband edge exactly, at -rippleDB,
-	// and the stopband is attenuated more than asked from its edge.
-	// The default, same as scipy buttord, cheb1ord, cheb2ord and ellipord
-	MatchPassband MatchBand = iota
-	// MatchStopband meets the stopband edge exactly, at -attenuationDB,
-	// and the passband reaches further than its edge.
-	// Same as matlab buttord and cheb2ord
-	MatchStopband
-)
-
 // OrderOption configures ButterOrd, Cheby1Ord, Cheby2Ord and EllipOrd
 type OrderOption func(*orderConfig)
 
-// Matching sets the band edge met exactly. Default MatchPassband
-func Matching(band MatchBand) OrderOption {
-	return func(c *orderConfig) { c.match = band }
+// MatchPassband meets the passband edge exactly, at -rippleDB,
+// and the stopband is attenuated more than asked from its edge.
+// The smallest order meeting a specification usually has margin to spare,
+// and the band returned decides where it goes.
+// The default, same as scipy buttord, cheb1ord, cheb2ord and ellipord.
+func MatchPassband() OrderOption {
+	return func(c *orderConfig) { c.match = matchPassband }
 }
+
+// MatchStopband meets the stopband edge exactly, at -attenuationDB,
+// and the passband reaches further than its edge.
+// Same as matlab buttord and cheb2ord.
+func MatchStopband() OrderOption {
+	return func(c *orderConfig) { c.match = matchStopband }
+}
+
+// matchBand is the band edge an order selection meets exactly
+type matchBand int
+
+const (
+	matchPassband matchBand = iota
+	matchStopband
+)
 
 // orderConfig is the order selection settings, built from OrderOptions
 type orderConfig struct {
-	match MatchBand
+	match matchBand
 }
 
 // selectOrder is the order selection for design, shared by ButterOrd,
@@ -127,9 +129,6 @@ func selectOrder(design orderDesign, pass, stop Band, rippleDB, attenuationDB fl
 	var cfg orderConfig
 	for _, opt := range opts {
 		opt(&cfg)
-	}
-	if cfg.match < MatchPassband || cfg.match > MatchStopband {
-		return 0, wn, fmt.Errorf("%w: MatchBand %d", ErrInvalidOption, cfg.match)
 	}
 	if err = checkRippleAttenuation(rippleDB, attenuationDB); err != nil {
 		return 0, wn, err
@@ -269,28 +268,28 @@ func (spec lowpassSpec) rawOrder(design orderDesign) (raw float64) {
 
 // prototypeWn is rho, where the order's prototype puts the band edge,
 // in the specification's units, so match's edge is met exactly
-func (spec lowpassSpec) prototypeWn(design orderDesign, match MatchBand, order int) (rho float64) {
+func (spec lowpassSpec) prototypeWn(design orderDesign, match matchBand, order int) (rho float64) {
 	n := float64(order)
 	switch design {
 	case orderButter: // Wn is the -3dB point
-		if match == MatchPassband {
+		if match == matchPassband {
 			rho = math.Exp(-math.Log(spec.gpass) / (2 * n))
 		} else {
 			rho = spec.nat * math.Exp(-math.Log(spec.gstop)/(2*n))
 		}
 	case orderCheby1: // Wn is the passband edge
 		rho = 1
-		if match == MatchStopband {
+		if match == matchStopband {
 			rho = spec.nat / spec.selectivity(n)
 		}
 	case orderCheby2: // Wn is the stopband edge
 		rho = spec.nat
-		if match == MatchPassband {
+		if match == matchPassband {
 			rho = spec.selectivity(n)
 		}
 	default: // Wn is the passband edge, and the stopband edge is Wn/√m
 		rho = 1
-		if match == MatchStopband {
+		if match == matchStopband {
 			rho = spec.nat * math.Sqrt(ellipticParameter(order, spec.gpass/spec.gstop))
 		}
 	}

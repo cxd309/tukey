@@ -29,18 +29,15 @@ var (
 // detrendOutputs pairs dsp.Detrend's output with a vector's. It's scaled to the
 // input, as detrending a nearly straight signal cancels to ~0.
 func detrendOutputs(v detrendVector) (outputs []Output, err error) {
-	mode := dsp.DetrendLinear
+	mode := dsp.DetrendLinear()
 	switch v.Params.Type {
 	case "linear":
 	case "constant":
-		mode = dsp.DetrendConstant
+		mode = dsp.DetrendConstant()
 	default:
 		return nil, fmt.Errorf("unknown detrend type %q", v.Params.Type)
 	}
-	y, err := dsp.Detrend(v.Params.X, mode)
-	if err != nil {
-		return nil, err
-	}
+	y := dsp.Detrend(v.Params.X, mode)
 	outputs = []Output{{Name: "y", Got: y, Want: v.Output.Y, Scale: maxAbs(v.Params.X)}}
 	return
 }

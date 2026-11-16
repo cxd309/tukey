@@ -44,8 +44,8 @@ type orderSelection func(pass, stop dsp.Band, rippleDB, attenuationDB float64, o
 // architectures. The SciPy vectors are the exact selection, computed with
 // mpmath at 50 digits, rather than scipy.signal's, whose bandstop edges come
 // from a numerical minimiser good to about 1e-5; its orders and passband-matched
-// edges otherwise agree. Each vector checks the order and both MatchBand
-// modes: wn_passband with MatchPassband and wn_stopband with MatchStopband.
+// edges otherwise agree. Each vector checks the order and both matching
+// options: wn_passband with MatchPassband and wn_stopband with MatchStopband.
 // Every order matches, and wn is worst at 7.5e-16 (3 ULP), on EllipOrd's
 // highpass_wp0.002_ws0.001_rp1.0_rs30.0 wn_stopband.
 //
@@ -66,15 +66,15 @@ var (
 	ellipOrdSciPySuite  = newSuite("EllipOrd", reference.SourceSciPy, "ellipord", tolerance(1e-14), orderOutputs(dsp.EllipOrd))
 
 	butterOrdMATLABSuite = newSuiteOf("ButterOrd", reference.SourceMATLAB, "buttord", tolerance(1e-14),
-		orderMATLABOutputs(dsp.ButterOrd, dsp.MatchStopband, "lowpass", "highpass", "bandpass"), allFiles)
+		orderMATLABOutputs(dsp.ButterOrd, dsp.MatchStopband(), "lowpass", "highpass", "bandpass"), allFiles)
 	butterOrdBandstopMATLABSuite = newSuiteOf("ButterOrd (bandstop)", reference.SourceMATLAB, "buttord", tolerance(1e-3),
-		orderMATLABOutputs(dsp.ButterOrd, dsp.MatchStopband, "bandstop"), bandFiles("bandstop"))
+		orderMATLABOutputs(dsp.ButterOrd, dsp.MatchStopband(), "bandstop"), bandFiles("bandstop"))
 	cheby1OrdMATLABSuite = newSuiteOf("Cheby1Ord", reference.SourceMATLAB, "cheb1ord", tolerance(1e-14),
-		orderMATLABOutputs(dsp.Cheby1Ord, dsp.MatchPassband, "lowpass", "highpass", "bandpass"), allFiles)
+		orderMATLABOutputs(dsp.Cheby1Ord, dsp.MatchPassband(), "lowpass", "highpass", "bandpass"), allFiles)
 	cheby2OrdMATLABSuite = newSuiteOf("Cheby2Ord", reference.SourceMATLAB, "cheb2ord", tolerance(1e-14),
-		orderMATLABOutputs(dsp.Cheby2Ord, dsp.MatchStopband, "lowpass", "highpass", "bandstop"), allFiles)
+		orderMATLABOutputs(dsp.Cheby2Ord, dsp.MatchStopband(), "lowpass", "highpass", "bandstop"), allFiles)
 	ellipOrdMATLABSuite = newSuiteOf("EllipOrd", reference.SourceMATLAB, "ellipord", tolerance(1e-14),
-		orderMATLABOutputs(dsp.EllipOrd, dsp.MatchPassband, "lowpass", "highpass", "bandpass"), allFiles)
+		orderMATLABOutputs(dsp.EllipOrd, dsp.MatchPassband(), "lowpass", "highpass", "bandpass"), allFiles)
 )
 
 // allFiles accepts every vector
@@ -115,8 +115,8 @@ func orderBands(p orderParams) (pass, stop dsp.Band, btype string, err error) {
 	return pass, stop, btype, err
 }
 
-// orderOutputs pairs a selection's order, and its band in each MatchBand
-// mode, with the exact vector's
+// orderOutputs pairs a selection's order, and its band with each matching option,
+// with the exact vector's
 func orderOutputs(selectOrder orderSelection) func(orderVector) ([]Output, error) {
 	return func(v orderVector) (outputs []Output, err error) {
 		pass, stop, _, err := orderBands(v.Params)
@@ -125,14 +125,14 @@ func orderOutputs(selectOrder orderSelection) func(orderVector) ([]Output, error
 		}
 		modes := []struct {
 			name  string
-			match dsp.MatchBand
+			match dsp.OrderOption
 			want  []float64
 		}{
-			{"wn_passband", dsp.MatchPassband, v.Output.WnPassband},
-			{"wn_stopband", dsp.MatchStopband, v.Output.WnStopband},
+			{"wn_passband", dsp.MatchPassband(), v.Output.WnPassband},
+			{"wn_stopband", dsp.MatchStopband(), v.Output.WnStopband},
 		}
 		for _, m := range modes {
-			order, wn, err := selectOrder(pass, stop, v.Params.RippleDB, v.Params.AttenuationDB, dsp.Matching(m.match))
+			order, wn, err := selectOrder(pass, stop, v.Params.RippleDB, v.Params.AttenuationDB, m.match)
 			if err != nil {
 				return nil, err
 			}
@@ -147,13 +147,13 @@ func orderOutputs(selectOrder orderSelection) func(orderVector) ([]Output, error
 
 // orderMATLABOutputs pairs a selection's order with MATLAB's, and its band,
 // selected with match, with MATLAB's wn for the band types listed
-func orderMATLABOutputs(selectOrder orderSelection, match dsp.MatchBand, wnCompared ...string) func(orderMATLABVector) ([]Output, error) {
+func orderMATLABOutputs(selectOrder orderSelection, match dsp.OrderOption, wnCompared ...string) func(orderMATLABVector) ([]Output, error) {
 	return func(v orderMATLABVector) (outputs []Output, err error) {
 		pass, stop, btype, err := orderBands(v.Params)
 		if err != nil {
 			return nil, err
 		}
-		order, wn, err := selectOrder(pass, stop, v.Params.RippleDB, v.Params.AttenuationDB, dsp.Matching(match))
+		order, wn, err := selectOrder(pass, stop, v.Params.RippleDB, v.Params.AttenuationDB, match)
 		if err != nil {
 			return nil, err
 		}

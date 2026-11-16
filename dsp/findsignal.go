@@ -14,8 +14,7 @@ import (
 // squared differences, with ties to the earliest window.
 //
 // Returns:
-//   - ErrSignalTooShort for an empty signal, or one longer than data,
-//   - ErrInvalidOption for an unknown SearchMethod.
+//   - ErrSignalTooShort for an empty signal, or one longer than data
 //
 // Equivalent to MATLAB [istart, istop, dist] = findsignal(data, signal),
 // with 0-based indices. No SciPy equivalent.
@@ -28,14 +27,12 @@ func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalM
 		opt(&cfg)
 	}
 	switch cfg.method {
-	case SearchDirect:
+	case searchDirect:
 		match = findSignalDirect(data, signal)
-	case SearchFast:
+	case searchFast:
 		match, err = findSignalFast(data, signal)
-	case SearchHybrid:
-		match, err = findSignalHybrid(data, signal)
 	default:
-		err = fmt.Errorf("%w: SearchMethod %d", ErrInvalidOption, cfg.method)
+		match, err = findSignalHybrid(data, signal)
 	}
 	return
 }
@@ -47,40 +44,47 @@ type SignalMatch struct {
 	Distance float64
 }
 
-// SearchMethod is how FindSignal scores each window of data.
-type SearchMethod int
-
-const (
-	// SearchHybrid scores every window by FFT correlation,
-	// then rescores exactly each window that, within the correlation's rounding,
-	// could be the closest.
-	// Direct's answer at close to Fast's cost. The default search method.
-	SearchHybrid SearchMethod = iota
-	// SearchDirect scores every window exactly,
-	// summing its squared differences with compensation. O(len(data) × len(signal)).
-	// Simplest, but slowest at every size measured:
-	// 77 s where Hybrid takes 29 ms, for a 30,000-sample signal in 400,000 samples.
-	SearchDirect
-	// SearchFast scores every window by FFT correlation alone,
-	// which rounds the same way as MATLAB findsignal:
-	// a perfect match may not score exactly 0,
-	// and windows whose distances differ by less than that rounding may be confused.
-	// 2 to 5% faster than Hybrid, and about 2x faster on near-periodic data,
-	// where many windows are nearly as close as the best.
-	SearchFast
-)
-
 // FindSignalOption configures FindSignal.
 type FindSignalOption func(*findSignalConfig)
 
-// SignalSearch sets how FindSignal scores each window.
-func SignalSearch(method SearchMethod) FindSignalOption {
-	return func(c *findSignalConfig) { c.method = method }
+// SearchHybrid scores every window by FFT correlation,
+// then rescores exactly each window that, within the correlation's rounding, could be the closest.
+// It gives SearchDirect's answer at close to SearchFast's cost.
+// The default.
+func SearchHybrid() FindSignalOption {
+	return func(c *findSignalConfig) { c.method = searchHybrid }
 }
+
+// SearchDirect scores every window exactly,
+// summing its squared differences with compensation, in O(len(data) × len(signal)).
+// It's the simplest, but the slowest at every size measured:
+// 77 s where SearchHybrid takes 29 ms, for a 30,000-sample signal in 400,000 samples.
+func SearchDirect() FindSignalOption {
+	return func(c *findSignalConfig) { c.method = searchDirect }
+}
+
+// SearchFast scores every window by FFT correlation alone,
+// which rounds the same way as MATLAB findsignal:
+// a perfect match may not score exactly 0,
+// and windows whose distances differ by less than that rounding may be confused.
+// It's 2 to 5% faster than SearchHybrid,
+// and about 2x faster on near-periodic data, where many windows are nearly as close as the best.
+func SearchFast() FindSignalOption {
+	return func(c *findSignalConfig) { c.method = searchFast }
+}
+
+// searchMethod is how FindSignal scores each window of data
+type searchMethod int
+
+const (
+	searchHybrid searchMethod = iota
+	searchDirect
+	searchFast
+)
 
 // findSignalConfig is FindSignal's settings, built from FindSignalOptions.
 type findSignalConfig struct {
-	method SearchMethod
+	method searchMethod
 }
 
 // findSignalDirect scores every window of data exactly,

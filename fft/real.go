@@ -11,8 +11,7 @@ import (
 // a real signal spectrum is Hermitian, X[n-k] = conj(X[k]), so other bins carry no new information
 // the DC bin and Nyquist bin when n is even are real: imaginary parts exactly zero
 //
-// returns ErrSignalTooShort if x is empty without N, ErrInvalidLength if N is less than 1
-// returns ErrInvalidOption for an unknown normalisation
+// returns ErrSignalTooShort if x is empty without N, and ErrInvalidLength if N is less than 1
 //
 // equivalent to scipy.fft.rfft(x)
 // MATLAB fft(x) returns all n bins, this is the first n/2 + 1
@@ -41,7 +40,7 @@ func ForwardReal(x []float64, opts ...Option) (y []complex128, err error) {
 // the imaginary parts of the DC bin, and the nyquist bin when n is even are ignored
 //
 // returns ErrInvalidLength if n<1
-// returns ErrInvalidOption for an unknown normalisation or if given N
+// returns ErrInvalidOption if given N
 //
 // equivalent to scipy.fft.irfft(x, n=n)
 // MATLAB ifft(X, 'symmetric') does the same from the full spectrum

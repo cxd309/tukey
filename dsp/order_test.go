@@ -47,6 +47,11 @@ var orderSpecs = []struct {
 	{"bandstop asymmetric", Bandstop(0.1, 0.8), Bandstop(0.2, 0.3), 1, 40},
 }
 
+// byMatch is the option that sets match, for tests that pick it as a value
+func byMatch(match matchBand) OrderOption {
+	return func(c *orderConfig) { c.match = match }
+}
+
 // edgeGains is f's gain in dB at each edge, the lowest first
 func edgeGains(f ZPK, edges []float64) (lowest, highest float64) {
 	lowest, highest = math.Inf(1), math.Inf(-1)
@@ -63,16 +68,16 @@ func edgeGains(f ZPK, edges []float64) (lowest, highest float64) {
 func TestOrderMeetsSpecification(t *testing.T) {
 	for _, sel := range orderSelections {
 		for _, spec := range orderSpecs {
-			for _, match := range []MatchBand{MatchPassband, MatchStopband} {
+			for _, match := range []matchBand{matchPassband, matchStopband} {
 				name := fmt.Sprintf("%s, %s, match %d", sel.name, spec.name, match)
-				order, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, Matching(match))
+				order, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, byMatch(match))
 				require.NoError(t, err, name)
 				f, err := sel.filter(order, spec.rippleDB, spec.attenuation, band)
 				require.NoError(t, err, name)
 
 				passLowest, _ := edgeGains(f, spec.pass.edges)
 				_, stopHighest := edgeGains(f, spec.stop.edges)
-				if match == MatchPassband {
+				if match == matchPassband {
 					assert.InDelta(t, -spec.rippleDB, passLowest, gainSlackDB, name)
 					assert.Less(t, stopHighest, -spec.attenuation, name)
 				} else {
@@ -106,7 +111,7 @@ func TestOrderIsTheLowest(t *testing.T) {
 				gpass: math.Expm1(spec.rippleDB * math.Ln10 / 10),
 				gstop: math.Expm1(spec.attenuation * math.Ln10 / 10),
 			}
-			rho := lowpass.prototypeWn(sel.design, MatchPassband, order-1)
+			rho := lowpass.prototypeWn(sel.design, matchPassband, order-1)
 			edges := bandEdges(spec.pass.btype, p, rho)
 			for i, x := range edges {
 				edges[i] = 2 * math.Atan(x) / math.Pi
@@ -120,13 +125,13 @@ func TestOrderIsTheLowest(t *testing.T) {
 	}
 }
 
-// Without an option, the passband edge is met, as Matching(MatchPassband).
+// Without an option, the passband edge is met, same as matchPassband.
 func TestOrderMatchesPassbandByDefault(t *testing.T) {
 	for _, sel := range orderSelections {
 		for _, spec := range orderSpecs {
 			order, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation)
 			require.NoError(t, err)
-			wantOrder, wantBand, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, Matching(MatchPassband))
+			wantOrder, wantBand, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, byMatch(matchPassband))
 			require.NoError(t, err)
 			assert.Equal(t, wantOrder, order, "%s, %s", sel.name, spec.name)
 			assert.Equal(t, wantBand, band, "%s, %s", sel.name, spec.name)
@@ -141,17 +146,17 @@ func TestOrderMatchesPassbandByDefault(t *testing.T) {
 func TestOrderBandIsTheMatchedEdge(t *testing.T) {
 	cases := []struct {
 		sel   int
-		match MatchBand
+		match matchBand
 		stop  bool
 	}{
-		{1, MatchPassband, false}, // Cheby1Ord
-		{3, MatchPassband, false}, // EllipOrd
-		{2, MatchStopband, true},  // Cheby2Ord
+		{1, matchPassband, false}, // Cheby1Ord
+		{3, matchPassband, false}, // EllipOrd
+		{2, matchStopband, true},  // Cheby2Ord
 	}
 	for _, c := range cases {
 		sel := orderSelections[c.sel]
 		for _, spec := range orderSpecs[:4] {
-			_, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, Matching(c.match))
+			_, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, byMatch(c.match))
 			require.NoError(t, err)
 			want := spec.pass.edges
 			if c.stop {
@@ -269,9 +274,6 @@ func TestOrderRejectsInvalidInput(t *testing.T) {
 			check(b.pass, b.stop, 1, 40, nil, ErrInvalidBand, b.what)
 		}
 
-		for _, match := range []MatchBand{-1, 2} {
-			check(lowPass, lowStop, 1, 40, []OrderOption{Matching(match)}, ErrInvalidOption, fmt.Sprintf("MatchBand %d", match))
-		}
 	}
 }
 

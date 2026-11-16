@@ -28,19 +28,19 @@ type findSignalVector struct {
 // the window's and signal's sums of squares, as the expanded form Σd² − 2Σdt + Σt² rounds
 // at that scale: MATLAB's perfect matches are up to 2^-29 rather than 0.
 var (
-	findSignalDirectSciPySuite  = newSuite("FindSignal (direct)", reference.SourceSciPy, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect, false))
-	findSignalDirectMATLABSuite = newSuite("FindSignal (direct)", reference.SourceMATLAB, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect, true))
-	findSignalFastSciPySuite    = newSuite("FindSignal (fast)", reference.SourceSciPy, "findsignal", tolerance(1e-13), findSignalOutputs(dsp.SearchFast, true))
-	findSignalFastMATLABSuite   = newSuite("FindSignal (fast)", reference.SourceMATLAB, "findsignal", tolerance(1e-13), findSignalOutputs(dsp.SearchFast, true))
-	findSignalHybridSciPySuite  = newSuite("FindSignal (hybrid)", reference.SourceSciPy, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchHybrid, false))
-	findSignalHybridMATLABSuite = newSuite("FindSignal (hybrid)", reference.SourceMATLAB, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchHybrid, true))
+	findSignalDirectSciPySuite  = newSuite("FindSignal (direct)", reference.SourceSciPy, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect(), false))
+	findSignalDirectMATLABSuite = newSuite("FindSignal (direct)", reference.SourceMATLAB, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect(), true))
+	findSignalFastSciPySuite    = newSuite("FindSignal (fast)", reference.SourceSciPy, "findsignal", tolerance(1e-13), findSignalOutputs(dsp.SearchFast(), true))
+	findSignalFastMATLABSuite   = newSuite("FindSignal (fast)", reference.SourceMATLAB, "findsignal", tolerance(1e-13), findSignalOutputs(dsp.SearchFast(), true))
+	findSignalHybridSciPySuite  = newSuite("FindSignal (hybrid)", reference.SourceSciPy, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchHybrid(), false))
+	findSignalHybridMATLABSuite = newSuite("FindSignal (hybrid)", reference.SourceMATLAB, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchHybrid(), true))
 )
 
 // findSignalOutputs pairs dsp.FindSignal's match, by method, with a vector's.
 // scaled measures the distance relative to the sums of squares rather than itself.
-func findSignalOutputs(method dsp.SearchMethod, scaled bool) func(v findSignalVector) ([]Output, error) {
+func findSignalOutputs(method dsp.FindSignalOption, scaled bool) func(v findSignalVector) ([]Output, error) {
 	return func(v findSignalVector) (outputs []Output, err error) {
-		match, err := dsp.FindSignal(v.Params.Data, v.Params.Signal, dsp.SignalSearch(method))
+		match, err := dsp.FindSignal(v.Params.Data, v.Params.Signal, method)
 		if err != nil {
 			return nil, err
 		}

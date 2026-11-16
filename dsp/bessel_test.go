@@ -9,7 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var besselNorms = []BesselNorm{BesselNormMagnitude, BesselNormPhase, BesselNormDelay}
+var besselNorms = []besselNorm{besselNormMagnitude, besselNormPhase, besselNormDelay}
+
+// byNorm is the option that sets norm, for tests that pick it as a value
+func byNorm(norm besselNorm) BesselOption {
+	return func(c *besselConfig) { c.norm = norm }
+}
 
 // halfPowerDB is the gain at half power, 10·log10(1/2)
 var halfPowerDB = 10 * math.Log10(0.5)
@@ -44,10 +49,10 @@ func TestBesselGainAtBandEdges(t *testing.T) {
 func TestBesselPassbandGain(t *testing.T) {
 	for _, norm := range besselNorms {
 		for order := 1; order <= 8; order++ {
-			low, err := Bessel(order, Lowpass(0.3), BesselNormalised(norm))
+			low, err := Bessel(order, Lowpass(0.3), byNorm(norm))
 			require.NoError(t, err)
 			assert.InDelta(t, 0, gainDB(low, 0), gainSlackDB, "norm %d, order %d", norm, order)
-			high, err := Bessel(order, Highpass(0.3), BesselNormalised(norm))
+			high, err := Bessel(order, Highpass(0.3), byNorm(norm))
 			require.NoError(t, err)
 			assert.InDelta(t, 0, gainDB(high, 1), gainSlackDB, "norm %d, order %d", norm, order)
 		}
@@ -58,7 +63,7 @@ func TestBesselPassbandGain(t *testing.T) {
 func TestBesselGainIsMonotonic(t *testing.T) {
 	for _, norm := range besselNorms {
 		for _, order := range []int{2, 5, 10} {
-			f, err := Bessel(order, Lowpass(0.3), BesselNormalised(norm))
+			f, err := Bessel(order, Lowpass(0.3), byNorm(norm))
 			require.NoError(t, err)
 			previous := gainDB(f, 0)
 			for i := 1; i < 500; i++ {
@@ -77,7 +82,7 @@ func TestBesselGainIsMonotonic(t *testing.T) {
 func TestBesselDelayAtDC(t *testing.T) {
 	for _, wn := range []float64{0.01, 0.1, 0.3, 0.7} {
 		for order := 1; order <= 10; order++ {
-			f, err := Bessel(order, Lowpass(wn), BesselNormalised(BesselNormDelay))
+			f, err := Bessel(order, Lowpass(wn), BesselNormDelay())
 			require.NoError(t, err)
 			want := 1 / (2 * math.Tan(math.Pi*wn/2))
 			assert.InEpsilon(t, want, groupDelayAtDC(f), 1e-12, "wn %g, order %d", wn, order)
@@ -102,7 +107,7 @@ func TestBesselGroupDelayIsMaximallyFlat(t *testing.T) {
 	}
 	const w = 0.4
 	for order := 2; order <= 5; order++ {
-		bessel := besselPrototype(order, BesselNormDelay)
+		bessel := besselPrototype(order, besselNormDelay)
 		want := math.Pow(2, float64(2*order))
 		assert.InEpsilon(t, want, departure(bessel, w)/departure(bessel, w/2), 0.05, "order %d", order)
 
@@ -115,7 +120,7 @@ func TestBesselGroupDelayIsMaximallyFlat(t *testing.T) {
 // poles' magnitudes multiply to 1, and its gain is 1.
 func TestBesselPhasePrototypeMatchesButterworthAsymptote(t *testing.T) {
 	for order := 1; order <= 12; order++ {
-		proto := besselPrototype(order, BesselNormPhase)
+		proto := besselPrototype(order, besselNormPhase)
 		product := 1.0
 		for _, p := range proto.Poles {
 			product *= cmplx.Abs(p)
@@ -140,7 +145,7 @@ func TestBesselPolesAreStable(t *testing.T) {
 	for _, norm := range besselNorms {
 		for _, band := range bands {
 			for _, order := range []int{1, 2, 3, 8, 25} {
-				f, err := Bessel(order, band, BesselNormalised(norm))
+				f, err := Bessel(order, band, byNorm(norm))
 				require.NoError(t, err)
 				for _, p := range f.Poles {
 					assert.Less(t, cmplx.Abs(p), 1.0, "norm %d, band %v, order %d", norm, band, order)
@@ -157,8 +162,4 @@ func TestBesselRejectsInvalidInput(t *testing.T) {
 	}
 	_, err := Bessel(2, Band{})
 	assert.ErrorIs(t, err, ErrInvalidBand)
-	for _, norm := range []BesselNorm{-1, 3} {
-		_, err := Bessel(2, Lowpass(0.3), BesselNormalised(norm))
-		assert.ErrorIs(t, err, ErrInvalidOption, "BesselNorm %d", norm)
-	}
 }

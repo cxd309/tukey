@@ -34,10 +34,7 @@ func STFT(x []float64, fs float64, window []float64, opts ...SpectralOption) (tf
 	if err != nil {
 		return
 	}
-	windowed, times, err := segments(x, fs, window, cfg)
-	if err != nil {
-		return
-	}
+	windowed, times := segments(x, fs, window, cfg)
 	tf.Times = times
 	if cfg.given[optionAtFrequencies] {
 		tf.Frequencies = append([]float64(nil), cfg.frequencies...)
@@ -115,28 +112,6 @@ func Periodogram(x []float64, fs float64, window []float64, opts ...SpectralOpti
 	return
 }
 
-// SpectralScaling is the units power is given in
-type SpectralScaling int
-
-const (
-	// ScalingDensity gives power spectral density, in units^2/Hz:
-	// comparable across samples rates and windows, and the default
-	ScalingDensity SpectralScaling = iota
-	// ScalingSpectrum gives power spectrum, in units^2: a sine's peak reads its power
-	ScalingSpectrum
-)
-
-// SpectralAverage is how Welch combines its segments' spectra
-type SpectralAverage int
-
-const (
-	// AverageMean averages them, default option
-	AverageMean SpectralAverage = iota
-	// AverageMedian takes their median, corrected for its bias,
-	// which is robust to a few segments with transients in them
-	AverageMedian
-)
-
 // TimeFrequency is a signal's spectrum over time: one spectrum per segment
 type TimeFrequency[T complex128 | float64] struct {
 	Frequencies []float64 // Hz, one for each value in a segment's spectrum
@@ -186,14 +161,28 @@ func SegmentDetrend(mode DetrendMode) SpectralOption {
 	return func(c *spectralConfig) { c.detrend, c.given[optionSegmentDetrend] = mode, true }
 }
 
-// Scaling sets the units power is given . ScalingDensity by default.
-func Scaling(s SpectralScaling) SpectralOption {
-	return func(c *spectralConfig) { c.scaling, c.given[optionScaling] = s, true }
+// ScalingDensity gives power spectral density, in units^2/Hz,
+// comparable across sample rates and windows.
+// The default.
+func ScalingDensity() SpectralOption {
+	return func(c *spectralConfig) { c.scaling, c.given[optionScaling] = scalingDensity, true }
 }
 
-// Average sets how Welch combines its segments' spectra. AverageMean by default
-func Average(a SpectralAverage) SpectralOption {
-	return func(c *spectralConfig) { c.average, c.given[optionAverage] = a, true }
+// ScalingSpectrum gives power spectrum, in units^2, so a sine's peak reads its power
+func ScalingSpectrum() SpectralOption {
+	return func(c *spectralConfig) { c.scaling, c.given[optionScaling] = scalingSpectrum, true }
+}
+
+// AverageMean combines Welch's segments' spectra by their mean.
+// The default.
+func AverageMean() SpectralOption {
+	return func(c *spectralConfig) { c.average, c.given[optionAverage] = averageMean, true }
+}
+
+// AverageMedian combines Welch's segments' spectra by their median, corrected for its bias,
+// which is robust to a few segments with transients in them
+func AverageMedian() SpectralOption {
+	return func(c *spectralConfig) { c.average, c.given[optionAverage] = averageMedian, true }
 }
 
 // spectralConfig is a spectral function's settings built from SpectralOptions
@@ -204,9 +193,25 @@ type spectralConfig struct {
 	twoSided    bool
 	detrend     DetrendMode
 	given       [spectralOptionCount]bool // which options were passed
-	scaling     SpectralScaling
-	average     SpectralAverage
+	scaling     spectralScaling
+	average     spectralAverage
 }
+
+// spectralScaling is the units power is given in
+type spectralScaling int
+
+const (
+	scalingDensity spectralScaling = iota
+	scalingSpectrum
+)
+
+// spectralAverage is how Welch combines its segments' spectra
+type spectralAverage int
+
+const (
+	averageMean spectralAverage = iota
+	averageMedian
+)
 
 // spectralOptionKind identifies a SpectralOption, to check which apply to a function
 type spectralOptionKind int
@@ -229,8 +234,8 @@ var spectralOptionNames = [spectralOptionCount]string{
 	optionAtFrequencies:  "AtFrequencies",
 	optionTwoSided:       "TwoSided",
 	optionSegmentDetrend: "SegmentDetrend",
-	optionScaling:        "Scaling",
-	optionAverage:        "Average",
+	optionScaling:        "ScalingDensity or ScalingSpectrum",
+	optionAverage:        "AverageMean or AverageMedian",
 }
 
 // newSpectralConfig builds a spectral function's settings from opts,
@@ -276,14 +281,12 @@ func newSpectralConfig(function string, x []float64, fs float64, window []float6
 // cfg.overlap apart, detrends each if cfg says to, and applies the window.
 // A partial last segment is dropped.
 // times is each segment's centre, in seconds.
-func segments(x []float64, fs float64, window []float64, cfg spectralConfig) (windowed [][]float64, times []float64, err error) {
+func segments(x []float64, fs float64, window []float64, cfg spectralConfig) (windowed [][]float64, times []float64) {
 	length := len(window)
 	for start := 0; start+length <= len(x); start += length - cfg.overlap {
 		segment := x[start : start+length]
 		if cfg.given[optionSegmentDetrend] {
-			if segment, err = Detrend(segment, cfg.detrend); err != nil {
-				return nil, nil, err
-			}
+			segment = Detrend(segment, cfg.detrend)
 		}
 		w := make([]float64, length)
 		for i, v := range segment {
@@ -375,10 +378,7 @@ func complexified(x []float64) (z []complex128) {
 // segmentPowers is each segment's power spectrum, scaled as cfg says.
 // One-sided, each frequency is doubled to count the negative frequency it mirrors, except DC, and Nyquest when nfft is even, which have no mirror
 func segmentPowers(x []float64, fs float64, window []float64, cfg spectralConfig) (power [][]float64, times []float64, err error) {
-	windowed, times, err := segments(x, fs, window, cfg)
-	if err != nil {
-		return nil, nil, err
-	}
+	windowed, times := segments(x, fs, window, cfg)
 	values, err := transformBins(windowed, cfg.nfft, cfg.twoSided)
 	if err != nil {
 		return nil, nil, err
@@ -389,7 +389,7 @@ func segmentPowers(x []float64, fs float64, window []float64, cfg spectralConfig
 		squares.Add(w * w)
 	}
 	scale := 1 / (fs * squares.Total())
-	if cfg.scaling == ScalingSpectrum {
+	if cfg.scaling == scalingSpectrum {
 		scale = 1 / (sum.Total() * sum.Total())
 	}
 	power = make([][]float64, len(values))
@@ -408,14 +408,14 @@ func segmentPowers(x []float64, fs float64, window []float64, cfg spectralConfig
 
 // averaged is the mean or median of each frequency's power across segments.
 // The median is divided by its bias for exponentially distributed powers.
-func averaged(power [][]float64, average SpectralAverage) (combined []float64) {
+func averaged(power [][]float64, average spectralAverage) (combined []float64) {
 	combined = make([]float64, len(power[0]))
 	column := make([]float64, len(power))
 	for k := range combined {
 		for i := range power {
 			column[i] = power[i][k]
 		}
-		if average == AverageMedian {
+		if average == averageMedian {
 			combined[k] = median(column) / medianBias(len(column))
 			continue
 		}

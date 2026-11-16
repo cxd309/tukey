@@ -202,15 +202,15 @@ MATLAB's `grpdelay` loses digits near poles and zeros crowded against the unit c
 
 The `fft` package matches `scipy.fft` the same way, at 23 lengths covering powers of two, smooth lengths and primes:
 
-| Function            | SciPy equivalent        | Worst measured | Tested to |
-| ------------------- | ----------------------- | -------------- | --------- |
-| `fft.Forward`       | `fft`                   | 9.3e-16        | 1e-14     |
-| `fft.Inverse`       | `ifft`                  | 8.5e-16        | 1e-14     |
-| `fft.ForwardReal`   | `rfft`                  | 5.8e-16        | 1e-14     |
-| `fft.InverseReal`   | `irfft`                 | 5.0e-16        | 1e-14     |
-| `fft.Norm`, `fft.N` | `norm=`, `n=`           | 6.9e-16        | 1e-14     |
-| `fft.Freq`          | `fftfreq`, `rfftfreq`   | exact          | exact     |
-| `fft.Shift`         | `fftshift`, `ifftshift` | exact          | exact     |
+| Function                                    | SciPy equivalent        | Worst measured | Tested to |
+| ------------------------------------------- | ----------------------- | -------------- | --------- |
+| `fft.Forward`                               | `fft`                   | 9.3e-16        | 1e-14     |
+| `fft.Inverse`                               | `ifft`                  | 8.5e-16        | 1e-14     |
+| `fft.ForwardReal`                           | `rfft`                  | 5.8e-16        | 1e-14     |
+| `fft.InverseReal`                           | `irfft`                 | 5.0e-16        | 1e-14     |
+| `fft.NormOrtho`, `fft.NormForward`, `fft.N` | `norm=`, `n=`           | 6.9e-16        | 1e-14     |
+| `fft.Freq`                                  | `fftfreq`, `rfftfreq`   | exact          | exact     |
+| `fft.Shift`                                 | `fftshift`, `ifftshift` | exact          | exact     |
 
 And against MATLAB, whose `fft` is FFTW, an independent implementation:
 
@@ -223,7 +223,7 @@ And against MATLAB, whose `fft` is FFTW, an independent implementation:
 | `fft.N`           | `fft(x, n)`, `ifft(x, n)` | 7.2e-16        | 1e-14     |
 | `fft.Shift`       | `fftshift`, `ifftshift`   | exact          | exact     |
 
-MATLAB has no normalisation option or `fftfreq`, so `fft.Norm` and `fft.Freq` are checked against SciPy only.
+MATLAB has no normalisation option or `fftfreq`, so the normalisation options and `fft.Freq` are checked against SciPy only.
 
 The `window` package has every `scipy.signal.windows` window except `dpss`, plus MATLAB's `hanning`. Each is checked against SciPy, and against MATLAB where MATLAB has it, on identical inputs at n = 0, 1, 2, 3, 8, 9, 64 and 255, symmetric and periodic:
 
@@ -276,10 +276,10 @@ Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, Sc
 | `[z, p, k] = butter(n, Wn)`                         | `f, err := dsp.Butter(n, dsp.Lowpass(Wn))`: `f.Zeros`, `f.Poles`, `f.Gain`                                                 |
 | `cheby1(n, Rp, Wn)`, `cheby2(n, Rs, Wn)`            | `dsp.Cheby1(n, Rp, dsp.Lowpass(Wn))`, `dsp.Cheby2(n, Rs, dsp.Lowpass(Wn))`                                                 |
 | `ellip(n, Rp, Rs, Wn)`                              | `dsp.Ellip(n, Rp, Rs, dsp.Lowpass(Wn))`                                                                                    |
-| `[z, p, k] = besself(n, Wo)`, then `bilinear`       | `dsp.Bessel(n, dsp.Lowpass(Wn), dsp.BesselNormalised(dsp.BesselNormPhase))`, digital directly                              |
-| `[n, Wn] = buttord(Wp, Ws, Rp, Rs)`                 | `n, wn, err := dsp.ButterOrd(dsp.Lowpass(Wp), dsp.Lowpass(Ws), Rp, Rs, dsp.Matching(dsp.MatchStopband))`                   |
+| `[z, p, k] = besself(n, Wo)`, then `bilinear`       | `dsp.Bessel(n, dsp.Lowpass(Wn), dsp.BesselNormPhase())`, digital directly                                                  |
+| `[n, Wn] = buttord(Wp, Ws, Rp, Rs)`                 | `n, wn, err := dsp.ButterOrd(dsp.Lowpass(Wp), dsp.Lowpass(Ws), Rp, Rs, dsp.MatchStopband())`                               |
 | `cheb1ord(…)`, `ellipord(…)`                        | `dsp.Cheby1Ord(pass, stop, Rp, Rs)`, `dsp.EllipOrd(pass, stop, Rp, Rs)`                                                    |
-| `cheb2ord(…)`                                       | `dsp.Cheby2Ord(pass, stop, Rp, Rs, dsp.Matching(dsp.MatchStopband))`                                                       |
+| `cheb2ord(…)`                                       | `dsp.Cheby2Ord(pass, stop, Rp, Rs, dsp.MatchStopband())`                                                                   |
 | `[b, a] = iirnotch(w0, bw)`, `iirpeak(w0, bw)`      | `f, err := dsp.IIRNotch(w0, w0/bw)`, `dsp.IIRPeak(w0, w0/bw)`: q is w0/bw                                                  |
 | `b = fir1(n, Wn)`                                   | `h, err := dsp.FIRWin(window.Hamming(n+1), dsp.Lowpass(Wn))`: the window's length is the number of taps                    |
 | `b = fir1(n, Wn, w)`                                | `h, err := dsp.FIRWin(w, dsp.Lowpass(Wn))`                                                                                 |
@@ -289,13 +289,13 @@ Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, Sc
 | `[h, w] = freqz(b, a, n)`                           | `w, h, err := dsp.Freqz(b, a, n)` (note the order)                                                                         |
 | `[gd, w] = grpdelay(b, a, n)`, `grpdelay(sos, n)`   | `w, gd, err := dsp.GroupDelay(b, a, n)`, `dsp.SOSGroupDelay(sos, n)` (note the order)                                      |
 | `y = sosfilt(sos, x)`                               | `y, err := dsp.SOSFilter(sos, x)`                                                                                          |
-| `y = detrend(x)`                                    | `y, err := dsp.Detrend(x, dsp.DetrendLinear)`                                                                              |
-| `y = detrend(x, 'constant')`                        | `y, err := dsp.Detrend(x, dsp.DetrendConstant)`                                                                            |
+| `y = detrend(x)`                                    | `y := dsp.Detrend(x, dsp.DetrendLinear())`                                                                                 |
+| `y = detrend(x, 'constant')`                        | `y := dsp.Detrend(x, dsp.DetrendConstant())`                                                                               |
 | `yi = interp1(x, y, xi)`                            | `yi, err := dsp.Interp1(x, y, xi)`                                                                                         |
 | `fillmissing(x, 'linear')`                          | `y := dsp.FillMissing(x, dsp.FillLinear())`                                                                                |
 | `fillmissing(x, 'constant', v)`                     | `y := dsp.FillMissing(x, dsp.FillConstant(v))`                                                                             |
 | `y = medfilt1(x, n, 'truncate')`                    | `y, err := dsp.MedFilt(x, n)`                                                                                              |
-| `y = medfilt1(x, n)`                                | `y, err := dsp.MedFilt(x, n, dsp.MedFiltEdges(dsp.MedFiltZeroPad))`                                                        |
+| `y = medfilt1(x, n)`                                | `y, err := dsp.MedFilt(x, n, dsp.MedFiltZeroPad())`                                                                        |
 | `y = sgolayfilt(x, order, n)`                       | `y, err := dsp.SavGolFilter(x, n, order)` (note the order)                                                                 |
 | `c = conv(a, v)`, `conv(a, v, 'same')`              | `c, err := dsp.Convolve(a, v)`, `dsp.Convolve(a, v, dsp.ConvolveSame())`                                                   |
 | `[r, lags] = xcorr(a, v)`                           | `c, err := dsp.Correlate(a, v)`: `c.Values`, `c.Lags`                                                                      |
@@ -311,7 +311,7 @@ Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, Sc
 | `[istart, istop, dist] = findsignal(data, signal)`  | `match, err := dsp.FindSignal(data, signal)`: `match.Start`, `match.Stop`, `match.Distance`                                |
 | `[S, F, T] = spectrogram(x, w, noverlap, nfft, fs)` | `tf, err := dsp.STFT(x, fs, w, dsp.Overlap(noverlap), dsp.NFFT(nfft))`: `tf.Values[segment][frequency]`                    |
 | `spectrogram(x, w, noverlap, f, fs)`                | `dsp.STFT(x, fs, w, dsp.Overlap(noverlap), dsp.AtFrequencies(f))`                                                          |
-| `[~, F, T, P] = spectrogram(…, 'power')`            | `dsp.Spectrogram(x, fs, w, dsp.Overlap(noverlap), dsp.NFFT(nfft), dsp.Scaling(dsp.ScalingSpectrum))`                       |
+| `[~, F, T, P] = spectrogram(…, 'power')`            | `dsp.Spectrogram(x, fs, w, dsp.Overlap(noverlap), dsp.NFFT(nfft), dsp.ScalingSpectrum())`                                  |
 | `[pxx, f] = pwelch(x, w, noverlap, nfft, fs)`       | `psd, err := dsp.Welch(x, fs, w, dsp.Overlap(noverlap), dsp.NFFT(nfft))`: `psd.Frequencies`, `psd.Power`                   |
 | `[pxx, f] = periodogram(x, w, nfft, fs)`            | `psd, err := dsp.Periodogram(x, fs, w, dsp.NFFT(nfft))`                                                                    |
 | `s = sum(x)`, `m = mean(x)`                         | `s := dsp.Sum(x)`, `m, err := dsp.Mean(x)`                                                                                 |
@@ -319,7 +319,7 @@ Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, Sc
 | `g = gradient(x, dx)`                               | `g, err := dsp.Grad(x, dx)`                                                                                                |
 | `s = cumsum(x)`                                     | `s := dsp.CumSum(x)`                                                                                                       |
 | `q = trapz(dx, y)`, `cumtrapz(dx, y)`               | `q, err := dsp.Trapz(y, dx)`, `dsp.CumTrapz(y, dx)` (note the order)                                                       |
-| `v = prctile(x, p)`                                 | `v, err := dsp.Percentile(x, p, dsp.PercentileBy(dsp.PercentileHazen))`, one `p` per call                                  |
+| `v = prctile(x, p)`                                 | `v, err := dsp.Percentile(x, p, dsp.PercentileHazen())`, one `p` per call                                                  |
 
 Frequencies are normalised to Nyquist in both: for a frequency `f`Hz at sample rate `fs`, use `f / (fs/2)`. `Freqz` returns frequencies in rad/sample, as MATLAB's `freqz` does.
 
@@ -330,12 +330,12 @@ Frequencies are normalised to Nyquist in both: for a frequency `f`Hz at sample r
 Where tukey and MATLAB differ, verified against MATLAB R2025a:
 
 - **Second-order sections:** `f.SOS()` pairs and orders sections as SciPy's `zpk2sos` does, with the overall gain in the first section. MATLAB's `zp2sos` gives a first-order section one zero rather than two, and breaks ties in pole radius differently: the same filter, in different sections. `[sos, g] = zp2sos(z, p, k)` also returns the gain `g` separately
-- **Filter design** takes a `Band`, `dsp.Lowpass(Wn)` and so on, rather than a type string, and returns zeros, poles and gain, for `BA()` or `SOS()`. `Bessel`'s band edge is the −3 dB point by default, as `Butter`'s. MATLAB has no digital Bessel design: `besself` is analog, in the phase normalisation, `BesselNormalised(BesselNormPhase)`
-- **Order selection** takes the passband and stopband as `Band`s. MATLAB's `buttord` and `cheb2ord` meet the stopband edge exactly, so pass `Matching(MatchStopband)`. For a bandstop, `cheb1ord` and `ellipord` return the passband edges unmoved, which for `cheb1ord` can miss the stopband's specification, where tukey moves them as SciPy does. For a bandpass, `cheb2ord` returns both stopband edges, where tukey meets the tighter one. Every order matches
+- **Filter design** takes a `Band`, `dsp.Lowpass(Wn)` and so on, rather than a type string, and returns zeros, poles and gain, for `BA()` or `SOS()`. `Bessel`'s band edge is the −3 dB point by default, as `Butter`'s. MATLAB has no digital Bessel design: `besself` is analog, in the phase normalisation, `BesselNormPhase()`
+- **Order selection** takes the passband and stopband as `Band`s. MATLAB's `buttord` and `cheb2ord` meet the stopband edge exactly, so pass `MatchStopband()`. For a bandstop, `cheb1ord` and `ellipord` return the passband edges unmoved, which for `cheb1ord` can miss the stopband's specification, where tukey moves them as SciPy does. For a bandpass, `cheb2ord` returns both stopband edges, where tukey meets the tighter one. Every order matches
 - **`IIRNotch` and `IIRPeak`** take the quality factor q, as SciPy, where `iirnotch` and `iirpeak` take the bandwidth bw = w0/q. `IIRPeak` forms its gain exactly, where `iirpeak` is 6.1e-13 off for a narrow bandwidth
 - **`FIRWin`** takes the window itself, whose length is the number of taps, where `fir1` takes the order, one less, and defaults to `hamming(n+1)`. A highpass or bandstop needs an odd number of taps, and an even one returns `ErrInvalidLength`
 - **`GroupDelay`** returns the frequencies first, as `Freqz`, and is exact where `grpdelay` loses digits near poles crowded against the unit circle. At a zero on the unit circle both give the limit from either side
-- **`Convolve`'s `ConvolveSame`** starts one output earlier than `conv(a, v, 'same')` for an even-length `v`, as SciPy's does, and `ConvolveValid` with `v` longer than `a` gives `len(v) − len(a) + 1` outputs, as NumPy, where `conv` gives none. `ConvolveAuto` sums by FFT for all but short inputs: set `ConvolveBy(ConvolveDirect)` for inputs with high dynamic range
+- **`Convolve`'s `ConvolveSame`** starts one output earlier than `conv(a, v, 'same')` for an even-length `v`, as SciPy's does, and `ConvolveValid` with `v` longer than `a` gives `len(v) − len(a) + 1` outputs, as NumPy, where `conv` gives none. `ConvolveAuto` sums by FFT for all but short inputs: set `ConvolveDirect()` for inputs with high dynamic range
 - **`Correlate`** gives the lags where `a` and `v` overlap, `−(len(v) − 1)` to `len(a) − 1`, where `xcorr` pads the shorter with zeros and gives every lag up to the longer's length. The lags run the same way. `xcorr`'s normalisations aren't supported yet
 - **`MedFilt`** truncates the window at the ends by default, as `medfilt1(x, n, 'truncate')`, where MATLAB's and SciPy's default zero padding pulls the ends towards 0. n must be odd
 - **`SavGolFilter`** takes `(x, n, polyOrder)`, where `sgolayfilt` takes `(x, order, framelen)`, and gives derivatives with `SavGolDeriv`, which `sgolayfilt` doesn't. n must be odd and no longer than `x`
@@ -343,10 +343,10 @@ Where tukey and MATLAB differ, verified against MATLAB R2025a:
 - **`RMS` of an empty signal** returns `ErrSignalTooShort`, where MATLAB's `rms` gives NaN
 - **`FindPeaks`** returns 0-based indices, and follows SciPy's rules unless given `MATLABPeaks()`. MATLAB's `MinPeakDistance` d keeps peaks more than d apart, so it's `MinPeakDistance(d+1)`. MATLAB's `findpeaks` errors for fewer than 3 samples, and for a distance of n − 1 or more, where tukey returns the peaks as usual. `'SortStr'`, `'NPeaks'` and `'WidthReference'` aren't supported yet
 - **`Envelope`** supports MATLAB's default analytic envelope and `'rms'`, not `envelope(x, fl, 'analytic')` with an FIR Hilbert filter, or `'peak'`
-- **`FindSignal`** returns 0-based indices, and by default the exact distance of the closest window, where MATLAB's `findsignal` rounds at the scale of the sums of squares, so its perfect matches can be up to 2⁻²⁹ rather than 0. `SignalSearch(SearchFast)` rounds as MATLAB does. Only the default options are supported so far: `'Normalization'`, `'Metric'`, `'TimeAlignment'`, `'MaxDistance'` and `'MaxNumSegments'` aren't yet
-- **Spectral functions** take the window as a required argument, and its length is the segment length. Where MATLAB is given an integer n for its window, pass `window.Hamming(n)`, the symmetric Hamming window, which matches MATLAB exactly (verified against R2025a). Without a window, MATLAB and SciPy each choose a window, segment length, overlap and FFT length, and differently, so tukey makes that choice explicit. Its defaults are half-window overlap, an NFFT of the window's length, and no detrending. `Values` are `[segment][frequency]`, the transpose of MATLAB's `S` and `P`, and two-sided frequencies run from 0 to Nyquist and then negative, as `fft.Freq`, where MATLAB labels the upper half above Nyquist. `pwelch` has no median average or per-segment detrending, which `Average(AverageMedian)` and `SegmentDetrend` add
+- **`FindSignal`** returns 0-based indices, and by default the exact distance of the closest window, where MATLAB's `findsignal` rounds at the scale of the sums of squares, so its perfect matches can be up to 2⁻²⁹ rather than 0. `SearchFast()` rounds as MATLAB does. Only the default options are supported so far: `'Normalization'`, `'Metric'`, `'TimeAlignment'`, `'MaxDistance'` and `'MaxNumSegments'` aren't yet
+- **Spectral functions** take the window as a required argument, and its length is the segment length. Where MATLAB is given an integer n for its window, pass `window.Hamming(n)`, the symmetric Hamming window, which matches MATLAB exactly (verified against R2025a). Without a window, MATLAB and SciPy each choose a window, segment length, overlap and FFT length, and differently, so tukey makes that choice explicit. Its defaults are half-window overlap, an NFFT of the window's length, and no detrending. `Values` are `[segment][frequency]`, the transpose of MATLAB's `S` and `P`, and two-sided frequencies run from 0 to Nyquist and then negative, as `fft.Freq`, where MATLAB labels the upper half above Nyquist. `pwelch` has no median average or per-segment detrending, which `AverageMedian()` and `SegmentDetrend` add
 - **Sums** in `Sum`, `Mean`, `CumSum`, `Trapz` and `CumTrapz` are compensated, where MATLAB's are plain, so on long signals, or small values among large ones, tukey is closer to the exact answer: 1e8 among 20,000 thousandths, then cancelled, sums to 20 where MATLAB's `sum` gives 20.00001. `Mean` of an empty signal returns `ErrSignalTooShort`, where MATLAB's `mean` gives NaN
-- **`Percentile`** interpolates linearly by default, as NumPy does. MATLAB's `prctile` is `PercentileBy(PercentileHazen)`. Any NaN in `x` gives NaN, where `prctile` ignores NaN: use `FillMissing` first to fill the gaps. `Percentile` takes one `p` per call, where `prctile` takes a vector
+- **`Percentile`** interpolates linearly by default, as NumPy does. MATLAB's `prctile` is `PercentileHazen()`. Any NaN in `x` gives NaN, where `prctile` ignores NaN: use `FillMissing` first to fill the gaps. `Percentile` takes one `p` per call, where `prctile` takes a vector
 
 `Interp1` returns NaN outside the sampled range, as MATLAB's `interp1` and SciPy's `interp1d(bounds_error=False)` do. NumPy's `np.interp` differs there: it repeats the end values. `Interp1` takes vectors, not the matrices MATLAB also accepts, and needs `x` strictly increasing. `FillMissing` likewise works on one vector, so fill a matrix column by column.
 

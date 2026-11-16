@@ -7,8 +7,7 @@ import (
 // Forward returns the discrete Fourier transform of x:
 // y[k] = sum x[j]·e^(-2 pi i jk/n), for k = 0 … n-1, scaled per Norm
 //
-// returns ErrSignalTooShort if x is empty without N, ErrInvalidLength if N is less than 1,
-// and ErrInvalidOption for an unknown normalisation
+// returns ErrSignalTooShort if x is empty without N, and ErrInvalidLength if N is less than 1
 //
 // equivalent to scipy.fft.fft(x) and MATLAB fft(x)
 func Forward(x []complex128, opts ...Option) (y []complex128, err error) {

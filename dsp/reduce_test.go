@@ -143,51 +143,48 @@ func TestPercentile(t *testing.T) {
 	x := []float64{4, 1, 3, 2}
 	cases := []struct {
 		name   string
-		method PercentileMethod
+		method PercentileOption
 		p      float64
 		want   float64
 	}{
 		// linear: position p/100·3
-		{"linear minimum", PercentileLinear, 0, 1},
-		{"linear maximum", PercentileLinear, 100, 4},
-		{"linear median", PercentileLinear, 50, 2.5},
-		{"linear quartile", PercentileLinear, 25, 1.75},
+		{"linear minimum", PercentileLinear(), 0, 1},
+		{"linear maximum", PercentileLinear(), 100, 4},
+		{"linear median", PercentileLinear(), 50, 2.5},
+		{"linear quartile", PercentileLinear(), 25, 1.75},
 		// Hazen: position p/100·4 − 0.5, clamped to 0 to 3
-		{"hazen median", PercentileHazen, 50, 2.5},
-		{"hazen quartile", PercentileHazen, 25, 1.5},
-		{"hazen clamped low", PercentileHazen, 10, 1},
-		{"hazen clamped high", PercentileHazen, 95, 4},
-		{"hazen minimum", PercentileHazen, 0, 1},
-		{"hazen maximum", PercentileHazen, 100, 4},
+		{"hazen median", PercentileHazen(), 50, 2.5},
+		{"hazen quartile", PercentileHazen(), 25, 1.5},
+		{"hazen clamped low", PercentileHazen(), 10, 1},
+		{"hazen clamped high", PercentileHazen(), 95, 4},
+		{"hazen minimum", PercentileHazen(), 0, 1},
+		{"hazen maximum", PercentileHazen(), 100, 4},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			value, err := Percentile(x, c.p, PercentileBy(c.method))
+			value, err := Percentile(x, c.p, c.method)
 			require.NoError(t, err)
 			assert.Equal(t, c.want, value)
 		})
 	}
 }
 
-// The zero PercentileMethod, and so no option, is PercentileLinear.
+// With no option, Percentile is PercentileLinear.
 func TestPercentileDefaultIsLinear(t *testing.T) {
-	var method PercentileMethod
-	assert.Equal(t, PercentileLinear, method)
-
 	x := noise(100, 1)
 	for _, p := range []float64{0, 12.5, 50, 99, 100} {
 		byDefault, err := Percentile(x, p)
 		require.NoError(t, err)
-		linear, err := Percentile(x, p, PercentileBy(PercentileLinear))
+		linear, err := Percentile(x, p, PercentileLinear())
 		require.NoError(t, err)
 		assert.Equal(t, linear, byDefault, "p %g", p)
 	}
 }
 
 func TestPercentileOneSample(t *testing.T) {
-	for _, method := range []PercentileMethod{PercentileLinear, PercentileHazen} {
+	for _, method := range []PercentileOption{PercentileLinear(), PercentileHazen()} {
 		for _, p := range []float64{0, 30, 50, 100} {
-			value, err := Percentile([]float64{7}, p, PercentileBy(method))
+			value, err := Percentile([]float64{7}, p, method)
 			require.NoError(t, err)
 			assert.Equal(t, 7.0, value, "method %d, p %g", method, p)
 		}
@@ -206,10 +203,10 @@ func TestPercentileTies(t *testing.T) {
 func TestPercentileIsMonotonic(t *testing.T) {
 	x := noise(101, 2)
 	lowest, highest := slices.Min(x), slices.Max(x)
-	for _, method := range []PercentileMethod{PercentileLinear, PercentileHazen} {
+	for _, method := range []PercentileOption{PercentileLinear(), PercentileHazen()} {
 		previous := math.Inf(-1)
 		for p := 0.0; p <= 100; p += 0.25 {
-			value, err := Percentile(x, p, PercentileBy(method))
+			value, err := Percentile(x, p, method)
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, value, previous, "method %d, p %g", method, p)
 			assert.GreaterOrEqual(t, value, lowest)
@@ -222,8 +219,8 @@ func TestPercentileIsMonotonic(t *testing.T) {
 // Any NaN in x gives NaN, not an error, as a missing sample makes the
 // percentile unknown. MATLAB's prctile ignores NaN instead.
 func TestPercentileOfNaNIsNaN(t *testing.T) {
-	for _, method := range []PercentileMethod{PercentileLinear, PercentileHazen} {
-		value, err := Percentile([]float64{1, nan, 3, 2}, 50, PercentileBy(method))
+	for _, method := range []PercentileOption{PercentileLinear(), PercentileHazen()} {
+		value, err := Percentile([]float64{1, nan, 3, 2}, 50, method)
 		require.NoError(t, err)
 		assert.True(t, math.IsNaN(value), "method %d", method)
 	}
@@ -238,9 +235,6 @@ func TestPercentileRejectsInvalidInput(t *testing.T) {
 		_, err := Percentile([]float64{1, 2, 3}, p)
 		assert.ErrorIs(t, err, ErrInvalidParameter, "p %g", p)
 	}
-	_, err := Percentile([]float64{1, 2, 3}, 50, PercentileBy(PercentileMethod(7)))
-	assert.ErrorIs(t, err, ErrInvalidOption)
-	assert.ErrorContains(t, err, "PercentileMethod 7")
 }
 
 // Percentile sorts a copy, leaving x in its order.

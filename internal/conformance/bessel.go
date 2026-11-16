@@ -23,11 +23,11 @@ type besselVector struct {
 	} `json:"output"`
 }
 
-// besselNorms is each of SciPy's norms as a dsp.BesselNorm
-var besselNorms = map[string]dsp.BesselNorm{
-	"mag":   dsp.BesselNormMagnitude,
-	"phase": dsp.BesselNormPhase,
-	"delay": dsp.BesselNormDelay,
+// besselNorms is each of SciPy's norms as a dsp.BesselOption
+var besselNorms = map[string]dsp.BesselOption{
+	"mag":   dsp.BesselNormMagnitude(),
+	"phase": dsp.BesselNormPhase(),
+	"delay": dsp.BesselNormDelay(),
 }
 
 // Bessel, measured on both architectures. The SciPy vectors are the exact
@@ -61,7 +61,7 @@ func designBessel(v besselVector) (f dsp.ZPK, err error) {
 	if !ok {
 		return f, fmt.Errorf("unknown norm %q", v.Params.Norm)
 	}
-	return dsp.Bessel(v.Params.Order, band, dsp.BesselNormalised(norm))
+	return dsp.Bessel(v.Params.Order, band, norm)
 }
 
 // besselBAOutputs pairs a design's (b, a) with a vector's

@@ -197,7 +197,7 @@ func percentileOutputs(v percentileVector) (outputs []Output, err error) {
 	switch v.Params.Method {
 	case "linear":
 	case "hazen":
-		opts = append(opts, dsp.PercentileBy(dsp.PercentileHazen))
+		opts = append(opts, dsp.PercentileHazen())
 	default:
 		return nil, fmt.Errorf("unknown percentile method %q", v.Params.Method)
 	}

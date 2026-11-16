@@ -152,9 +152,9 @@ func TestSTFTSegmentDetrend(t *testing.T) {
 	for i, v := range x {
 		offset[i] = v + 5
 	}
-	plain, err := STFT(x, 1, win, SegmentDetrend(DetrendConstant))
+	plain, err := STFT(x, 1, win, SegmentDetrend(DetrendConstant()))
 	require.NoError(t, err)
-	shifted, err := STFT(offset, 1, win, SegmentDetrend(DetrendConstant))
+	shifted, err := STFT(offset, 1, win, SegmentDetrend(DetrendConstant()))
 	require.NoError(t, err)
 	for i := range plain.Values {
 		assertComplexNear(t, plain.Values[i], shifted.Values[i], 1e-13)
@@ -213,7 +213,6 @@ func TestSTFTInvalid(t *testing.T) {
 		{"overlap of the whole window", x, 1, win, []SpectralOption{Overlap(4)}, ErrInvalidParameter},
 		{"AtFrequencies with NFFT", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), NFFT(8)}, ErrInvalidOption},
 		{"AtFrequencies two-sided", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), TwoSided()}, ErrInvalidOption},
-		{"unknown detrend mode", x, 1, win, []SpectralOption{SegmentDetrend(DetrendMode(99))}, ErrInvalidOption},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -261,7 +260,7 @@ func TestPeriodogramSineSpectrum(t *testing.T) {
 		x[i] = amplitude * math.Sin(2*math.Pi*8*float64(i)/fs) // 8 Hz is bin 8
 		boxcar[i] = 1
 	}
-	spectrum, err := Periodogram(x, fs, boxcar, Scaling(ScalingSpectrum))
+	spectrum, err := Periodogram(x, fs, boxcar, ScalingSpectrum())
 	require.NoError(t, err)
 	assert.Equal(t, 8.0, spectrum.Frequencies[8])
 	assert.InDelta(t, amplitude*amplitude/2, spectrum.Power[8], 1e-12)
@@ -299,8 +298,8 @@ func TestWelchOneSegmentIsPeriodogram(t *testing.T) {
 	x, win := noise(64, 13), hann(t, 64)
 	want, err := Periodogram(x, 10, win)
 	require.NoError(t, err)
-	for _, average := range []SpectralAverage{AverageMean, AverageMedian} {
-		got, err := Welch(x, 10, win, Average(average))
+	for _, average := range []SpectralOption{AverageMean(), AverageMedian()} {
+		got, err := Welch(x, 10, win, average)
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
 	}
@@ -334,12 +333,12 @@ func TestPowerSpectraInvalid(t *testing.T) {
 	}{
 		{"Periodogram window shorter than x", func() error { _, err := Periodogram(x, 1, win); return err }, ErrInvalidLength},
 		{"Overlap on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Overlap(1)); return err }, ErrInvalidOption},
-		{"Average on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Average(AverageMedian)); return err }, ErrInvalidOption},
-		{"Average on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidOption},
+		{"AverageMedian on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, AverageMedian()); return err }, ErrInvalidOption},
+		{"AverageMedian on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AverageMedian()); return err }, ErrInvalidOption},
 		{"AtFrequencies on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
 		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
-		{"Scaling on STFT", func() error { _, err := STFT(x, 1, win, Scaling(ScalingSpectrum)); return err }, ErrInvalidOption},
-		{"Average on STFT", func() error { _, err := STFT(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidOption},
+		{"ScalingSpectrum on STFT", func() error { _, err := STFT(x, 1, win, ScalingSpectrum()); return err }, ErrInvalidOption},
+		{"AverageMedian on STFT", func() error { _, err := STFT(x, 1, win, AverageMedian()); return err }, ErrInvalidOption},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

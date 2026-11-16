@@ -21,7 +21,6 @@ import (
 //
 // Returns:
 //   - ErrSignalTooShort if a or v is empty
-//   - ErrInvalidOption for an unknown ConvolveMethod
 //
 // Equivalent to:
 //   - numpy.convolve(a, v, mode)
@@ -48,7 +47,6 @@ func Convolve(a, v []float64, opts ...ConvolveOption) (c []float64, err error) {
 //
 // # Returns:
 //   - ErrSignalTooShort if a or v is empty
-//   - ErrInvalidOption for an unknown ConvolveMethod
 //
 // # Equivalent to:
 //   - scipy.signal.correlate(a, v, mode), with Lags from scipy.signal.correlation_lags
@@ -76,27 +74,6 @@ func Correlate(a, v []float64, opts ...ConvolveOption) (c Correlation, err error
 	return
 }
 
-// ConvolveMethod is how Convolve and Correlate compute their sums.
-type ConvolveMethod int
-
-const (
-	// ConvolveAuto chooses ConvolveDirect or ConvolveFFT by which is faster for the inputs' lengths,
-	// ConvolveFFT for all but the shortest inputs.
-	// If either input has a NaN or infinite sample it uses ConvolveDirect,
-	// so the same affects only the outputs it's summed into.
-	// The default option. For inputs with high dynamic range, set ConvolveDirect.
-	ConvolveAuto ConvolveMethod = iota
-	// ConvolveDirect sums every product directly, each kept exactly and summed with compensation,
-	// so each output is within about 1 ULP of its exact value, however small it is beside the others.
-	// O(len(a)·len(v)).
-	ConvolveDirect
-	// ConvolveFFT multiplies the inputs' spectra, O(n log n).
-	// Its error is relative to the largest output, so outputs much smaller than that lose relative accuracy:
-	// 1e-3 noise beside a 1e8 spikes keeps only a few digits.
-	// A NaN or infinite sample spreads to every output.
-	ConvolveFFT
-)
-
 // ConvolveOption configures Convolve and Correlate
 type ConvolveOption func(*convolveConfig)
 
@@ -113,9 +90,29 @@ func ConvolveValid() ConvolveOption {
 	return func(c *convolveConfig) { c.output = outputValid }
 }
 
-// ConvolveBy sets how the sums are computed. ConvolveAuto by default.
-func ConvolveBy(method ConvolveMethod) ConvolveOption {
-	return func(c *convolveConfig) { c.method = method }
+// ConvolveAuto chooses ConvolveDirect or ConvolveFFT by which is faster for the inputs' lengths,
+// ConvolveFFT for all but the shortest inputs.
+// If either input has a NaN or infinite sample it uses ConvolveDirect,
+// so that sample affects only the outputs it's summed into.
+// The default. For inputs with high dynamic range, use ConvolveDirect.
+func ConvolveAuto() ConvolveOption {
+	return func(c *convolveConfig) { c.method = methodAuto }
+}
+
+// ConvolveDirect sums every product directly, each kept exactly and summed with compensation,
+// so each output is within about 1 ULP of its exact value, however small it is beside the others.
+// It takes O(len(a)·len(v)).
+func ConvolveDirect() ConvolveOption {
+	return func(c *convolveConfig) { c.method = methodDirect }
+}
+
+// ConvolveFFT multiplies the inputs' spectra, in O(n log n).
+// Its error is relative to the largest output,
+// so outputs much smaller than that lose relative accuracy:
+// 1e-3 noise beside 1e8 spikes keeps only a few digits.
+// A NaN or infinite sample spreads to every output.
+func ConvolveFFT() ConvolveOption {
+	return func(c *convolveConfig) { c.method = methodFFT }
 }
 
 // Correlation is a cross-correlation: Values[i] is at lag Lags[i]
@@ -124,10 +121,19 @@ type Correlation struct {
 	Lags   []int
 }
 
+// convolveMethod is how Convolve and Correlate compute their sums
+type convolveMethod int
+
+const (
+	methodAuto convolveMethod = iota
+	methodDirect
+	methodFFT
+)
+
 // convolveConfig is Convolve's and Correlate's settings, built from ConvolveOptions.
 type convolveConfig struct {
 	output convolveOutput
-	method ConvolveMethod
+	method convolveMethod
 }
 
 // convolveOutput is which part of the full result is returned
@@ -161,18 +167,16 @@ func newConvolveConfig(name string, a, v []float64, opts []ConvolveOption) (cfg 
 	switch {
 	case len(a) == 0 || len(v) == 0:
 		err = fmt.Errorf("%w: %s of %d and %d samples, needs at least 1 each", ErrSignalTooShort, name, len(a), len(v))
-	case cfg.method < ConvolveAuto || cfg.method > ConvolveFFT:
-		err = fmt.Errorf("%w: ConvolveMethod %d", ErrInvalidOption, cfg.method)
 	}
 	return
 }
 
 // convolveFull is the full convolution of a and v, by method
-func convolveFull(a, v []float64, method ConvolveMethod) (full []float64, err error) {
-	if method == ConvolveAuto {
+func convolveFull(a, v []float64, method convolveMethod) (full []float64, err error) {
+	if method == methodAuto {
 		method = autoMethod(a, v)
 	}
-	if method == ConvolveFFT {
+	if method == methodFFT {
 		return convolveFFT(a, v)
 	}
 	full = convolveDirect(a, v)
@@ -182,22 +186,22 @@ func convolveFull(a, v []float64, method ConvolveMethod) (full []float64, err er
 // autoMethod is the faster method for a and v,
 // or ConvolveDirect if either has a NaN or infinite sample,
 // which an FFT would spread to every output
-func autoMethod(a, v []float64) (method ConvolveMethod) {
+func autoMethod(a, v []float64) (method convolveMethod) {
 	method = fasterMethod(len(a), len(v))
-	if method == ConvolveFFT && !(allFinite(a) && allFinite(v)) {
-		method = ConvolveDirect
+	if method == methodFFT && !(allFinite(a) && allFinite(v)) {
+		method = methodDirect
 	}
 	return
 }
 
 // fasterMethod is ConvolveDirect or ConvolveFFT,
 // whichever the cost model determines is faster for inputs of na and nv samples
-func fasterMethod(na, nv int) (method ConvolveMethod) {
+func fasterMethod(na, nv int) (method convolveMethod) {
 	size := float64(fft.FastLength(na + nv - 1))
 	if float64(na)*float64(nv) <= fftCostOverhead+fftCostPerUnit*size*math.Log2(size) {
-		return ConvolveDirect
+		return methodDirect
 	}
-	return ConvolveFFT
+	return methodFFT
 }
 
 // The FFT'a measured cost, in units of one direct compensated product:

@@ -18,7 +18,6 @@ import (
 //
 // Returns:
 //   - ErrInvalidLength for an n that isn't odd and positive
-//   - ErrInvalidOption for an unknown MedFiltEdge
 //
 // Equivalent to:
 //   - matlab medfilt1(x, n, 'truncate'), or medfilt1(x, n) with MedFiltZeroPad
@@ -32,8 +31,6 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 	switch {
 	case n < 1 || n%2 == 0:
 		return nil, fmt.Errorf("%w: MedFilt needs an odd, positive window length, got %d", ErrInvalidLength, n)
-	case cfg.edge != MedFiltTruncate && cfg.edge != MedFiltZeroPad:
-		return nil, fmt.Errorf("%w: MedFiltEdge %d", ErrInvalidOption, cfg.edge)
 	}
 
 	half := n / 2
@@ -50,7 +47,7 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 			window.add(x[next])
 		}
 		zeros := 0
-		if cfg.edge == MedFiltZeroPad {
+		if cfg.zeroPad {
 			zeros = n - window.count()
 		}
 		y[i] = window.median(zeros)
@@ -58,30 +55,25 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 	return
 }
 
-// MedFiltEdge is how MedFilt treats a window that runs past the ends of x
-type MedFiltEdge int
-
-const (
-	// MedFiltTruncate takes the median of only the samples inside x,
-	// so a window near the ends is shorter, and uneven.
-	// The default: the ends stay where the signal is, wherever that is
-	MedFiltTruncate MedFiltEdge = iota
-	// MedFiltZeroPad fills the window past the ends with zeros,
-	// which pulls the ends towards 0, it suits a signal centred on 0
-	MedFiltZeroPad
-)
-
 // MedFiltOption configures MedFilt
 type MedFiltOption func(*medFiltConfig)
 
-// MedFiltEdges sets how MedFilt treats the ends. MedFiltTruncate by default.
-func MedFiltEdges(edge MedFiltEdge) MedFiltOption {
-	return func(c *medFiltConfig) { c.edge = edge }
+// MedFiltTruncate takes the median of only the samples inside x,
+// so a window near the ends is shorter, and uneven.
+// The default: the ends stay where the signal is, wherever that is.
+func MedFiltTruncate() MedFiltOption {
+	return func(c *medFiltConfig) { c.zeroPad = false }
+}
+
+// MedFiltZeroPad fills the window past the ends with zeros,
+// which pulls the ends towards 0, so it suits a signal centred on 0.
+func MedFiltZeroPad() MedFiltOption {
+	return func(c *medFiltConfig) { c.zeroPad = true }
 }
 
 // medFiltConfig is MedFilt's settings, built from MedFiltOptions
 type medFiltConfig struct {
-	edge MedFiltEdge
+	zeroPad bool // pad past the ends with zeros, rather than truncate
 }
 
 // sortedWindow is a sliding window's samples, kept sorted,

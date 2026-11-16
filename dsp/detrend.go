@@ -1,8 +1,6 @@
 package dsp
 
 import (
-	"fmt"
-
 	"github.com/cxd309/tukey/internal/floats"
 )
 
@@ -10,41 +8,31 @@ import (
 // the least-squares line for DetrendLinear, the mean for DetrendConstant,
 // empty x returns empty, and a single sample returns [0]
 //
-// returns ErrInvalidOption for an unknown mode
-//
 // equivalent to scipy.signal.detrend(x, type) and MATLAB's detrend(x, type)
-func Detrend(x []float64, mode DetrendMode) (y []float64, err error) {
-	switch mode {
-	case DetrendLinear:
-		y = detrendLinear(x)
-	case DetrendConstant:
+func Detrend(x []float64, mode DetrendMode) (y []float64) {
+	if mode.constant {
 		y = detrendConstant(x)
-	default:
-		err = fmt.Errorf("%w: unknown detrend mode %v", ErrInvalidOption, mode)
+	} else {
+		y = detrendLinear(x)
 	}
 	return
 }
 
-// DetrendMode selects what Detrend removes
-type DetrendMode int
+// DetrendMode is what Detrend removes, built by DetrendLinear or DetrendConstant.
+// Its zero value is DetrendLinear.
+type DetrendMode struct {
+	constant bool
+}
 
-const (
-	// DetrendLinear removes the least-squares straight line,
-	// the default, same as SciPy and MATLAB
-	DetrendLinear DetrendMode = iota
-	// DetrendConstant removes the mean
-	DetrendConstant
-)
+// DetrendLinear removes the least-squares straight line.
+// The default, same as SciPy and MATLAB.
+func DetrendLinear() (mode DetrendMode) {
+	return
+}
 
-func (m DetrendMode) String() (name string) {
-	switch m {
-	case DetrendLinear:
-		name = "DetrendLinear"
-	case DetrendConstant:
-		name = "DetrendConstant"
-	default:
-		name = fmt.Sprintf("DetrendMode(%d)", int(m))
-	}
+// DetrendConstant removes the mean
+func DetrendConstant() (mode DetrendMode) {
+	mode.constant = true
 	return
 }
 

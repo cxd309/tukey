@@ -17,32 +17,39 @@ func TestMedFilt(t *testing.T) {
 	cases := []struct {
 		name string
 		n    int
-		edge MedFiltEdge
+		edge MedFiltOption
 		want []float64
 	}{
-		{"truncate n=3", 3, MedFiltTruncate, []float64{3, 4, 2, 4, 3, 8, 6}},
-		{"truncate n=5", 5, MedFiltTruncate, []float64{4, 3, 4, 3, 4, 5.5, 8}},
-		{"zero pad n=3", 3, MedFiltZeroPad, []float64{1, 4, 2, 4, 3, 8, 3}},
-		{"zero pad n=5", 5, MedFiltZeroPad, []float64{1, 2, 4, 3, 4, 3, 3}},
+		{"truncate n=3", 3, MedFiltTruncate(), []float64{3, 4, 2, 4, 3, 8, 6}},
+		{"truncate n=5", 5, MedFiltTruncate(), []float64{4, 3, 4, 3, 4, 5.5, 8}},
+		{"zero pad n=3", 3, MedFiltZeroPad(), []float64{1, 4, 2, 4, 3, 8, 3}},
+		{"zero pad n=5", 5, MedFiltZeroPad(), []float64{1, 2, 4, 3, 4, 3, 3}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			y, err := MedFilt(x, c.n, MedFiltEdges(c.edge))
+			y, err := MedFilt(x, c.n, c.edge)
 			require.NoError(t, err)
 			assert.Equal(t, c.want, y)
 		})
 	}
 }
 
-// The zero MedFiltEdge, and so no option, is MedFiltTruncate.
-func TestMedFiltDefaultIsTruncate(t *testing.T) {
-	var edge MedFiltEdge
-	assert.Equal(t, MedFiltTruncate, edge)
+// medFiltEdges is both edge options, named, and whether each pads with zeros
+var medFiltEdges = []struct {
+	name    string
+	option  MedFiltOption
+	zeroPad bool
+}{
+	{"truncate", MedFiltTruncate(), false},
+	{"zero pad", MedFiltZeroPad(), true},
+}
 
+// With no option, MedFilt is MedFiltTruncate.
+func TestMedFiltDefaultIsTruncate(t *testing.T) {
 	x := noise(50, 1)
 	byDefault, err := MedFilt(x, 7)
 	require.NoError(t, err)
-	truncated, err := MedFilt(x, 7, MedFiltEdges(MedFiltTruncate))
+	truncated, err := MedFilt(x, 7, MedFiltTruncate())
 	require.NoError(t, err)
 	assert.Equal(t, truncated, byDefault)
 }
@@ -60,17 +67,17 @@ func TestMedFiltMatchesSortingEachWindow(t *testing.T) {
 	signals := map[string][]float64{"noise": noise(40, 1), "ties": ties, "nan": withNaN}
 
 	for name, x := range signals {
-		for _, edge := range []MedFiltEdge{MedFiltTruncate, MedFiltZeroPad} {
+		for _, edge := range medFiltEdges {
 			for n := 1; n <= 45; n += 2 {
-				y, err := MedFilt(x, n, MedFiltEdges(edge))
+				y, err := MedFilt(x, n, edge.option)
 				require.NoError(t, err)
 				for i := range x {
-					want := medianBySorting(x, i, n, edge)
+					want := medianBySorting(x, i, n, edge.zeroPad)
 					if math.IsNaN(want) {
-						assert.True(t, math.IsNaN(y[i]), "%s, edge %d, n %d, y[%d] = %v, want NaN", name, edge, n, i, y[i])
+						assert.True(t, math.IsNaN(y[i]), "%s, %s, n %d, y[%d] = %v, want NaN", name, edge.name, n, i, y[i])
 						continue
 					}
-					assert.Equal(t, want, y[i], "%s, edge %d, n %d, y[%d]", name, edge, n, i)
+					assert.Equal(t, want, y[i], "%s, %s, n %d, y[%d]", name, edge.name, n, i)
 				}
 			}
 		}
@@ -79,13 +86,13 @@ func TestMedFiltMatchesSortingEachWindow(t *testing.T) {
 
 // medianBySorting is the median of the window of n samples centred on x[i],
 // sorted afresh, with an even count's midpoint exact
-func medianBySorting(x []float64, i, n int, edge MedFiltEdge) float64 {
+func medianBySorting(x []float64, i, n int, zeroPad bool) float64 {
 	var window []float64
 	for j := i - n/2; j <= i+n/2; j++ {
 		switch {
 		case j >= 0 && j < len(x):
 			window = append(window, x[j])
-		case edge == MedFiltZeroPad:
+		case zeroPad:
 			window = append(window, 0)
 		}
 	}
@@ -122,11 +129,11 @@ func TestMedFiltRemovesSpikesAndKeepsSteps(t *testing.T) {
 // A NaN gives NaN wherever a window holds it, and nowhere else.
 func TestMedFiltNaN(t *testing.T) {
 	x := []float64{1, 2, 3, 4, math.NaN(), 6, 7, 8, 9}
-	for _, edge := range []MedFiltEdge{MedFiltTruncate, MedFiltZeroPad} {
-		y, err := MedFilt(x, 5, MedFiltEdges(edge))
+	for _, edge := range medFiltEdges {
+		y, err := MedFilt(x, 5, edge.option)
 		require.NoError(t, err)
 		for i, v := range y {
-			assert.Equal(t, i >= 2 && i <= 6, math.IsNaN(v), "edge %d, y[%d] = %v", edge, i, v)
+			assert.Equal(t, i >= 2 && i <= 6, math.IsNaN(v), "%s, y[%d] = %v", edge.name, i, v)
 		}
 	}
 }
@@ -148,8 +155,8 @@ func TestMedFiltInfinity(t *testing.T) {
 // n = 1 is the identity, into a new slice.
 func TestMedFiltOneSampleWindow(t *testing.T) {
 	x := noise(20, 4)
-	for _, edge := range []MedFiltEdge{MedFiltTruncate, MedFiltZeroPad} {
-		y, err := MedFilt(x, 1, MedFiltEdges(edge))
+	for _, edge := range medFiltEdges {
+		y, err := MedFilt(x, 1, edge.option)
 		require.NoError(t, err)
 		assert.Equal(t, x, y)
 		y[0]++
@@ -176,7 +183,7 @@ func TestMedFiltWindowLongerThanX(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, []float64{2, 2, 2}, y, "n %d", c.n)
 
-		y, err = MedFilt(x, c.n, MedFiltEdges(MedFiltZeroPad))
+		y, err = MedFilt(x, c.n, MedFiltZeroPad())
 		require.NoError(t, err)
 		assert.Equal(t, c.zeroPad, y, "n %d", c.n)
 	}
@@ -193,8 +200,8 @@ func TestMedFiltLeavesXUnchanged(t *testing.T) {
 }
 
 func TestMedFiltEmpty(t *testing.T) {
-	for _, edge := range []MedFiltEdge{MedFiltTruncate, MedFiltZeroPad} {
-		y, err := MedFilt(nil, 3, MedFiltEdges(edge))
+	for _, edge := range medFiltEdges {
+		y, err := MedFilt(nil, 3, edge.option)
 		require.NoError(t, err)
 		assert.Empty(t, y)
 	}
@@ -205,9 +212,5 @@ func TestMedFiltRejectsInvalidInput(t *testing.T) {
 	for _, n := range []int{0, -1, -3, 2, 4, math.MinInt} {
 		_, err := MedFilt(x, n)
 		assert.ErrorIs(t, err, ErrInvalidLength, "n %d", n)
-	}
-	for _, edge := range []MedFiltEdge{-1, 2} {
-		_, err := MedFilt(x, 3, MedFiltEdges(edge))
-		assert.ErrorIs(t, err, ErrInvalidOption, "edge %d", edge)
 	}
 }

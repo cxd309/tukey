@@ -55,12 +55,11 @@ func RMS(x []float64) (rms float64, err error) {
 }
 
 // Percentile returns the value below which p percent of x falls, p from 0 to 100,
-// intpolating between the sorted samples according to PercentileBy.
+// interpolating between the sorted samples, linearly by default, or with PercentileHazen.
 //
 // Returns:
 //   - ErrSignalTooShort for an empty x
 //   - ErrInvalidParameter for a p outside 0-100
-//   - ErrInvalidOption for an unknown PercentileMethod
 //
 // Equivalent to:
 //   - numpy.percentile(x, p)
@@ -75,8 +74,6 @@ func Percentile(x []float64, p float64, opts ...PercentileOption) (value float64
 		return 0, fmt.Errorf("%w: Percentile of an empty signal", ErrSignalTooShort)
 	case !(p >= 0 && p <= 100):
 		return 0, fmt.Errorf("%w: p %g, must be between 0 and 100", ErrInvalidParameter, p)
-	case cfg.method != PercentileLinear && cfg.method != PercentileHazen:
-		return 0, fmt.Errorf("%w: PercentileMethod %d", ErrInvalidOption, cfg.method)
 	}
 	if slices.ContainsFunc(x, math.IsNaN) {
 		return math.NaN(), nil
@@ -87,26 +84,20 @@ func Percentile(x []float64, p float64, opts ...PercentileOption) (value float64
 	return
 }
 
-// PercentileMethod is how Percentile places p between the sorted samples.
-type PercentileMethod int
-
-const (
-	// PercentileLinear interpolates at sorted position p/100·(n-1),
-	// so 0 and 100 give the minimum ad maximum exactly.
-	// The default option, same as numpy, R and Excel
-	PercentileLinear PercentileMethod = iota
-	// PercentileHazen interpolates at sorted position p/100·n - 0.5,
-	// clamped to the ends, same as matlab prctile and numpy "hazen"
-	PercentileHazen
-)
-
 // PercentileOption configures Percentile
 type PercentileOption func(*percentileConfig)
 
-// PercentileBy sets how Percentile interpolates.
-// PercentileLinear by default.
-func PercentileBy(method PercentileMethod) PercentileOption {
-	return func(c *percentileConfig) { c.method = method }
+// PercentileLinear interpolates at sorted position p/100·(n-1),
+// so 0 and 100 give the minimum and maximum exactly.
+// The default, same as numpy, R and Excel.
+func PercentileLinear() PercentileOption {
+	return func(c *percentileConfig) { c.method = percentileLinear }
+}
+
+// PercentileHazen interpolates at sorted position p/100·n - 0.5, clamped to the ends,
+// same as matlab prctile and numpy "hazen".
+func PercentileHazen() PercentileOption {
+	return func(c *percentileConfig) { c.method = percentileHazen }
 }
 
 // mean is Sum(x) divided by its length, for internal use where x is known not to be empty.
@@ -117,14 +108,22 @@ func mean(x []float64) (m float64) {
 }
 
 // percentileConfdig is Percentile's settings, built from PercentileOptions
+// percentileMethod is where Percentile places p between the sorted samples
+type percentileMethod int
+
+const (
+	percentileLinear percentileMethod = iota
+	percentileHazen
+)
+
 type percentileConfig struct {
-	method PercentileMethod
+	method percentileMethod
 }
 
 // position is where fraction q of the way through n sorted samples falls,
 // clamped to the samples, in the same arithmetic order as numpy.
-func (m PercentileMethod) position(q float64, n int) (position float64) {
-	if m == PercentileHazen {
+func (m percentileMethod) position(q float64, n int) (position float64) {
+	if m == percentileHazen {
 		position = float64(n)*q + 0.5 - 1
 	} else {
 		position = float64(n-1) * q

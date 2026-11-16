@@ -48,7 +48,7 @@ func fftOptionOutputs(v fftOptionVector) (outputs []Output, err error) {
 	if err != nil {
 		return nil, err
 	}
-	opts := []fft.Option{fft.Norm(norm)}
+	opts := []fft.Option{norm}
 	if v.Params.N != nil && v.Params.Transform != "irfft" {
 		opts = append(opts, fft.N(*v.Params.N))
 	}
@@ -75,15 +75,15 @@ func fftOptionOutputs(v fftOptionVector) (outputs []Output, err error) {
 	return
 }
 
-// normalisation translates SciPy's norm names
-func normalisation(name string) (norm fft.Normalisation, err error) {
+// normalisation translates SciPy's norm names to fft's options
+func normalisation(name string) (norm fft.Option, err error) {
 	switch name {
 	case "backward":
-		norm = fft.NormBackward
+		norm = fft.NormBackward()
 	case "ortho":
-		norm = fft.NormOrtho
+		norm = fft.NormOrtho()
 	case "forward":
-		norm = fft.NormForward
+		norm = fft.NormForward()
 	default:
 		err = fmt.Errorf("unknown norm %q", name)
 	}

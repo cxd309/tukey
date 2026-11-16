@@ -192,7 +192,7 @@
 // bilinear, in the phase normalisation and up to order 25, besselap's highest,
 // which is itself 1.7e-13 from the exact design. iirnotch and iirpeak are in
 // the DSP System Toolbox. MATLAB's buttord and cheb2ord meet the stopband edge,
-// as Matching(MatchStopband), and its cheb1ord and ellipord the passband's, as
+// as MatchStopband(), and its cheb1ord and ellipord the passband's, as
 // the default. Its bandstop buttord edges come from the same minimiser as
 // SciPy's, 5.7e-5 off. Its band is compared only where it follows one of dsp's
 // conventions: for a bandstop, cheb1ord and ellipord return the passband edges
@@ -231,7 +231,7 @@
 // ButterOrd, Cheby1Ord, Cheby2Ord and EllipOrd give the lowest order that
 // keeps the passband within rippleDB and the stopband at least attenuationDB
 // down, and the band to design at. The order usually has margin to spare, and
-// Matching chooses where it goes: MatchPassband, the default, meets the
+// MatchPassband and MatchStopband choose where it goes: MatchPassband, the default, meets the
 // passband edge exactly, and MatchStopband the stopband's.
 //
 // IIRNotch and IIRPeak design a second-order notch or peak at w0, with quality
@@ -294,7 +294,7 @@
 // MedFilt replaces each sample with the median of the n centred on it, which
 // removes spikes without blurring steps. At the ends it takes the median of
 // the samples there are, so the ends stay where the signal is, wherever that
-// is. MedFiltEdges(MedFiltZeroPad) pads with zeros instead, as SciPy's and
+// is. MedFiltZeroPad() pads with zeros instead, as SciPy's and
 // MATLAB's defaults do, which pulls the ends towards 0. A window holding NaN
 // gives NaN.
 //
@@ -317,9 +317,9 @@
 // in three rules, each its own option, so any combination is available.
 // MATLABPeaks sets all three:
 //
-//	Rule                                    SciPy (default)   MATLAB    Option
-//	Sample reported for a flat-topped peak  middle            first     Plateau
-//	Which of two close, equal peaks stays   later             earlier   Ties
+//	Rule                                    SciPy (default)   MATLAB    MATLAB's option
+//	Sample reported for a flat-topped peak  middle            first     PlateauFirst
+//	Which of two close, equal peaks stays   later             earlier   TieEarlier
 //	When MinPeakDistance is applied         first             last      DistanceLast
 //
 // MATLAB's MinPeakDistance d keeps peaks more than d apart, and
@@ -337,10 +337,10 @@
 //
 // FindSignal finds the window of data closest to a signal, by the sum of
 // squared differences, with ties to the earliest window, as MATLAB's
-// findsignal does with its default options. SignalSearch chooses how every
+// findsignal does with its default options. SearchHybrid, SearchDirect and SearchFast choose how every
 // window is scored. Measured for a 30,000-sample signal in 400,000 samples:
 //
-//	SearchMethod   Time    Distance
+//	Option         Time    Distance
 //	SearchHybrid   29 ms   exact (the default)
 //	SearchFast     28 ms   rounded at the scale of the sums of squares, as MATLAB's
 //	SearchDirect   77 s    exact
@@ -363,14 +363,14 @@
 //
 // The options share one set of rules:
 //
-//	Option          Default                                   Applies to
-//	Overlap         half the window                           all but Periodogram
-//	NFFT            the window's length                       all
-//	TwoSided        one-sided, as the signal is real          all
-//	SegmentDetrend  none: call Detrend on the whole signal    all
-//	Scaling         ScalingDensity, units^2/Hz                all but STFT
-//	Average         AverageMean                               Welch
-//	AtFrequencies   the FFT's bins                            STFT
+//	Option           Default                                   Applies to
+//	Overlap          half the window                           all but Periodogram
+//	NFFT             the window's length                       all
+//	TwoSided         one-sided, as the signal is real          all
+//	SegmentDetrend   none: call Detrend on the whole signal    all
+//	ScalingSpectrum  ScalingDensity, units^2/Hz                all but STFT
+//	AverageMedian    AverageMean                               Welch
+//	AtFrequencies    the FFT's bins                            STFT
 //
 // STFT is the plain transform of each windowed segment, with its phase measured
 // from the segment's start: divide by the window's sum for amplitudes. Each
@@ -409,7 +409,7 @@
 // answer: Mean of an empty signal and Grad of fewer than 2 samples are errors.
 //
 // Percentile interpolates between the sorted samples, linearly by default, as
-// NumPy's default, R's and Excel's PERCENTILE.INC. PercentileBy(PercentileHazen)
+// NumPy's default, R's and Excel's PERCENTILE.INC. PercentileHazen()
 // is MATLAB's prctile. Any NaN gives NaN, as a missing sample leaves the
 // percentile unknown, where prctile ignores it: FillMissing first to fill gaps.
 //

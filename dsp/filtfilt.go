@@ -10,7 +10,7 @@ import (
 // giving zeros phase distortion: features stay where they are in the signal
 // and the magnitude response is squared (so the -3dB cutoff becomes -6dB)
 //
-// x is extended past each end (see PadType, PadLen) and each pass starts from
+// x is extended past each end (see PaddingOdd and PadLen) and each pass starts from
 // the filter's steady state scaled to the edge sample, so neither end shows a
 // startup transient
 // x must be longer than the padding length
@@ -22,7 +22,7 @@ import (
 //	y, err := dsp.FiltFilt(b, a, x)
 //
 // returns ErrInvalidCoefficients if b or a is empty or a[0] is zero,
-// ErrInvalidOption for an unknown Padding, ErrInvalidParameter for a negative padding length,
+// ErrInvalidParameter for a negative padding length,
 // ErrSignalTooShort if len(x) isn't greater than the padding length,
 // and ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
 //
@@ -69,7 +69,7 @@ func SOSFiltFilt(sos SOS, x []float64, opts ...FiltOption) (y []float64, err err
 }
 
 // FiltOption configures FiltFilt and SOSFiltFilt edge handling
-// see PadLen, MATLABPadLen, PadType and BySection
+// see PadLen, MATLABPadLen, BySection and the four paddings, PaddingOdd, PaddingEven, PaddingConstant and PaddingNone
 type FiltOption func(*filtConfig)
 
 // PadLen sets how many samples FiltFilt and SOSFiltFilt add beyond each end of x
@@ -113,51 +113,65 @@ func BySection() (option FiltOption) {
 	return
 }
 
-// PadType sets how FiltFilt extends x past each end
-// default is PaddingOdd
-func PadType(p Padding) (option FiltOption) {
-	option = func(c *filtConfig) {
-		c.padding = p
-	}
+// PaddingOdd extends x past each end by reflecting it through its end sample,
+// so the slope continues across the end.
+// The default, same as SciPy and MATLAB.
+func PaddingOdd() (option FiltOption) {
+	option = func(c *filtConfig) { c.padding = paddingOdd }
 	return
 }
 
-// Padding selects how FiltFilt extends the signal past each end before filtering
-// so that each pass's startup transient falls on the extension rather than the data
-type Padding int
+// PaddingEven extends x past each end by mirroring it about its end sample,
+// so the slope flips across the end
+func PaddingEven() (option FiltOption) {
+	option = func(c *filtConfig) { c.padding = paddingEven }
+	return
+}
+
+// PaddingConstant extends x past each end by repeating its end sample,
+// so the slope drops to 0 across the end
+func PaddingConstant() (option FiltOption) {
+	option = func(c *filtConfig) { c.padding = paddingConstant }
+	return
+}
+
+// PaddingNone filters x as given, with no extension, so the startup transients land on its ends.
+// The padding length is then ignored.
+func PaddingNone() (option FiltOption) {
+	option = func(c *filtConfig) { c.padding = paddingNone }
+	return
+}
+
+// padding is how FiltFilt extends the signal past each end before filtering,
+// so each pass's startup transient falls on the extension rather than the data
+type padding int
 
 const (
-	// PaddingOdd reflect the signal through its end sample
-	// so both value and slope continue smoothly
-	// default option like SciPy and MATLAB
-	PaddingOdd Padding = iota
-	// PaddingEven mirror the signal about its end sample
-	PaddingEven
-	// PaddingConstant repeats the end sample
-	PaddingConstant
-	// PaddingNone filters the signal as given
-	PaddingNone
+	paddingOdd padding = iota
+	paddingEven
+	paddingConstant
+	paddingNone
 )
 
-func (p Padding) String() (name string) {
+func (p padding) String() (name string) {
 	switch p {
-	case PaddingOdd:
+	case paddingOdd:
 		name = "PaddingOdd"
-	case PaddingEven:
+	case paddingEven:
 		name = "PaddingEven"
-	case PaddingConstant:
+	case paddingConstant:
 		name = "PaddingConstant"
-	case PaddingNone:
+	case paddingNone:
 		name = "PaddingNone"
 	default:
-		name = fmt.Sprintf("Padding(%d)", int(p))
+		name = fmt.Sprintf("padding(%d)", int(p))
 	}
 	return
 }
 
 // filtConfig is FiltFilt's edge handling, built up from FiltOptions
 type filtConfig struct {
-	padding Padding
+	padding padding
 	// padLen gives the padding length for a filter with ntaps coefficients
 	// nil means SciPy's default, 3 * ntaps
 	padLen func(ntaps filterSize) (n int)
@@ -191,14 +205,11 @@ func effectiveOrder(b, a []float64) (order int) {
 // padLength resolves the padding length for a filter with ntaps coefficients
 // (3*ntaps by default, as SciPy) and checks it against the signal's length
 func (cfg filtConfig) padLength(size filterSize, signalLen int) (n int, err error) {
-	if !(cfg.padding >= PaddingOdd && cfg.padding <= PaddingNone) {
-		return 0, fmt.Errorf("%w: unknown padding %v", ErrInvalidOption, cfg.padding)
-	}
 	n = 3 * size.ntaps
 	if cfg.padLen != nil {
 		n = cfg.padLen(size)
 	}
-	if cfg.padding == PaddingNone {
+	if cfg.padding == paddingNone {
 		n = 0 // as in SciPy, no padding means padlen is ignored
 	}
 	if n < 0 {
@@ -236,7 +247,7 @@ func (c cascade) zeroPhase(x []float64, size filterSize, opts []FiltOption) (y [
 
 // forwardBackward runs the cascade forward over x padded by n samples, then backward over the result,
 // each pass starting from the steady state scaled to its first sample, and trims the padding.
-func (c cascade) forwardBackward(x []float64, n int, padding Padding) (y []float64, err error) {
+func (c cascade) forwardBackward(x []float64, n int, padding padding) (y []float64, err error) {
 	zi, err := c.steadyState()
 	if err != nil {
 		return nil, err
@@ -253,11 +264,11 @@ func (c cascade) forwardBackward(x []float64, n int, padding Padding) (y []float
 // it panics unless 0 <= n < len(x), and n == 0 for PaddingNone
 // FiltFilt validates caller input first, so a panic here means a bug inside dsp
 // equvalent to scipy.signal's odd_ext, even_ext and const_ext
-func (p Padding) extend(x []float64, n int) (extended []float64) {
+func (p padding) extend(x []float64, n int) (extended []float64) {
 	if !(n >= 0 && n < len(x)) {
 		panic(fmt.Sprintf("dsp: extend needs 0 <= n < len(x), got n=%d, len(x)=%d", n, len(x)))
 	}
-	if p == PaddingNone && n != 0 {
+	if p == paddingNone && n != 0 {
 		panic(fmt.Sprintf("dsp: extend with PaddingNone needs n = 0, got n=%d", n))
 	}
 	first, last := x[0], x[len(x)-1]
@@ -273,13 +284,13 @@ func (p Padding) extend(x []float64, n int) (extended []float64) {
 }
 
 // reflect is the extensions sample that mirrors sample v about the edge sample edge
-func (p Padding) reflect(edge, v float64) (sample float64) {
+func (p padding) reflect(edge, v float64) (sample float64) {
 	switch p {
-	case PaddingOdd:
+	case paddingOdd:
 		sample = 2*edge - v
-	case PaddingEven:
+	case paddingEven:
 		sample = v
-	case PaddingConstant:
+	case paddingConstant:
 		sample = edge
 	default:
 		panic(fmt.Sprintf("dsp: unknown padding %v", p))

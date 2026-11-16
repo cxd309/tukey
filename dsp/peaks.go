@@ -115,27 +115,6 @@ type PeakWidth struct {
 	Right  float64
 }
 
-// PlateauPosition is the sample FindPeaks reports for a flat-topped peak
-type PlateauPosition int
-
-const (
-	// PlateauMiddle reports the middle sample,
-	// rounding down for an even plateau, default same as SciPy
-	PlateauMiddle PlateauPosition = iota
-	// PlateauFirst reports the first sample, same as MATLAB
-	PlateauFirst
-)
-
-// TieBreak is which of two equal peaks MinDistance keeps
-type TieBreak int
-
-const (
-	// TieLater keeps the later peak, default same as SciPy
-	TieLater TieBreak = iota
-	// TieEarlier keeps the earlier peak, same as MATLAB
-	TieEarlier
-)
-
 // PeakOption configures FindPeaks.
 // Options are applied in order, so a later option overrides an earlier one
 type PeakOption func(*peakConfig)
@@ -178,14 +157,27 @@ func MinPeakWidth(w float64) PeakOption {
 	return func(c *peakConfig) { c.minWidth = w }
 }
 
-// Plateau sets which sample of a flat-topped peak is reported
-func Plateau(p PlateauPosition) PeakOption {
-	return func(c *peakConfig) { c.plateau = p }
+// PlateauMiddle reports a flat-topped peak at its middle sample,
+// rounding down for an even plateau.
+// The default, same as SciPy.
+func PlateauMiddle() PeakOption {
+	return func(c *peakConfig) { c.plateau = plateauMiddle }
 }
 
-// Ties sets which of two equal peaks MinDistance keeps
-func Ties(t TieBreak) PeakOption {
-	return func(c *peakConfig) { c.ties = t }
+// PlateauFirst reports a flat-topped peak at its first sample, same as MATLAB
+func PlateauFirst() PeakOption {
+	return func(c *peakConfig) { c.plateau = plateauFirst }
+}
+
+// TieLater keeps the later of two equal peaks closer than MinPeakDistance.
+// The default, same as SciPy.
+func TieLater() PeakOption {
+	return func(c *peakConfig) { c.ties = tieLater }
+}
+
+// TieEarlier keeps the earlier of two equal peaks closer than MinPeakDistance, same as MATLAB
+func TieEarlier() PeakOption {
+	return func(c *peakConfig) { c.ties = tieEarlier }
 }
 
 // DistanceLast applies MinDistance after MinProminence and MinWidth,
@@ -203,8 +195,8 @@ func DistanceLast() PeakOption {
 // It doesn't change MinDistance, which is d+1 for MATLAB d
 func MATLABPeaks() PeakOption {
 	return func(c *peakConfig) {
-		c.plateau = PlateauFirst
-		c.ties = TieEarlier
+		c.plateau = plateauFirst
+		c.ties = tieEarlier
 		c.distanceLast = true
 	}
 }
@@ -217,10 +209,26 @@ type peakConfig struct {
 	minDistance   int
 	minProminence float64
 	minWidth      float64
-	plateau       PlateauPosition
-	ties          TieBreak
+	plateau       plateauPosition
+	ties          tieBreak
 	distanceLast  bool
 }
+
+// plateauPosition is the sample FindPeaks reports for a flat-topped peak
+type plateauPosition int
+
+const (
+	plateauMiddle plateauPosition = iota
+	plateauFirst
+)
+
+// tieBreak is which of two equal peaks MinPeakDistance keeps
+type tieBreak int
+
+const (
+	tieLater tieBreak = iota
+	tieEarlier
+)
 
 // newPeakConfig builds FindPeaks' settings from opts
 func newPeakConfig(opts []PeakOption) (cfg peakConfig, err error) {
@@ -242,7 +250,7 @@ func newPeakConfig(opts []PeakOption) (cfg peakConfig, err error) {
 
 // localMaxima is the index of every local maximum of x, with a plateau
 // reported at the sample plateau says
-func localMaxima(x []float64, plateau PlateauPosition) (indices []int) {
+func localMaxima(x []float64, plateau plateauPosition) (indices []int) {
 	n := len(x)
 	for i := 1; i < n-1; i++ {
 		if !(x[i-1] < x[i]) {
@@ -261,8 +269,8 @@ func localMaxima(x []float64, plateau PlateauPosition) (indices []int) {
 }
 
 // pick is the sample reported for a plateau from first to last
-func (p PlateauPosition) pick(first, last int) (index int) {
-	if p == PlateauFirst {
+func (p plateauPosition) pick(first, last int) (index int) {
+	if p == plateauFirst {
 		return first
 	}
 	return (first + last) / 2
@@ -270,7 +278,7 @@ func (p PlateauPosition) pick(first, last int) (index int) {
 
 // byDistance removes the lower of any two of indices less than distance
 // apart, working down from the highest peak, with ties broken by ties
-func byDistance(x []float64, indices []int, distance int, ties TieBreak) (kept []int) {
+func byDistance(x []float64, indices []int, distance int, ties tieBreak) (kept []int) {
 	if distance <= 1 {
 		return indices
 	}
@@ -282,7 +290,7 @@ func byDistance(x []float64, indices []int, distance int, ties TieBreak) (kept [
 		if c := cmp.Compare(x[indices[b]], x[indices[a]]); c != 0 {
 			return c
 		}
-		if ties == TieEarlier {
+		if ties == tieEarlier {
 			return cmp.Compare(a, b)
 		}
 		return cmp.Compare(b, a)

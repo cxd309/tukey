@@ -41,16 +41,16 @@ var (
 // medFiltOutputs pairs dsp.MedFilt's output with a vector's. It sets no
 // Scale, because the inputs hold NaN and maxAbs would make it NaN.
 func medFiltOutputs(v medFiltVector) (outputs []Output, err error) {
-	var edge dsp.MedFiltEdge
+	var edge dsp.MedFiltOption
 	switch v.Params.Edge {
 	case "truncate":
-		edge = dsp.MedFiltTruncate
+		edge = dsp.MedFiltTruncate()
 	case "zeropad":
-		edge = dsp.MedFiltZeroPad
+		edge = dsp.MedFiltZeroPad()
 	default:
 		return nil, fmt.Errorf("unknown medfilt edge %q", v.Params.Edge)
 	}
-	y, err := dsp.MedFilt(v.Params.X, v.Params.N, dsp.MedFiltEdges(edge))
+	y, err := dsp.MedFilt(v.Params.X, v.Params.N, edge)
 	if err != nil {
 		return nil, err
 	}
