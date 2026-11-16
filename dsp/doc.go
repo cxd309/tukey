@@ -11,62 +11,63 @@
 // figure is the worst on either amd64 or arm64, which round slightly
 // differently because arm64 fuses multiply-adds.
 //
-//	Function         SciPy equivalent                       Worst measured   Tested to
-//	Butter           butter (b, a)                          7.6e-15          1e-13
-//	Butter + SOS     butter(output='sos')                   7.3e-15          1e-13
-//	Cheby1           cheby1 (b, a)                          6.8e-15          1e-13
-//	Cheby1 + SOS     cheby1(output='sos')                   6.8e-15          1e-13
-//	Cheby2           cheby2 (b, a)                          5.7e-14          1e-12
-//	Cheby2 + SOS     cheby2(output='sos')                   5.7e-14          1e-12
-//	Ellip            ellip (b, a), exactly                  3.9e-15          1e-13
-//	Ellip + SOS      ellip(output='sos'), exactly           3.0e-15          1e-13
-//	Bessel           bessel (b, a), exactly                 6.7e-15          1e-13
-//	Bessel + SOS     bessel(output='sos'), exactly          6.7e-15          1e-13
-//	ButterOrd        buttord, exactly                       4.2e-16          1e-14
-//	Cheby1Ord        cheb1ord, exactly                      2.9e-16          1e-14
-//	Cheby2Ord        cheb2ord, exactly                      3.9e-16          1e-14
-//	EllipOrd         ellipord, exactly                      7.5e-16          1e-14
-//	IIRNotch         iirnotch, exactly                      4.7e-16          1e-14
-//	IIRPeak          iirpeak, exactly                       4.7e-16          1e-14
-//	FIRWin           firwin, exactly                        3.5e-16          1e-14
-//	ZPK.SOS          zpk2sos                                1.1e-16          1e-14
-//	Filter           lfilter                                6.4e-16          1e-14
-//	FilterState      lfilter with zi                        2.3e-16          1e-14
-//	FilterZi         lfilter_zi                             3.3e-16          1e-14
-//	FiltFilt         filtfilt                               8.8e-16          1e-14
-//	SOSFilter        sosfilt, with and without zi           4.1e-14          1e-12
-//	SOSFilterZi      sosfilt_zi                             9.8e-17          1e-14
-//	SOSFiltFilt      sosfiltfilt                            1.7e-13          1e-11
-//	Freqz            freqz                                  1.4e-15          1e-13
-//	SOSFreqz         freqz_sos                              3.7e-13          1e-11
-//	GroupDelay       group_delay, exactly                   7.2e-15          1e-13
-//	SOSGroupDelay    group_delay of the sections, exactly   1.0e-14          1e-13
-//	Detrend          detrend                                5.6e-16          1e-14
-//	Interp1          interp1d(bounds_error=False)           1.3e-16          1e-14
-//	RMS              sqrt(mean(x**2)), from NumPy           1.4e-16          1e-14
-//	MedFilt          medfilt, exactly, and truncated        exact            1e-14
-//	SavGolFilter     savgol_filter(mode='interp'), exactly  3.6e-16          1e-14
-//	Convolve         convolve, exactly                      exact            1e-14
-//	Convolve + FFT   convolve, exactly                      5.5e-16          1e-14
-//	Correlate        correlate, exactly                     exact            1e-14
-//	Correlate + FFT  correlate, exactly                     4.7e-16          1e-14
-//	FindPeaks        find_peaks                             exact            exact
-//	PeakProminences  peak_prominences                       exact            1e-14
-//	PeakWidths       peak_widths                            exact            1e-14
-//	Hilbert          hilbert                                5.7e-16          1e-14
-//	Envelope         MATLAB's envelope, from hilbert        1.0e-15          1e-14
-//	STFT             stft, unpadded, times sum(window)      4.2e-16          1e-14
-//	Spectrogram      spectrogram(mode='psd')                7.3e-16          1e-14
-//	Welch            welch                                  1.1e-15          1e-13
-//	Periodogram      periodogram                            1.1e-15          1e-13
-//	Sum              sum, exactly (math.fsum)               exact            1e-14
-//	Mean             mean, exactly                          exact            1e-14
-//	Diff             numpy.diff                             exact            1e-14
-//	Grad             numpy.gradient                         exact            1e-14
-//	CumSum           cumsum, exactly                        exact            1e-14
-//	Trapz            trapezoid, exactly                     exact            1e-14
-//	CumTrapz         cumulative_trapezoid, exactly          exact            1e-14
-//	Percentile       numpy.percentile                       exact            1e-14
+//	Function                 SciPy equivalent                       Worst measured   Tested to
+//	Butter                   butter (b, a)                          7.6e-15          1e-13
+//	Butter + SOS             butter(output='sos')                   7.3e-15          1e-13
+//	Cheby1                   cheby1 (b, a)                          6.8e-15          1e-13
+//	Cheby1 + SOS             cheby1(output='sos')                   6.8e-15          1e-13
+//	Cheby2                   cheby2 (b, a)                          5.7e-14          1e-12
+//	Cheby2 + SOS             cheby2(output='sos')                   5.7e-14          1e-12
+//	Ellip                    ellip (b, a), exactly                  3.9e-15          1e-13
+//	Ellip + SOS              ellip(output='sos'), exactly           3.0e-15          1e-13
+//	Bessel                   bessel (b, a), exactly                 6.7e-15          1e-13
+//	Bessel + SOS             bessel(output='sos'), exactly          6.7e-15          1e-13
+//	ButterOrd                buttord, exactly                       4.2e-16          1e-14
+//	Cheby1Ord                cheb1ord, exactly                      2.9e-16          1e-14
+//	Cheby2Ord                cheb2ord, exactly                      3.9e-16          1e-14
+//	EllipOrd                 ellipord, exactly                      7.5e-16          1e-14
+//	IIRNotch                 iirnotch, exactly                      4.7e-16          1e-14
+//	IIRPeak                  iirpeak, exactly                       4.7e-16          1e-14
+//	FIRWin                   firwin, exactly                        3.5e-16          1e-14
+//	ZPK.SOS                  zpk2sos                                1.1e-16          1e-14
+//	Filter                   lfilter                                6.4e-16          1e-14
+//	FilterState              lfilter with zi                        2.3e-16          1e-14
+//	FilterZi                 lfilter_zi                             3.3e-16          1e-14
+//	FiltFilt                 filtfilt                               8.8e-16          1e-14
+//	SOSFilter                sosfilt, with and without zi           4.1e-14          1e-12
+//	SOSFilterZi              sosfilt_zi                             9.8e-17          1e-14
+//	SOSFiltFilt              sosfiltfilt                            1.7e-13          1e-11
+//	SOSFiltFilt + BySection  filtfilt on each section in turn       7.7e-13          1e-11
+//	Freqz                    freqz                                  1.4e-15          1e-13
+//	SOSFreqz                 freqz_sos                              3.7e-13          1e-11
+//	GroupDelay               group_delay, exactly                   7.2e-15          1e-13
+//	SOSGroupDelay            group_delay of the sections, exactly   1.0e-14          1e-13
+//	Detrend                  detrend                                5.6e-16          1e-14
+//	Interp1                  interp1d(bounds_error=False)           1.3e-16          1e-14
+//	RMS                      sqrt(mean(x**2)), from NumPy           1.4e-16          1e-14
+//	MedFilt                  medfilt, exactly, and truncated        exact            1e-14
+//	SavGolFilter             savgol_filter(mode='interp'), exactly  3.6e-16          1e-14
+//	Convolve                 convolve, exactly                      exact            1e-14
+//	Convolve + FFT           convolve, exactly                      5.5e-16          1e-14
+//	Correlate                correlate, exactly                     exact            1e-14
+//	Correlate + FFT          correlate, exactly                     4.7e-16          1e-14
+//	FindPeaks                find_peaks                             exact            exact
+//	PeakProminences          peak_prominences                       exact            1e-14
+//	PeakWidths               peak_widths                            exact            1e-14
+//	Hilbert                  hilbert                                5.7e-16          1e-14
+//	Envelope                 MATLAB's envelope, from hilbert        1.0e-15          1e-14
+//	STFT                     stft, unpadded, times sum(window)      4.2e-16          1e-14
+//	Spectrogram              spectrogram(mode='psd')                7.3e-16          1e-14
+//	Welch                    welch                                  1.1e-15          1e-13
+//	Periodogram              periodogram                            1.1e-15          1e-13
+//	Sum                      sum, exactly (math.fsum)               exact            1e-14
+//	Mean                     mean, exactly                          exact            1e-14
+//	Diff                     numpy.diff                             exact            1e-14
+//	Grad                     numpy.gradient                         exact            1e-14
+//	CumSum                   cumsum, exactly                        exact            1e-14
+//	Trapz                    trapezoid, exactly                     exact            1e-14
+//	CumTrapz                 cumulative_trapezoid, exactly          exact            1e-14
+//	Percentile               numpy.percentile                       exact            1e-14
 //
 // Errors are relative to the largest expected value, or for filtering to the
 // largest input value if that's larger. For scale, 1e-16 is about one unit in
@@ -121,6 +122,7 @@
 //	FilterState                [y, zf] = filter(b, a, x, zi)  3.0e-16          1e-14
 //	FiltFilt + MATLABPadLen    filtfilt(b, a, x)              8.8e-16          1e-14
 //	SOSFilter                  sosfilt                        4.5e-14          1e-12
+//	SOSFiltFilt + BySection    filtfilt(sos, 1, x)            7.0e-13          1e-11
 //	Freqz                      freqz(b, a, n)                 1.9e-15          1e-13
 //	SOSFreqz                   freqz(sos, n)                  1.1e-12          1e-10
 //	GroupDelay                 [gd, w] = grpdelay(b, a, n)    3.2e-11          1e-9
@@ -160,8 +162,11 @@
 // SciPy differ from each other by as much. Second-order sections aren't
 // compared: MATLAB's zp2sos gives a first-order section one zero rather than
 // two, and breaks ties in pole radius differently, so it finds the same filter
-// in different sections. SOSFiltFilt doesn't yet match MATLAB's
-// filtfilt(sos, g, x), which filters section by section. SciPy has no
+// in different sections. SOSFiltFilt with BySection and MATLABPadLen matches
+// MATLAB's filtfilt(sos, 1, x), its gain already in the first section. SciPy
+// has no equivalent, so it's also checked against MATLAB's definition built
+// from SciPy's filtfilt, one section at a time. FiltFilt with MATLABPadLen
+// matches MATLAB on (b, a) with trailing zeros too, within 2 ULP. SciPy has no
 // fillmissing, so FillMissing is checked against MATLAB's documented definition
 // as well as MATLAB itself. MATLAB's RMS envelope is 4.5e-15 from an exactly
 // summed answer, where Envelope's compensated sum is within 1e-15 of it, so
@@ -249,6 +254,14 @@
 // (b, a) is simple and matches MATLAB's most common usage, but loses precision
 // as the order rises or the band narrows. Second-order sections stay accurate,
 // and are the better choice above order 4 or so.
+//
+// SOSFiltFilt filters the whole cascade forward then backward, as SciPy's
+// sosfiltfilt. BySection filters each section forward and backward in turn,
+// as MATLAB's filtfilt(sos, g, x). The two give the same filter, and differ by
+// their edge transients, which for a slow filter reach well into the signal.
+// MATLABPadLen pads by MATLAB's 3 × the order, which counts each polynomial to
+// its last nonzero coefficient: an odd-order Butterworth's first section, with
+// its real pole and two zeros, is order 2, so butter(3, …) pads by 12, not 9.
 //
 // # Frequencies
 //

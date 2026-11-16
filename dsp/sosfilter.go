@@ -104,25 +104,41 @@ func SOSFilterZi(sos SOS) (zi [][2]float64, err error) {
 }
 
 // SOSFiltFilt is FiltFilt for a filter given as second-order sections:
-// it filters x forward then backward for zero phase, with the same edge handling options
-// the default padding length is SciPy's 3*ntaps, where ntaps is 2*len(sos) + 1,
-// minus one for each first-order section
+// it filters x forward then backward for zero phase, with the same edge handling options.
+// The default padding length is scipy 3* ntaps, where ntaps is 2* len(sos)+ 1,
+// minus one for each first-order section (b2 and a2 both zero).
 //
-// with MATLABPadLen the padding length is 3*(ntaps-1), same as MATLAB's filtfilt for (b, a)
-// this does not match MATLAB's filtfilt(sos, g, x), which filters forward then
-// backward one section at a time, each padded by 3 * the total filter order;
-// expect differences near the ends of the output
+// By default the whole cascade is filtered forward then backward, as scipy sosfiltfilt.
+// With BySection each section is, in turn, same as matlab filtfilt(sos, g, x),
+// which with MATLABPadLen it matches:
 //
-// returns ErrInvalidSOS as SOSFilter does, and ErrInvalidPadding,
-// ErrSignalTooShort and ErrNoSteadyState as FiltFilt does
+//	y, err := dsp.SOSFiltFilt(sos, x, dsp.BySection(), dsp.MATLABPadLen())
 //
-// equivalent to scipy.signal.sosfiltfilt(sos, x)
+// matlab g is in the first section already.
+//
+// Returns:
+//   - ErrInvalidSOS same as SOSFilter (if sos has no sections or any section's a0 isn't 1)
+//   - ErrInvalidPadding, ErrSignalTooShort and ErrNoSteadyState same as FiltFilt
+//
+// Equivalent to:
+//   - scipy.signal.sosfiltfilt(sos, x)
+//   - matlab filtfilt(sos, 1, x), with BySection and MATLABPadLen
 func SOSFiltFilt(sos SOS, x []float64, opts ...FiltOption) (y []float64, err error) {
 	c, err := sos.toCascade()
 	if err != nil {
 		return nil, err
 	}
-	y, err = c.zeroPhase(x, sos.ntaps(), opts)
+	y, err = c.zeroPhase(x, sos.size(), opts)
+	return
+}
+
+// size is the filter's size for its padding length:
+// scipy ntaps, and matlab order, summed over the sections
+func (s SOS) size() (size filterSize) {
+	size.ntaps = s.ntaps()
+	for _, section := range s {
+		size.order += effectiveOrder(section[:3], section[3:])
+	}
 	return
 }
 

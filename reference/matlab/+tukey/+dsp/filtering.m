@@ -2,11 +2,15 @@ function g = filtering()
     % FILTERING Filtering with (b, a) and second-order sections: at rest,
     % from a state, and zero-phase.
     %
-    % Not reproduced: lfilter_zi and sosfilt_zi (no MATLAB function).
+    % Not reproduced: lfilter_zi and sosfilt_zi (no MATLAB function), and
+    % sosfiltfilt, whose cascade MATLAB doesn't offer: its filtfilt on
+    % sections filters by section, which sosfiltfilt_by_section covers.
     categories = {"filter", "lfilter_state", "filtfilt", ...
-                  "sosfilt", "sosfiltfilt"};
+                  "sosfilt", "sosfiltfilt_by_section", ...
+                  "filtfilt_matlab"};
     runs = {@filterVector, @filterStateVector, @filtfiltVector, ...
-            @sosfiltVector, @sosfiltfiltVector};
+            @sosfiltVector, @sosfiltfiltBySectionVector, ...
+            @filtfiltMatlabVector};
     g = struct("category", categories, "run", runs);
 end
 
@@ -47,16 +51,29 @@ function [output, description] = sosfiltVector(params)
     description = "sosfilt(sos, x)";
 end
 
-function [output, description] = sosfiltfiltVector(params)
-    % as filtfiltVector: only SciPy's default edge handling has an equivalent
+function [output, description] = sosfiltfiltBySectionVector(params)
+    % filtfilt on sections filters each in turn, padded by 3 * the total
+    % order, so only the cases with MATLAB's padding have an equivalent.
+    % The gain is in the first section already, so g is 1.
     output = [];
     description = "";
-    if ~isDefaultPadding(params)
+    if ~params.matlab_padlen
         return
     end
+    % a single section is a 1-by-6 row, which filtfilt warns could be b;
+    % its fourth coefficient, 1, makes it read it as a section, as meant
+    state = warning("off", "signal:filtfilt:ParseSOS");
+    restore = onCleanup(@() warning(state));
     y = filtfilt(params.sos, 1, params.x);
     output = struct("y", encode.vec(y));
     description = "filtfilt(sos, 1, x)";
+end
+
+function [output, description] = filtfiltMatlabVector(params)
+    % (b, a) with trailing zeros, whose order filtfilt counts without them
+    y = filtfilt(params.b, params.a, params.x);
+    output = struct("y", encode.vec(y));
+    description = "filtfilt(b, a, x)";
 end
 
 function isDefault = isDefaultPadding(params)
