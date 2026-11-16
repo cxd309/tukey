@@ -104,10 +104,8 @@ type sosfiltfiltVector struct {
 // that filter, over two passes of a padded signal; other filters within a few ULP;
 // set ~10x above the worst
 //
-// not yet checked against MATLAB: its filtfilt(sos, g, x) runs forward-backward per
-// section, each padded by 3 * the total filter order, which SOSFiltFilt doesn't
-// offer; testdata/matlab/sosfiltfilt is waiting for the MATLAB compatibility
-// option on the roadmap
+// MATLAB's filtfilt(sos, g, x) filters section by section, which is
+// SOSFiltFilt with BySection and MATLABPadLen: see sosFiltFiltBySectionMATLABSuite
 var sosFiltFiltSciPySuite = newSuite("SOSFiltFilt", reference.SourceSciPy, "sosfiltfilt",
 	reference.Tolerance{Rel: 1e-11, Scaled: 1e-11},
 	func(v sosfiltfiltVector) (outputs []Output, err error) {
