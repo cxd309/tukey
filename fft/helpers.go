@@ -1,7 +1,5 @@
 package fft
 
-import "slices"
-
 // Freq returns the frequency of each of Forward's n bins for samples d apart
 // 0, 1/(n d), 2/(n d), ... up to the highest positive frequency
 // then the negative frequencies from the most negative frequency up
@@ -45,8 +43,7 @@ func RealFreq(n int, d float64) (f []float64) {
 //
 // equivalent to scipy.fft.fftshift and MATLAB fftshift
 func Shift[T any](x []T) (y []T) {
-	cut := len(x) - (len(x) / 2)
-	y = slices.Concat(x[cut:], x[:cut])
+	y = rotated(x, len(x)-len(x)/2)
 	return
 }
 
@@ -54,8 +51,7 @@ func Shift[T any](x []T) (y []T) {
 //
 // equivalent to scipy.fft.ifftshift and MATLAB ifftshift
 func InverseShift[T any](x []T) (y []T) {
-	cut := len(x) / 2
-	y = slices.Concat(x[cut:], x[:cut])
+	y = rotated(x, len(x)/2)
 	return
 }
 
@@ -64,5 +60,14 @@ func InverseShift[T any](x []T) (y []T) {
 // Zero-pad to it when any length of at least n will do, as for a correlation.
 func FastLength(n int) (length int) {
 	length = smoothSize(n)
+	return
+}
+
+// rotated is a new slice holding x from cut to its end, then from its start to cut.
+// It's never nil, so an empty x gives an empty slice.
+func rotated[T any](x []T, cut int) (y []T) {
+	y = make([]T, len(x))
+	n := copy(y, x[cut:])
+	copy(y[n:], x[:cut])
 	return
 }

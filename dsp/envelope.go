@@ -17,13 +17,13 @@ import (
 // It works in the frequency domain, doubling the positive frequencies and
 // zeroing the negativeones, so it treats x as one period of a periodic signal.
 //
-// Returns ErrSignalTooShort for an empty x.
+// An empty x gives an empty result.
 //
 // Equivalent to scipy.signal.hilbert(x), MATLAB hilbert(x)
 func Hilbert(x []float64) (analytic []complex128, err error) {
 	n := len(x)
 	if n == 0 {
-		return nil, fmt.Errorf("%w: Hilbert of an empty signal", ErrSignalTooShort)
+		return []complex128{}, nil
 	}
 	half, err := fft.ForwardReal(x) // bins 0 to n/2
 	if err != nil {
@@ -44,18 +44,19 @@ func Hilbert(x []float64) (analytic []complex128, err error) {
 // Envelope returns the upper and lower enveopes of x:
 // its mean plus and minus the envelope of x less its mean, measured according method.
 //
+// An empty x gives empty envelopes.
+//
 // Returns:
-//   - ErrSignalTooShort for an empty x
 //   - ErrInvalidParameter for an EnvelopeRMS window below1
 //
 // Equivalent to MATLAB [upper, lower] = envelope(x) and envelope(x, n, "rms").
 // scipy.signal.envelope drops the Nyquist bin from the analytic envelope, and has no RMS method.
 func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err error) {
-	if len(x) == 0 {
-		return nil, nil, fmt.Errorf("%w: Envelope of an empty signal", ErrSignalTooShort)
-	}
 	if method.rms && method.window < 1 {
 		return nil, nil, fmt.Errorf("%w: EnvelopeRMS window %d, must be at least 1", ErrInvalidParameter, method.window)
+	}
+	if len(x) == 0 {
+		return []float64{}, []float64{}, nil
 	}
 	m := mean(x)
 	centred := make([]float64, len(x))

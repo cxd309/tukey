@@ -40,6 +40,14 @@ func TestInverseShift(t *testing.T) {
 	assert.Empty(t, InverseShift([]int{}))
 }
 
+// An empty or nil x gives an empty, non-nil result.
+func TestShiftEmptyIsNotNil(t *testing.T) {
+	for _, x := range [][]int{nil, {}} {
+		assert.NotNil(t, Shift(x))
+		assert.NotNil(t, InverseShift(x))
+	}
+}
+
 // Shift and InverseShift return new slices, never the caller's
 func TestShiftDoesNotAlias(t *testing.T) {
 	x := []int{0, 1, 2, 3}

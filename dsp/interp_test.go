@@ -120,6 +120,17 @@ func TestFillMissingDoesNotModifyInput(t *testing.T) {
 	}
 }
 
+// An empty or nil x gives an empty, non-nil result, with either fill.
+func TestFillMissingEmptyIsNotNil(t *testing.T) {
+	for _, fill := range []Fill{FillLinear(), FillConstant(0)} {
+		for _, x := range [][]float64{nil, {}} {
+			y := FillMissing(x, fill)
+			assert.NotNil(t, y)
+			assert.Empty(t, y)
+		}
+	}
+}
+
 // assertEqualNaN asserts got equals want element by element, with NaN equal to
 // NaN, which assert.Equal treats as different.
 func assertEqualNaN(t *testing.T, want, got []float64) {

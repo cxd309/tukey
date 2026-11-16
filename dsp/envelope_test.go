@@ -72,11 +72,25 @@ func TestEnvelopeRMSAroundMean(t *testing.T) {
 }
 
 func TestEnvelopeInvalid(t *testing.T) {
-	_, _, err := Envelope(nil, EnvelopeAnalytic())
-	assert.ErrorIs(t, err, ErrSignalTooShort)
 	for _, window := range []int{0, -1} {
-		_, _, err = Envelope([]float64{1, 2, 3}, EnvelopeRMS(window))
+		_, _, err := Envelope([]float64{1, 2, 3}, EnvelopeRMS(window))
 		assert.ErrorIs(t, err, ErrInvalidParameter)
+		_, _, err = Envelope(nil, EnvelopeRMS(window))
+		assert.ErrorIs(t, err, ErrInvalidParameter, "checked before an empty x")
+	}
+}
+
+// An empty x gives empty, non-nil envelopes, with either method.
+func TestEnvelopeEmpty(t *testing.T) {
+	for _, method := range []EnvelopeMethod{EnvelopeAnalytic(), EnvelopeRMS(3)} {
+		for _, x := range [][]float64{nil, {}} {
+			upper, lower, err := Envelope(x, method)
+			require.NoError(t, err)
+			assert.NotNil(t, upper)
+			assert.NotNil(t, lower)
+			assert.Empty(t, upper)
+			assert.Empty(t, lower)
+		}
 	}
 }
 
@@ -149,7 +163,12 @@ func TestHilbertDCAndNyquist(t *testing.T) {
 	}
 }
 
+// An empty x gives an empty, non-nil result.
 func TestHilbertEmpty(t *testing.T) {
-	_, err := Hilbert(nil)
-	assert.ErrorIs(t, err, ErrSignalTooShort)
+	for _, x := range [][]float64{nil, {}} {
+		analytic, err := Hilbert(x)
+		require.NoError(t, err)
+		assert.NotNil(t, analytic)
+		assert.Empty(t, analytic)
+	}
 }

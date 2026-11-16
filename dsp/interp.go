@@ -3,7 +3,6 @@ package dsp
 import (
 	"fmt"
 	"math"
-	"slices"
 	"sort"
 )
 
@@ -93,7 +92,8 @@ func line(x0, y0, x1, y1, q float64) (v float64) {
 
 // fillConstant replaces each NaN in x with value
 func fillConstant(x []float64, value float64) (y []float64) {
-	y = slices.Clone(x)
+	y = make([]float64, len(x))
+	copy(y, x)
 	for i, v := range y {
 		if math.IsNaN(v) {
 			y[i] = value
@@ -106,7 +106,8 @@ func fillConstant(x []float64, value float64) (y []float64) {
 // either side of it, or, before the first or after the last known sample,
 // through the nearest two
 func fillLinear(x []float64) (y []float64) {
-	y = slices.Clone(x)
+	y = make([]float64, len(x))
+	copy(y, x)
 	known := knownIndices(x)
 	if len(known) < 2 {
 		return
