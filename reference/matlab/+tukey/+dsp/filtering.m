@@ -2,12 +2,14 @@ function g = filtering()
     % FILTERING Filtering with (b, a) and second-order sections: at rest,
     % from a state, and zero-phase.
     %
-    % Not reproduced: lfilter_zi and sosfilt_zi (no MATLAB function).
+    % Not reproduced: lfilter_zi and sosfilt_zi (no MATLAB function), and
+    % sosfiltfilt, whose cascade MATLAB doesn't offer: its filtfilt on
+    % sections filters by section, which sosfiltfilt_by_section covers.
     categories = {"filter", "lfilter_state", "filtfilt", ...
-                  "sosfilt", "sosfiltfilt", "sosfiltfilt_by_section", ...
+                  "sosfilt", "sosfiltfilt_by_section", ...
                   "filtfilt_matlab"};
     runs = {@filterVector, @filterStateVector, @filtfiltVector, ...
-            @sosfiltVector, @sosfiltfiltVector, @sosfiltfiltBySectionVector, ...
+            @sosfiltVector, @sosfiltfiltBySectionVector, ...
             @filtfiltMatlabVector};
     g = struct("category", categories, "run", runs);
 end
@@ -47,18 +49,6 @@ function [output, description] = sosfiltVector(params)
     y = sosfilt(params.sos, params.x);
     output = struct("y", encode.vec(y), "zf", "null");
     description = "sosfilt(sos, x)";
-end
-
-function [output, description] = sosfiltfiltVector(params)
-    % as filtfiltVector: only SciPy's default edge handling has an equivalent
-    output = [];
-    description = "";
-    if ~isDefaultPadding(params)
-        return
-    end
-    y = filtfilt(params.sos, 1, params.x);
-    output = struct("y", encode.vec(y));
-    description = "filtfilt(sos, 1, x)";
 end
 
 function [output, description] = sosfiltfiltBySectionVector(params)
