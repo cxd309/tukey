@@ -10,8 +10,8 @@ import (
 // evenly spaced from 0 up to (not including) pi rad/sample, which is Nyquist
 // h[k] is the complex gain at w[k], so |h[k]| is the magnitude and its angle the phase
 //
-// For frequencies normalised to Nyquist, as Band uses, divide w by pi
-// for Hz at sample rate fs, multiply w by fs/(2*pi)
+// RadPerSampleToNyquist gives w as a fraction of Nyquist, the unit a Band uses,
+// and RadPerSampleToHz gives it in Hz.
 //
 // returns ErrInvalidCoefficients as Filter does, and ErrInvalidLength if n < 0
 //

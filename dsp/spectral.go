@@ -259,8 +259,8 @@ func newSpectralConfig(function string, x []float64, fs float64, window []float6
 	switch {
 	case len(rejected) > 0:
 		err = fmt.Errorf("%w: %s doesn't apply to %s", ErrInvalidOption, strings.Join(rejected, ", "), function)
-	case !(fs > 0):
-		err = fmt.Errorf("%w: fs %g, must be positive", ErrInvalidParameter, fs)
+	case !(fs > 0) || math.IsInf(fs, 1):
+		err = fmt.Errorf("%w: fs %g, must be positive and finite", ErrInvalidParameter, fs)
 	case len(window) == 0:
 		err = fmt.Errorf("%w: an empty window", ErrInvalidLength)
 	case len(window) > len(x):

@@ -21,27 +21,6 @@ func GeneralCosine(n int, a []float64, opts ...Option) (w []float64, err error) 
 	return
 }
 
-// Hanning returns MATLAB's n-point Hanning window:
-// symmetric, it's the Hann window without the zero endpoints,  Hann(n+2) less its first and last sample.
-// periodic, it's Hann's periodic window, keeping it's first zero
-//
-// returns ErrInvalidLength if n<0
-//
-// equivalent to MATLAB's hanning(n), no SciPy equivalent
-func Hanning(n int, opts ...Option) (w []float64, err error) {
-	cfg, err := newConfig("Hanning", opts, optionSet{optionPeriodic: true})
-	if err != nil {
-		return nil, err
-	}
-	hann := cosineSum(generalHamming(0.5))
-	if cfg.periodic {
-		w, err = shape(n, true, hann)
-		return
-	}
-	w, err = shape(n, false, func(k, m int) float64 { return hann(k+1, m+2) })
-	return
-}
-
 // GeneralHamming returns the n-point generalised Hamming window
 // alpha - (1 - alpha) cos(2 pi k / (n-1))
 // alpha 0.5 is Hann, 0.54 is Hamming
@@ -112,12 +91,21 @@ func Hamming(n int, opts ...Option) (w []float64, err error) {
 }
 
 // Hann returns the n-point Hann window:
-// a raised cosine, zero at both ends, or only at the start when periodic
+// a raised cosine, zero at both ends, or only at the start when periodic.
 //
-// returns ErrInvalidLength if n < 0
+// MATLAB's hanning(n) is Hann without its zero ends, Hann(n+2) less its first and last sample:
 //
-// equivalent to scipy.signal.windows.hann(n)
-// equivalnt to MATLAB's hann(n)
+//	w, err := window.Hann(n + 2)
+//	w = w[1 : n+1]
+//
+// MATLAB's hanning(n, 'periodic') is Hann(n, Periodic()).
+//
+// Returns:
+//   - ErrInvalidLength if n < 0.
+//
+// Equivalent to:
+//   - scipy.signal.windows.hann(n), and numpy.hanning(n)
+//   - MATLAB hann(n)
 func Hann(n int, opts ...Option) (w []float64, err error) {
 	w, err = cosineWindow("Hann", n, generalHamming(0.5), opts)
 	return

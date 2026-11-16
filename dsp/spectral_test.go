@@ -209,6 +209,7 @@ func TestSTFTInvalid(t *testing.T) {
 		{"zero fs", x, 0, win, nil, ErrInvalidParameter},
 		{"negative fs", x, -1, win, nil, ErrInvalidParameter},
 		{"NaN fs", x, math.NaN(), win, nil, ErrInvalidParameter},
+		{"infinite fs", x, math.Inf(1), win, nil, ErrInvalidParameter},
 		{"negative overlap", x, 1, win, []SpectralOption{Overlap(-1)}, ErrInvalidParameter},
 		{"overlap of the whole window", x, 1, win, []SpectralOption{Overlap(4)}, ErrInvalidParameter},
 		{"AtFrequencies with NFFT", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), NFFT(8)}, ErrInvalidOption},

@@ -43,20 +43,3 @@ func TestGeneralCosineNeedsCoefficients(t *testing.T) {
 	_, err := GeneralCosine(8, nil)
 	assert.ErrorIs(t, err, ErrInvalidParameter)
 }
-
-// Hanning is Hann without its zero endpoints; periodic, it's Hann's periodic window
-func TestHanning(t *testing.T) {
-	for n := 0; n <= 20; n++ {
-		hann, err := Hann(n + 2)
-		require.NoError(t, err)
-		w, err := Hanning(n)
-		require.NoError(t, err)
-		assert.Equal(t, hann[1:n+1], w, "Hanning(%d)", n)
-
-		hann, err = Hann(n, Periodic())
-		require.NoError(t, err)
-		w, err = Hanning(n, Periodic())
-		require.NoError(t, err)
-		assert.Equal(t, hann, w, "Hanning(%d, Periodic())", n)
-	}
-}

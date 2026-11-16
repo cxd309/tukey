@@ -45,7 +45,7 @@ func firWinOutputs(v firWinVector) (outputs []Output, err error) {
 	}
 	var opts []dsp.FIROption
 	if !v.Params.Scale {
-		opts = append(opts, dsp.NoScale())
+		opts = append(opts, dsp.FIRNoScale())
 	}
 	h, err := dsp.FIRWin(v.Params.Window, band, opts...)
 	if err != nil {

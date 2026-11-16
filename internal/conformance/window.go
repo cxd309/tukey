@@ -96,8 +96,6 @@ var windowChecks = []windowCheck{
 		call: func(p windowParams, opts []window.Option) ([]float64, error) {
 			return window.Tukey(p.N, p.Alpha, opts...)
 		}},
-	{name: "window.Hanning", category: "hanning", scipy: tolerance(1e-14), matlab: matlabTolerance(1e-14),
-		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Hanning(p.N, opts...) }},
 	// MATLAB has no cosine or lanczos
 	{name: "window.Cosine", category: "cosine", scipy: tolerance(1e-14),
 		call: func(p windowParams, opts []window.Option) ([]float64, error) { return window.Cosine(p.N, opts...) }},

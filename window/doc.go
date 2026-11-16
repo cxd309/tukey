@@ -1,5 +1,5 @@
 // Package window is window functions for Go, matching scipy.signal.windows .
-// Includes every SciPy window except dpss, plus MATLAB hanning.
+// Includes every SciPy window except dpss.
 // Standard library only
 //
 // # Windows
@@ -11,8 +11,7 @@
 // Cosine sums: Hann, Hamming, Blackman, BlackmanHarris, Nuttall, FlatTop,
 // and the general forms GeneralHamming and GeneralCosine
 //
-// Piecewise: Boxcar, Triang, Bartlett, Parzen, Bohman, Barthann, Tukey,
-// and MATLAB's Hanning
+// Piecewise: Boxcar, Triang, Bartlett, Parzen, Bohman, Barthann, Tukey
 //
 // Sine: Cosine, Lanczos
 //
@@ -64,7 +63,6 @@
 //	Bohman               bohman                 bohmanwin       5.6e-16  2.2e-16  1e-14
 //	Barthann             barthann               barthannwin     3.3e-16  3.3e-16  1e-14
 //	Tukey                tukey                  tukeywin        6.7e-16  6.7e-16  1e-14
-//	Hanning              hann(n+2)[1:-1]        hanning         3.3e-16  1.7e-16  1e-14
 //	Cosine               cosine                                 4.6e-16           1e-14
 //	Lanczos              lanczos                                2.2e-16           1e-14
 //	Gaussian             gaussian               gausswin        1.1e-16  1.7e-16  1e-14
@@ -92,8 +90,8 @@
 // Symmetric windows are computed for their first half and mirrored, so they're
 // symmetric exactly. SciPy's are symmetric only to within a few ULP
 //
-// Hanning is MATLAB's: Hann without its zero endpoints, Hann(n+2) less its first
-// and last sample. periodic, it's Hann's periodic window. SciPy has none
+// MATLAB's hanning is Hann without its zero ends, Hann(n+2) less its first and
+// last sample. Hann's doc shows how to build it.
 //
 // Taylor takes its sidelobe level as positive dB, as SciPy. MATLAB's taylorwin
 // takes it negative and doesn't normalise, so taylorwin(n, nbar, -sll) is

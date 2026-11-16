@@ -31,7 +31,6 @@ var windows = map[string]func(n int, opts ...Option) ([]float64, error){
 	"Barthann": Barthann,
 	"Cosine":   Cosine,
 	"Lanczos":  Lanczos,
-	"Hanning":  Hanning,
 	"Tukey(0.25)": func(n int, opts ...Option) ([]float64, error) {
 		return Tukey(n, 0.25, opts...)
 	},
@@ -105,9 +104,6 @@ func TestSymmetricIsExact(t *testing.T) {
 // periodic is the symmetric window one longer, without its last point
 func TestPeriodicIsSymmetricWithoutLastPoint(t *testing.T) {
 	for name, window := range windows {
-		if name == "Hanning" {
-			continue // MATLAB defines periodic Hanning as Hann's periodic window: see TestHanning
-		}
 		t.Run(name, func(t *testing.T) {
 			for n := 2; n <= 20; n++ {
 				periodic, err := window(n, Periodic())

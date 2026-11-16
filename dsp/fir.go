@@ -20,7 +20,7 @@ import (
 //
 // The taps are scaled so the response is exactly 1 at DC if the band passes
 // it, at Nyquist for a highpass, and otherwise at the passband's centre.
-// NoScale turns that off.
+// FIRNoScale turns that off.
 // Any window is accepted, but only a symmetric one gives exactly linear phase:
 // build it with window's default symmetric form, not Periodic.
 // Its delay is (len(window) − 1)/2 samples.
@@ -83,8 +83,8 @@ func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err er
 // FIROption configures FIRWin
 type FIROption func(*firConfig)
 
-// NoScale leaves FIRWin's taps unscaled: the windowed ideal response as it is
-func NoScale() FIROption {
+// FIRNoScale leaves FIRWin's taps unscaled: the windowed ideal response as it is
+func FIRNoScale() FIROption {
 	return func(c *firConfig) { c.noScale = true }
 }
 

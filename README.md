@@ -225,7 +225,7 @@ And against MATLAB, whose `fft` is FFTW, an independent implementation:
 
 MATLAB has no normalisation option or `fftfreq`, so the normalisation options and `fft.Freq` are checked against SciPy only.
 
-The `window` package has every `scipy.signal.windows` window except `dpss`, plus MATLAB's `hanning`. Each is checked against SciPy, and against MATLAB where MATLAB has it, on identical inputs at n = 0, 1, 2, 3, 8, 9, 64 and 255, symmetric and periodic:
+The `window` package has every `scipy.signal.windows` window except `dpss`. Each is checked against SciPy, and against MATLAB where MATLAB has it, on identical inputs at n = 0, 1, 2, 3, 8, 9, 64 and 255, symmetric and periodic:
 
 | Function                     | SciPy                   | MATLAB           | SciPy worst | MATLAB worst | Tested to |
 | ---------------------------- | ----------------------- | ---------------- | ----------- | ------------ | --------- |
@@ -244,7 +244,6 @@ The `window` package has every `scipy.signal.windows` window except `dpss`, plus
 | `window.Bohman`              | `bohman`                | `bohmanwin`      | 5.6e-16     | 2.2e-16      | 1e-14     |
 | `window.Barthann`            | `barthann`              | `barthannwin`    | 3.3e-16     | 3.3e-16      | 1e-14     |
 | `window.Tukey`               | `tukey`                 | `tukeywin`       | 6.7e-16     | 6.7e-16      | 1e-14     |
-| `window.Hanning`             | `hann(n+2)[1:-1]`       | `hanning`        | 3.3e-16     | 1.7e-16      | 1e-14     |
 | `window.Cosine`              | `cosine`                |                  | 4.6e-16     |              | 1e-14     |
 | `window.Lanczos`             | `lanczos`               |                  | 2.2e-16     |              | 1e-14     |
 | `window.Gaussian`            | `gaussian`              | `gausswin`       | 1.1e-16     | 1.7e-16      | 1e-14     |
@@ -321,7 +320,7 @@ Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, Sc
 | `q = trapz(dx, y)`, `cumtrapz(dx, y)`               | `q, err := dsp.Trapz(y, dx)`, `dsp.CumTrapz(y, dx)` (note the order)                                                       |
 | `v = prctile(x, p)`                                 | `v, err := dsp.Percentile(x, p, dsp.PercentileHazen())`, one `p` per call                                                  |
 
-Frequencies are normalised to Nyquist in both: for a frequency `f`Hz at sample rate `fs`, use `f / (fs/2)`. `Freqz` returns frequencies in rad/sample, as MATLAB's `freqz` does.
+Frequencies are normalised to Nyquist in both: for a frequency `f` Hz at sample rate `fs`, use `dsp.HzToNyquist(f, fs)`, which is `f / (fs/2)`. `Freqz` returns frequencies in rad/sample, as MATLAB's `freqz` does, and `dsp.RadPerSampleToHz(w, fs)` converts them to Hz. `dsp.ConvertFrequency` converts between any two of Hz, rad/sample, cycles/sample and a fraction of Nyquist.
 
 `MATLABPadLen` uses MATLAB's `filtfilt` padding length, 3 × the filter's order, at least 1, instead of SciPy's `3*ntaps`. MATLAB counts the order to each polynomial's last nonzero coefficient, and for sections each section's: an odd-order Butterworth's first section, with its real pole and two zeros, is order 2, so `butter(3, …)` pads by 12, not 9.
 
@@ -379,7 +378,7 @@ Windows take their shape as an option, `window.Periodic()`, for MATLAB's `'perio
 | `tukeywin(n, r)`          | `tukey(n, r)`                       | `window.Tukey(n, r)`                                  |
 | `gausswin(n, alpha)`      | `gaussian(n, (n-1)/(2*alpha))`      | `window.Gaussian(n, (n-1)/(2*alpha))`                 |
 | `taylorwin(n, nbar, sll)` | `taylor(n, nbar, -sll, norm=False)` | `window.Taylor(n, nbar, -sll, window.Unnormalised())` |
-| `hanning(n)`              |                                     | `window.Hanning(n)`                                   |
+| `hanning(n)`              |                                     | `window.Hann(n + 2)`, less its first and last sample  |
 
 `gausswin` takes the reciprocal of a width relative to the window's half-length, where SciPy and tukey take the standard deviation in samples. `taylorwin` takes its sidelobe level as negative dB and doesn't normalise; at n = 1 it evaluates its formula, where `window.Taylor` returns `[1]`, as every window does. `hanning` is the Hann window without its zero endpoints.
 

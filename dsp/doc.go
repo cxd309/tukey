@@ -237,7 +237,7 @@
 // IIRNotch and IIRPeak design a second-order notch or peak at w0, with quality
 // factor q, w0 over the −3 dB bandwidth. FIRWin designs a linear-phase FIR
 // filter by the window method: the ideal response, windowed, and scaled to a
-// gain of 1 in its first passband, unless NoScale. The window's length is the
+// gain of 1 in its first passband, unless FIRNoScale. The window's length is the
 // number of taps, and a symmetric window gives linear phase.
 //
 // GroupDelay and SOSGroupDelay give each frequency's delay in samples,
@@ -266,9 +266,17 @@
 // # Frequencies
 //
 // Band edges and cutoffs are normalised to Nyquist, as in SciPy and MATLAB:
-// 0 < wn < 1, where 1 is half the sample rate. For a frequency f in Hz at sample
-// rate fs, use f / (fs/2). Freqz and SOSFreqz return frequencies in rad/sample,
-// also as SciPy and MATLAB do: divide by pi for Nyquist-normalised.
+// 0 < wn < 1, where 1 is half the sample rate.
+// Freqz, GroupDelay and their SOS forms return frequencies in rad/sample, also as SciPy and MATLAB do.
+// The spectral functions return Hz.
+//
+// ConvertFrequency converts a frequency, or a slice of them, between Hz,
+// rad/sample, cycles/sample and a fraction of Nyquist.
+// HzToNyquist, NyquistToHz, HzToRadPerSample, RadPerSampleToHz,
+// NyquistToRadPerSample and RadPerSampleToNyquist are shortcuts for the common pairs:
+//
+//	wn, err := dsp.HzToNyquist(50.0, fs)
+//	f, err := dsp.Butter(4, dsp.Lowpass(wn))
 //
 // # Conditioning
 //

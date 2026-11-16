@@ -81,7 +81,7 @@ func TestFIRWinRectangularIsTruncatedIdeal(t *testing.T) {
 	for k := range ones {
 		ones[k] = 1
 	}
-	h, err := FIRWin(ones, Lowpass(cutoff), NoScale())
+	h, err := FIRWin(ones, Lowpass(cutoff), FIRNoScale())
 	require.NoError(t, err)
 	for k, tap := range h {
 		m := float64(k - n/2)
@@ -98,7 +98,7 @@ func TestFIRWinOneTap(t *testing.T) {
 	h, err := FIRWin([]float64{1}, Lowpass(0.3))
 	require.NoError(t, err)
 	assert.Equal(t, []float64{1}, h)
-	h, err = FIRWin([]float64{1}, Lowpass(0.3), NoScale())
+	h, err = FIRWin([]float64{1}, Lowpass(0.3), FIRNoScale())
 	require.NoError(t, err)
 	assert.Equal(t, []float64{0.3}, h)
 }
