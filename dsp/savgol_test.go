@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/cxd309/tukey/internal/floats"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -331,20 +332,9 @@ func TestPolyFitIsOrthogonal(t *testing.T) {
 					want = f.norm[j]
 				}
 				// relative to ‖q_i‖·‖q_j‖
-				worst = math.Max(worst, math.Abs(compensatedDot(f.q[i], f.q[j])-want)/math.Sqrt(f.norm[i]*f.norm[j]))
+				worst = math.Max(worst, math.Abs(floats.Dot(f.q[i], f.q[j])-want)/math.Sqrt(f.norm[i]*f.norm[j]))
 			}
 		}
 		assert.Less(t, worst, 1e-14, "n %d", n)
 	}
-}
-
-// compensatedDot is as if summed exactly and rounded once, where a plain sum
-// loses the small term to the large ones, and sums an infinite product as it is.
-func TestCompensatedDot(t *testing.T) {
-	assert.Equal(t, 1.0, compensatedDot([]float64{1, 1, 1}, []float64{1e16, 1, -1e16}))
-	// (1 + 2⁻³⁰)² − 1 = 2⁻²⁹ + 2⁻⁶⁰: the product's rounding error, 2⁻⁶⁰, recovered
-	a := 1 + 0x1p-30
-	assert.Equal(t, 0x1p-29+0x1p-60, compensatedDot([]float64{a, -1}, []float64{a, 1}))
-	assert.Equal(t, math.Inf(1), compensatedDot([]float64{1, 2}, []float64{math.Inf(1), 1}))
-	assert.True(t, math.IsNaN(compensatedDot([]float64{1, 1}, []float64{math.Inf(1), math.Inf(-1)})))
 }

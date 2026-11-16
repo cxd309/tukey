@@ -5,14 +5,13 @@ import (
 	"math/cmplx"
 	"testing"
 
-	"github.com/cxd309/tukey/internal/special"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // ellipSpecs are (ripple, attenuation) pairs from gentle to sharp. 0.01 dB
 // against 20 dB puts v0 past half its quarter period, through
-// jacobiInQuarter's complementary branch, and 6 dB against 10 dB has the
+// special.JacobiInQuarter's complementary branch, and 6 dB against 10 dB has the
 // smallest 1 − m of the conformance cases.
 var ellipSpecs = []struct{ ripple, attenuation float64 }{
 	{1, 40},
@@ -127,35 +126,6 @@ func TestEllipPolesAreStable(t *testing.T) {
 	}
 }
 
-// Either side of K/2, jacobiInQuarter agrees with Jacobi at a parameter
-// where Jacobi is accurate across the whole quarter period.
-func TestJacobiInQuarterMatchesJacobi(t *testing.T) {
-	const mc = 0.3
-	quarter := special.EllipKM1(mc)
-	for _, fraction := range []float64{0.1, 0.49, 0.51, 0.9} {
-		u := fraction * quarter
-		sn, cn, dn := jacobiInQuarter(u, quarter-u, 1-mc, mc)
-		wantSN, wantCN, wantDN := special.Jacobi(u, 1-mc, mc)
-		assert.InEpsilon(t, wantSN, sn, 4e-15, "%gK", fraction)
-		assert.InEpsilon(t, wantCN, cn, 4e-15, "%gK", fraction)
-		assert.InEpsilon(t, wantDN, dn, 4e-15, "%gK", fraction)
-	}
-}
-
-// Near K, at a parameter near 1, cn is small: Jacobi loses its relative
-// digits there, but jacobiInQuarter keeps them. At u = K − δ, cn is
-// √mc·sn(δ)/dn(δ) ≈ √mc·δ.
-func TestJacobiInQuarterKeepsDigitsNearK(t *testing.T) {
-	const mc, delta = 1e-6, 1e-3
-	quarter := special.EllipKM1(mc)
-	snDelta, _, dnDelta := special.Jacobi(delta, 1-mc, mc)
-	want := math.Sqrt(mc) * snDelta / dnDelta
-	_, cn, _ := jacobiInQuarter(quarter-delta, delta, 1-mc, mc)
-	assert.InEpsilon(t, want, cn, 1e-15)
-	_, direct, _ := special.Jacobi(quarter-delta, 1-mc, mc)
-	assert.Greater(t, math.Abs(direct-want)/want, 1e-12, "Jacobi should drift here, or the case tests nothing")
-}
-
 func TestEllipRejectsInvalidInput(t *testing.T) {
 	for _, dB := range []float64{0, -1, nan, math.Inf(1), math.Inf(-1)} {
 		_, err := Ellip(2, dB, 40, Lowpass(0.3))
@@ -173,16 +143,4 @@ func TestEllipRejectsInvalidInput(t *testing.T) {
 	}
 	_, err := Ellip(2, 1, 40, Band{})
 	assert.ErrorIs(t, err, ErrInvalidBand)
-}
-
-// F(φ) + F(ψ) = K when tan φ · tan ψ = 1/√(1 − m), so the inverse sc and its
-// complement, found separately, sum to the quarter period.
-func TestIncompleteFComplementsSumToK(t *testing.T) {
-	for _, spec := range ellipSpecs {
-		epsilonSq := math.Expm1(spec.ripple * math.Ln10 / 10)
-		stopSq := math.Expm1(spec.attenuation * math.Ln10 / 10)
-		m1 := epsilonSq / stopSq
-		sum := incompleteF(1/epsilonSq, m1) + incompleteF(stopSq, m1)
-		assert.InEpsilon(t, special.EllipKM1(m1), sum, 1e-15, "%v", spec)
-	}
 }

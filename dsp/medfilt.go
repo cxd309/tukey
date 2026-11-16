@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"slices"
+
+	"github.com/cxd309/tukey/internal/floats"
 )
 
 // MedFiltEdge is how MedFilt treats a window that runs past the ends of x
@@ -126,7 +128,7 @@ func (w *sortedWindow) median(zeros int) float64 {
 	if count%2 == 1 {
 		return w.at(middle, zeros)
 	}
-	return midpoint(w.at(middle-1, zeros), w.at(middle, zeros))
+	return floats.Midpoint(w.at(middle-1, zeros), w.at(middle, zeros))
 }
 
 // at is the k-th smallest of the window's values and zeros extra zeros
@@ -140,16 +142,4 @@ func (w *sortedWindow) at(k, zeros int) float64 {
 	default:
 		return w.sorted[k-zeros]
 	}
-}
-
-// midpoint is (a + b)/2 rounded once.
-// a + b rounds once, and halving it is exact unless the half is subnormal,
-// and then a + b, on the subnormals' grid, was exact.
-// Only an overflowing a + b needs a/2 + b/2, where halving is exact.
-func midpoint(a, b float64) float64 {
-	sum := a + b
-	if math.IsInf(sum, 0) && !math.IsInf(a, 0) && !math.IsInf(b, 0) {
-		return a/2 + b/2
-	}
-	return sum / 2
 }

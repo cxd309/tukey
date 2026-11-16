@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/cxd309/tukey/internal/floats"
+	"github.com/cxd309/tukey/internal/special"
 )
 
 // delayConditionLimit is the condition number of B(e^(-jω)),
@@ -76,7 +77,7 @@ func (g delayGrid) polynomialDelay(c []float64, i int) (delay float64) {
 		}
 		symmetric = symmetric && diff == 0
 		antisymmetric = antisymmetric && sum == 0
-		sin, cos := sinCosPi(float64(g.angle(k, degree, i)) / float64(2*g.n))
+		sin, cos := special.SinCosPi(float64(g.angle(k, degree, i)) / float64(2*g.n))
 		m := float64(2*k-degree) / 2
 		re.Add(float64(sum * cos))
 		im.Add(float64(-diff * sin))

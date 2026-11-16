@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/cxd309/tukey/internal/floats"
+	"github.com/cxd309/tukey/internal/special"
 )
 
 // FIROption configures FIRWin
@@ -59,38 +60,9 @@ func (p passband) response(m float64) (h float64) {
 	if m == 0 {
 		return p.right - p.left
 	}
-	_, cos := sinCosPiProduct((p.left+p.right)/2, m)
-	sin, _ := sinCosPiProduct((p.right-p.left)/2, m)
+	_, cos := special.SinCosPiProduct((p.left+p.right)/2, m)
+	sin, _ := special.SinCosPiProduct((p.right-p.left)/2, m)
 	return 2 * cos * sin / (math.Pi * m)
-}
-
-// sinCosPi is sin(π·x) and cos(π·x), reduced exactly to a quarter turn
-// either side of a multiple of π/2, so x far from 0 is as accurate as x
-// near it: within a few ULP
-func sinCosPi(x float64) (sin, cos float64) {
-	n := math.Round(2 * x)
-	y := x - n/2 // exact: |y| ≤ 1/4
-	s, c := math.Sincos(math.Pi * y)
-	switch int64(n) & 3 {
-	case 0:
-		return s, c
-	case 1:
-		return c, -s
-	case 2:
-		return -s, -c
-	default:
-		return -c, s
-	}
-}
-
-// sinCosPiProduct is sin(π·a·b) and cos(π·a·b), with a·b's rounding error
-// added back by its first-order term, so a long filter's outer taps, where
-// a·b reaches hundreds, keep their digits
-func sinCosPiProduct(a, b float64) (sin, cos float64) {
-	t := float64(a * b)     // rounded, never fused: e is its error
-	e := math.FMA(a, b, -t) // a·b − t, exactly
-	sin, cos = sinCosPi(t)
-	return sin + math.Pi*e*cos, cos - math.Pi*e*sin
 }
 
 // FIRWin designs a linear-phase FIR filter for band by the window method and
@@ -155,7 +127,7 @@ func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err er
 	// the zero-phase amplitude at scaleAt, Σ h·cos(π·m·scaleAt)
 	var amplitude floats.Sum
 	for k, tap := range h {
-		_, cos := sinCosPiProduct(scaleAt, float64(k)-centre)
+		_, cos := special.SinCosPiProduct(scaleAt, float64(k)-centre)
 		amplitude.Add(float64(tap * cos))
 	}
 	scale := amplitude.Total()

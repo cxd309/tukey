@@ -44,14 +44,14 @@ func ellipticPrototype(order int, rippleDB, attenuationDB float64) (proto analog
 
 	// v0 = K`·r/K`(m1), where sc(r | 1-m1)=1/ε, so tan phi = 1/ε.
 	// its complement K`- v0 is K`·r̄K`(m1), where tan psi = 1/(√m1·tan phi) = √stopSq
-	r := incompleteF(1/epsilonSq, m1)
-	rBar := incompleteF(stopSq, m1)
-	sv, cv, dv := jacobiInQuarter(kPrime*r/k1Prime, kPrime*rBar/k1Prime, mc, m)
+	r := special.IncompleteF(1/epsilonSq, m1)
+	rBar := special.IncompleteF(stopSq, m1)
+	sv, cv, dv := special.JacobiInQuarter(kPrime*r/k1Prime, kPrime*rBar/k1Prime, mc, m)
 
 	// the j-th of N points across the quarter period K: j=0,
 	// in an odd order only, is the real pole and a zero at infinity
 	for j := 1 - order%2; j < order; j += 2 {
-		s, c, d := jacobiInQuarter(float64(j)*k/n, float64(order-j)*k/n, m, mc)
+		s, c, d := special.JacobiInQuarter(float64(j)*k/n, float64(order-j)*k/n, m, mc)
 		// 1 − (d·sv)², as a sum of positive terms
 		denominator := cv*cv + m*(s*sv)*(s*sv)
 		pole := -complex(c*d*sv*cv, s*dv) / complex(denominator, 0)
@@ -67,33 +67,6 @@ func ellipticPrototype(order int, rippleDB, attenuationDB float64) (proto analog
 	if order%2 == 0 {
 		proto.Gain *= math.Pow(10, -rippleDB/20)
 	}
-	return
-}
-
-// incompleteF is F(arctan(√tanSq) | 1-m1),
-// the incomplete elliptic integral of the first kind at a parameter near 1,
-// from Carlson's RF, whose second argment
-// 1- (1- m1)·sin^2 phi = cos^2 phi + m1·sin^2 phi needs no subtraction
-func incompleteF(tanSq, m1 float64) (f float64) {
-	cosSq := 1 / (1 + tanSq)
-	sinSq := tanSq / (1 + tanSq)
-	f = math.Sqrt(sinSq) * special.CarlsonRF(cosSq, cosSq+m1*sinSq, 1)
-	return
-}
-
-// jacobiInQuarter is special.Jacobi of u in [0,K], given uc=K- u too.
-// Above K/2, cn is small and Jacobi loses its relative digits,
-// so the functions come from uc instead, where Jacobi is accurate:
-//   - sn(u)= cn(uc)/ dn(uc),
-//   - cn(u)= √mc·sn(uc)/ dn(uc), and,
-//   - dn(u)= √mc/ dn(uc).
-func jacobiInQuarter(u, uc, m, mc float64) (sn, cn, dn float64) {
-	if u <= uc {
-		return special.Jacobi(u, m, mc)
-	}
-	snc, cnc, dnc := special.Jacobi(uc, m, mc)
-	rootMC := math.Sqrt(mc)
-	sn, cn, dn = cnc/dnc, rootMC*snc/dnc, rootMC/dnc
 	return
 }
 

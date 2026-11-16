@@ -123,14 +123,14 @@ func newPolyFit(n, polyOrder int) (f polyFit) {
 		}
 		for range 2 {
 			for i := 0; i <= j; i++ {
-				c := compensatedDot(f.q[i], v) / f.norm[i]
+				c := floats.Dot(f.q[i], v) / f.norm[i]
 				f.h[i][j] += c
 				for k := range v {
 					v[k] -= float64(c * f.q[i][k])
 				}
 			}
 		}
-		length := math.Sqrt(compensatedDot(v, v))
+		length := math.Sqrt(floats.Dot(v, v))
 		for k := range v {
 			v[k] /= length
 		}
@@ -221,23 +221,6 @@ func fitted(w, window []float64, at, deriv int) float64 {
 		e := (x - (d - shift)) + (-c - shift)
 		sum.Add(math.FMA(w[k], d, -product))
 		sum.Add(float64(w[k] * e))
-	}
-	return sum.Total()
-}
-
-// compensatedDot is Σ w_k·x_k,
-// each product's rounding error recovered by FMA and summed with compensation,
-// so it's as if summed exactly and rounded once,
-// except where the terms cancel to far below their size.
-// An infinite product has no rounding error to recover, and is summed as it is.
-func compensatedDot(w, x []float64) float64 {
-	var sum floats.Sum
-	for k := range w {
-		product := float64(w[k] * x[k])
-		sum.Add(product)
-		if !math.IsInf(product, 0) {
-			sum.Add(math.FMA(w[k], x[k], -product))
-		}
 	}
 	return sum.Total()
 }

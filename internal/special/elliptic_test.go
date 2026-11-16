@@ -152,3 +152,53 @@ func TestParameterFromNomeAtHalf(t *testing.T) {
 	assert.InEpsilon(t, 0.5, ParameterFromNome(math.Nextafter(nomeAtHalf, 0)), 1e-15)
 	assert.InEpsilon(t, 0.5000000000000001, ParameterFromNome(math.Nextafter(nomeAtHalf, 1)), 1e-15)
 }
+
+// Either side of K/2, JacobiInQuarter agrees with Jacobi at a parameter
+// where Jacobi is accurate across the whole quarter period.
+func TestJacobiInQuarterMatchesJacobi(t *testing.T) {
+	const mc = 0.3
+	quarter := EllipKM1(mc)
+	for _, fraction := range []float64{0.1, 0.49, 0.51, 0.9} {
+		u := fraction * quarter
+		sn, cn, dn := JacobiInQuarter(u, quarter-u, 1-mc, mc)
+		wantSN, wantCN, wantDN := Jacobi(u, 1-mc, mc)
+		assert.InEpsilon(t, wantSN, sn, 4e-15, "%gK", fraction)
+		assert.InEpsilon(t, wantCN, cn, 4e-15, "%gK", fraction)
+		assert.InEpsilon(t, wantDN, dn, 4e-15, "%gK", fraction)
+	}
+}
+
+// Near K, at a parameter near 1, cn is small: Jacobi loses its relative
+// digits there, but JacobiInQuarter keeps them. At u = K − δ, cn is
+// √mc·sn(δ)/dn(δ) ≈ √mc·δ.
+func TestJacobiInQuarterKeepsDigitsNearK(t *testing.T) {
+	const mc, delta = 1e-6, 1e-3
+	quarter := EllipKM1(mc)
+	snDelta, _, dnDelta := Jacobi(delta, 1-mc, mc)
+	want := math.Sqrt(mc) * snDelta / dnDelta
+	_, cn, _ := JacobiInQuarter(quarter-delta, delta, 1-mc, mc)
+	assert.InEpsilon(t, want, cn, 1e-15)
+	_, direct, _ := Jacobi(quarter-delta, 1-mc, mc)
+	assert.Greater(t, math.Abs(direct-want)/want, 1e-12, "Jacobi should drift here, or the case tests nothing")
+}
+
+// ellipticSpecs are elliptic filter specifications, ripple and attenuation in dB:
+// typical, a deep stopband, a tiny ripple, and close ripple and attenuation
+var ellipticSpecs = []struct{ ripple, attenuation float64 }{
+	{1, 40},
+	{0.5, 80},
+	{0.01, 20},
+	{6, 10},
+}
+
+// F(φ) + F(ψ) = K when tan φ · tan ψ = 1/√(1 − m), so the inverse sc and its
+// complement, found separately, sum to the quarter period.
+func TestIncompleteFComplementsSumToK(t *testing.T) {
+	for _, spec := range ellipticSpecs {
+		epsilonSq := math.Expm1(spec.ripple * math.Ln10 / 10)
+		stopSq := math.Expm1(spec.attenuation * math.Ln10 / 10)
+		m1 := epsilonSq / stopSq
+		sum := IncompleteF(1/epsilonSq, m1) + IncompleteF(stopSq, m1)
+		assert.InEpsilon(t, EllipKM1(m1), sum, 1e-15, "%v", spec)
+	}
+}

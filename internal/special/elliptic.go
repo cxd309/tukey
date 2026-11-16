@@ -159,3 +159,32 @@ func parameterFromSmallNome(q float64) (m float64) {
 	m = 16 * q * ratio * ratio * ratio * ratio
 	return
 }
+
+// IncompleteF is F(arctan(√tanSq) | 1 - m1),
+// the incomplete elliptic integral of the first kind at a parameter near 1.
+// It comes from Carlson's RF, whose second argument needs no subtraction:
+//
+//	1 - (1 - m1)·sin²φ = cos²φ + m1·sin²φ
+func IncompleteF(tanSq, m1 float64) (f float64) {
+	cosSq := 1 / (1 + tanSq)
+	sinSq := tanSq / (1 + tanSq)
+	f = math.Sqrt(sinSq) * CarlsonRF(cosSq, cosSq+m1*sinSq, 1)
+	return
+}
+
+// JacobiInQuarter is Jacobi of u in [0, K], given uc = K - u too.
+// Above K/2, cn is small and Jacobi loses its relative digits,
+// so the functions come from uc instead, where Jacobi is accurate:
+//
+//	sn(u) = cn(uc)/dn(uc)
+//	cn(u) = √mc·sn(uc)/dn(uc)
+//	dn(u) = √mc/dn(uc)
+func JacobiInQuarter(u, uc, m, mc float64) (sn, cn, dn float64) {
+	if u <= uc {
+		return Jacobi(u, m, mc)
+	}
+	snc, cnc, dnc := Jacobi(uc, m, mc)
+	rootMC := math.Sqrt(mc)
+	sn, cn, dn = cnc/dnc, rootMC*snc/dnc, rootMC/dnc
+	return
+}

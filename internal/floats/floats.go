@@ -53,3 +53,34 @@ func Reversed(v []float64) (r []float64) {
 	slices.Reverse(r)
 	return
 }
+
+// Dot is Σ w[k]·x[k], as if summed exactly and rounded once.
+// Each product's rounding error is recovered by FMA, and every term is summed with compensation.
+// The one exception is terms that cancel to far below their own size.
+// An infinite product has no rounding error to recover, and is summed as it is.
+func Dot(w, x []float64) (dot float64) {
+	var sum Sum
+	for k := range w {
+		product := float64(w[k] * x[k])
+		sum.Add(product)
+		if !math.IsInf(product, 0) {
+			sum.Add(math.FMA(w[k], x[k], -product))
+		}
+	}
+	dot = sum.Total()
+	return
+}
+
+// Midpoint is (a + b)/2, rounded once.
+// a + b rounds once, and halving it is exact unless the half is subnormal.
+// A subnormal half means a + b was on the subnormals' grid, so it was exact.
+// Only an overflowing a + b needs a/2 + b/2, where each half is exact.
+func Midpoint(a, b float64) (mid float64) {
+	sum := a + b
+	if math.IsInf(sum, 0) && !math.IsInf(a, 0) && !math.IsInf(b, 0) {
+		mid = a/2 + b/2
+		return
+	}
+	mid = sum / 2
+	return
+}

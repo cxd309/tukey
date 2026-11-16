@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/cxd309/tukey/internal/special"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +123,7 @@ func TestBigSinCosPi(t *testing.T) {
 		bigSin, bigCos := g.bigSinCosPi(num)
 		s, _ := bigSin.Float64()
 		c, _ := bigCos.Float64()
-		wantSin, wantCos := sinCosPi(float64(num) / float64(2*g.n))
+		wantSin, wantCos := special.SinCosPi(float64(num) / float64(2*g.n))
 		assert.InDelta(t, wantSin, s, 5*ulp(wantSin), "sin, num %d", num)
 		assert.InDelta(t, wantCos, c, 5*ulp(wantCos), "cos, num %d", num)
 	}

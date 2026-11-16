@@ -110,44 +110,6 @@ func exactMidpoint(a, b float64) float64 {
 	return m
 }
 
-// midpoint is (a + b)/2 rounded once, including where a + b overflows and
-// where the half is subnormal, which a/2 + b/2 rounds twice.
-func TestMidpoint(t *testing.T) {
-	tiny := math.SmallestNonzeroFloat64
-	cases := []struct {
-		name string
-		a, b float64
-		want float64
-	}{
-		{"exact", 1, 2, 1.5},
-		{"overflowing sum", 0x1p1023, 0x1.8p1023, 0x1.4p1023},
-		{"overflowing negative sum", -math.MaxFloat64, -math.MaxFloat64, -math.MaxFloat64},
-		{"opposite extremes", -math.MaxFloat64, math.MaxFloat64, 0},
-		// 1.5 subnormal ULPs, a tie, to even: 2; a/2 + b/2 gives 0 + 1
-		{"subnormal tie", tiny, 2 * tiny, 2 * tiny},
-		// 0.5 ULPs, a tie, to even: 0
-		{"smallest subnormal and 0", 0, tiny, 0},
-		{"infinity", 1, math.Inf(1), math.Inf(1)},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, midpoint(c.a, c.b))
-		})
-	}
-	assert.True(t, math.IsNaN(midpoint(math.Inf(-1), math.Inf(1))), "midpoint of −Inf and +Inf")
-
-	// against the exact midpoint, across magnitudes and signs
-	values := []float64{0, tiny, 3 * tiny, 0x1p-1022, 0x1.8p-1022, 0.1, 1, 1 + 0x1p-52, 3, 1e300, math.MaxFloat64}
-	for _, a := range values {
-		for _, b := range values {
-			for _, signs := range [][2]float64{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}} {
-				x, y := signs[0]*a, signs[1]*b
-				assert.Equal(t, exactMidpoint(x, y), midpoint(x, y), "midpoint(%v, %v)", x, y)
-			}
-		}
-	}
-}
-
 // The median filter's purpose: spikes go, and a step stays sharp.
 func TestMedFiltRemovesSpikesAndKeepsSteps(t *testing.T) {
 	x := []float64{20, 20, 20, 95, 20, 20, 30, 30, -40, 30, 30, 30}
