@@ -22,6 +22,7 @@ lint:
     dprint check
     test -z "$(gofmt -l .)"
     go vet ./...
+    go run ./cmd/doccomments
     cd {{scipy_reference_dir}} && uv run ruff format --check .
     cd {{scipy_reference_dir}} && uv run ruff check .
     uvx --from {{miss_hit}} mh_style reference/matlab

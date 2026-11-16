@@ -72,14 +72,13 @@ func Barthann(n int, opts ...Option) (w []float64, err error) {
 	return
 }
 
-// each of these gives a sample k of the first half of a symmetric window of length m,
-// which is all shape evaluates
-
+// boxcar is shape's value for the rectangular window, 1 everywhere
 func boxcar(_, _ int) (v float64) {
 	v = 1
 	return
 }
 
+// triang is shape's value for the triangular window, which is nonzero at its ends
 func triang(k, m int) (v float64) {
 	if m%2 == 0 {
 		v = float64(2*k+1) / float64(m)
@@ -89,11 +88,13 @@ func triang(k, m int) (v float64) {
 	return
 }
 
+// bartlett is shape's value for the Bartlett window, which is 0 at its ends
 func bartlett(k, m int) (v float64) {
 	v = 2 * float64(k) / float64(m-1)
 	return
 }
 
+// parzen is shape's value for the Parzen window, a piecewise cubic
 func parzen(k, m int) (v float64) {
 	fromCentre := float64(m-1)/2 - float64(k)
 	a := fromCentre / (float64(m) / 2)
@@ -104,6 +105,8 @@ func parzen(k, m int) (v float64) {
 	}
 	return
 }
+
+// bohman is shape's value for the Bohman window
 func bohman(k, m int) (v float64) {
 	if k == 0 {
 		return 0 // exactly, same as SciPy
@@ -113,6 +116,7 @@ func bohman(k, m int) (v float64) {
 	return
 }
 
+// barthann is shape's value for the Bartlett-Hann window
 func barthann(k, m int) (v float64) {
 	f := math.Abs(float64(k)/float64(m-1) - 0.5)
 	v = 0.62 - 0.48*f + 0.38*math.Cos(2*math.Pi*f)
