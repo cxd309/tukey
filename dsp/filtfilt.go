@@ -10,39 +10,6 @@ import (
 // see PadLen, MATLABPadLen, PadType and BySection
 type FiltOption func(*filtConfig)
 
-// filtConfig is FiltFilt's edge handling, built up from FiltOptions
-type filtConfig struct {
-	padding Padding
-	// padLen gives the padding length for a filter with ntaps coefficients
-	// nil means SciPy's default, 3 * ntaps
-	padLen func(ntaps filterSize) (n int)
-	// bySection filters each section forward and backward in turn
-	bySection bool
-}
-
-// filterSize is a filter's size, counted in both the ways padding length is:
-// ntaps same as scipy, for its default 3* ntaps,
-// and order same as matlab filtfilt, for its 3* order
-type filterSize struct {
-	ntaps int
-	order int
-}
-
-// effectiveOrder is the order of the filter b/a as matlab filtfilt counts it:
-// the index of the later of b and a last nonzero coefficients,
-// so trailing zeros don't count
-func effectiveOrder(b, a []float64) (order int) {
-	for _, coeffs := range [][]float64{b, a} {
-		for i := len(coeffs) - 1; i > order; i-- {
-			if coeffs[i] != 0 {
-				order = i
-				break
-			}
-		}
-	}
-	return
-}
-
 // PadLen sets how many samples FiltFilt and SOSFiltFilt add beyond each end of x
 // x must be longer than n
 // the default is SciPy's 3*ntaps: see each function for how it counts ntaps
@@ -93,6 +60,39 @@ func PadType(p Padding) (option FiltOption) {
 	return
 }
 
+// Padding selects how FiltFilt extends the signal past each end before filtering
+// so that each pass's startup transient falls on the extension rather than the data
+type Padding int
+
+const (
+	// PaddingOdd reflect the signal through its end sample
+	// so both value and slope continue smoothly
+	// default option like SciPy and MATLAB
+	PaddingOdd Padding = iota
+	// PaddingEven mirror the signal about its end sample
+	PaddingEven
+	// PaddingConstant repeats the end sample
+	PaddingConstant
+	// PaddingNone filters the signal as given
+	PaddingNone
+)
+
+func (p Padding) String() (name string) {
+	switch p {
+	case PaddingOdd:
+		name = "PaddingOdd"
+	case PaddingEven:
+		name = "PaddingEven"
+	case PaddingConstant:
+		name = "PaddingConstant"
+	case PaddingNone:
+		name = "PaddingNone"
+	default:
+		name = fmt.Sprintf("Padding(%d)", int(p))
+	}
+	return
+}
+
 // FiltFilt applies the IIR filter b, a to x twice, forward then backwards
 // giving zeros phase distortion: features stay where they are in the signal
 // and the magnitude response is squared (so the -3dB cutoff becomes -6dB)
@@ -123,6 +123,68 @@ func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
 	// len(f.a) is max(len(a), len(b)) after newDigitalFilter
 	size := filterSize{ntaps: len(f.a), order: effectiveOrder(f.b, f.a)}
 	y, err = cascade{f}.zeroPhase(x, size, opts)
+	return
+}
+
+// SOSFiltFilt is FiltFilt for a filter given as second-order sections:
+// it filters x forward then backward for zero phase, with the same edge handling options.
+// The default padding length is scipy 3* ntaps, where ntaps is 2* len(sos)+ 1,
+// minus one for each first-order section (b2 and a2 both zero).
+//
+// By default the whole cascade is filtered forward then backward, as scipy sosfiltfilt.
+// With BySection each section is, in turn, same as matlab filtfilt(sos, g, x),
+// which with MATLABPadLen it matches:
+//
+//	y, err := dsp.SOSFiltFilt(sos, x, dsp.BySection(), dsp.MATLABPadLen())
+//
+// matlab g is in the first section already.
+//
+// Returns:
+//   - ErrInvalidSOS same as SOSFilter (if sos has no sections or any section's a0 isn't 1)
+//   - ErrInvalidPadding, ErrSignalTooShort and ErrNoSteadyState same as FiltFilt
+//
+// Equivalent to:
+//   - scipy.signal.sosfiltfilt(sos, x)
+//   - matlab filtfilt(sos, 1, x), with BySection and MATLABPadLen
+func SOSFiltFilt(sos SOS, x []float64, opts ...FiltOption) (y []float64, err error) {
+	c, err := sos.toCascade()
+	if err != nil {
+		return nil, err
+	}
+	y, err = c.zeroPhase(x, sos.size(), opts)
+	return
+}
+
+// filtConfig is FiltFilt's edge handling, built up from FiltOptions
+type filtConfig struct {
+	padding Padding
+	// padLen gives the padding length for a filter with ntaps coefficients
+	// nil means SciPy's default, 3 * ntaps
+	padLen func(ntaps filterSize) (n int)
+	// bySection filters each section forward and backward in turn
+	bySection bool
+}
+
+// filterSize is a filter's size, counted in both the ways padding length is:
+// ntaps same as scipy, for its default 3* ntaps,
+// and order same as matlab filtfilt, for its 3* order
+type filterSize struct {
+	ntaps int
+	order int
+}
+
+// effectiveOrder is the order of the filter b/a as matlab filtfilt counts it:
+// the index of the later of b and a last nonzero coefficients,
+// so trailing zeros don't count
+func effectiveOrder(b, a []float64) (order int) {
+	for _, coeffs := range [][]float64{b, a} {
+		for i := len(coeffs) - 1; i > order; i-- {
+			if coeffs[i] != 0 {
+				order = i
+				break
+			}
+		}
+	}
 	return
 }
 
@@ -184,5 +246,43 @@ func (c cascade) forwardBackward(x []float64, n int, padding Padding) (y []float
 	forward, _ := c.apply(extended, scaledState(zi, extended[0]))
 	backward, _ := c.apply(floats.Reversed(forward), scaledState(zi, forward[len(forward)-1]))
 	y = floats.Reversed(backward)[n : len(backward)-n]
+	return
+}
+
+// extend returns a new slice holding x with n extension samples before and after it
+// it panics unless 0 <= n < len(x), and n == 0 for PaddingNone
+// FiltFilt validates caller input first, so a panic here means a bug inside dsp
+// equvalent to scipy.signal's odd_ext, even_ext and const_ext
+func (p Padding) extend(x []float64, n int) (extended []float64) {
+	if !(n >= 0 && n < len(x)) {
+		panic(fmt.Sprintf("dsp: extend needs 0 <= n < len(x), got n=%d, len(x)=%d", n, len(x)))
+	}
+	if p == PaddingNone && n != 0 {
+		panic(fmt.Sprintf("dsp: extend with PaddingNone needs n = 0, got n=%d", n))
+	}
+	first, last := x[0], x[len(x)-1]
+	extended = make([]float64, 0, len(x)+2*n)
+	for i := n; i >= 1; i-- {
+		extended = append(extended, p.reflect(first, x[i]))
+	}
+	extended = append(extended, x...)
+	for i := 1; i <= n; i++ {
+		extended = append(extended, p.reflect(last, x[len(x)-1-i]))
+	}
+	return
+}
+
+// reflect is the extensions sample that mirrors sample v about the edge sample edge
+func (p Padding) reflect(edge, v float64) (sample float64) {
+	switch p {
+	case PaddingOdd:
+		sample = 2*edge - v
+	case PaddingEven:
+		sample = v
+	case PaddingConstant:
+		sample = edge
+	default:
+		panic(fmt.Sprintf("dsp: unknown padding %v", p))
+	}
 	return
 }

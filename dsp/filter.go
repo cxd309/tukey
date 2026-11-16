@@ -6,6 +6,114 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
+// Filter applies the IIR filter, b, a to x causally (one direction only)
+// start from rest, so the output is phase-shifted; use FiltFilt for zero phase
+//
+// a must describe a stable filter (all poles strictly inside the unit circle);
+// this isn't checked, matching scipy.signal.lfilter and MATLAB's filter,
+// and an unstable filter produces output that grows without bound
+//
+// returns ErrInvalidCoefficients if b or a is empty, or a[0] is zero
+//
+// equivalent to scipy.signal.lfilter(b, a, x) and MATLAB's filter(b, a, x)
+func Filter(b, a, x []float64) (y []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, err
+	}
+	y, _ = f.apply(x, nil)
+	return
+}
+
+// FilterState is Filter starting from state zi, of length max(len(a), len(b)) - 1,
+// and also returns the final state zf. Passing each block's zf as the next block's zi
+// filters a long signal in blocks exactly as filtering it in one go would
+//
+// returns ErrInvalidCoefficients as Filter does, and ErrInvalidState if zi has the wrong length
+//
+// equivalent to scipy.signal.lfilter(b, a, x, zi=zi)
+func FilterState(b, a, x, zi []float64) (y, zf []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(zi) != len(f.a)-1 {
+		return nil, nil, fmt.Errorf("%w: zi has %d values; this filter needs max(len(a), len(b)) - 1 = %d",
+			ErrInvalidState, len(zi), len(f.a)-1)
+	}
+	y, zf = f.apply(x, zi)
+	return
+}
+
+// FilterZi returns the state the filter settles into after a long unit step input
+// scaled by a signal's first sample, it starts FilterState without a startup transient
+//
+// returns ErrInvalidCoefficients as Filter does,
+// ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
+//
+// equivalent to scipy.signal.lfilter_zi(b, a)
+func FilterZi(b, a []float64) (zi []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, err
+	}
+	zi, err = f.steadyState()
+	return
+}
+
+// SOSFilter applies the filter sos to x causally, section by section, starting from rest
+// stays accurate at high orders and narrow bands, where Filter's (b, a) form loses precision
+//
+// returns ErrInvalidSOS if sos has no sections or any section's a0 isn't 1
+//
+// equivalent to scipy.signal.sosfilt(sos, x) and MATLAB's sosfilt(sos, x)
+func SOSFilter(sos SOS, x []float64) (y []float64, err error) {
+	c, err := sos.toCascade()
+	if err != nil {
+		return nil, err
+	}
+	y, _ = c.apply(x, nil)
+	return
+}
+
+// SOSFilterState is SOSFilter starting from state zi, one pair per section, and also returns the final state zf
+// passing each block's zf as the next block's zi filters a long signal in blocks exactly as filtering it in one go would
+//
+// returns ErrInvalidSOS as SOSFilter does, and ErrInvalidState if zi doesn't have one pair per section
+//
+// equivalent to scipy.signal.sosfilt(sos, x, zi=zi)
+func SOSFilterState(sos SOS, x []float64, zi [][2]float64) (y []float64, zf [][2]float64, err error) {
+	c, err := sos.toCascade()
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(zi) != len(sos) {
+		return nil, nil, fmt.Errorf("%w: zi has %d pairs but sos has %d sections", ErrInvalidState, len(zi), len(sos))
+	}
+	y, final := c.apply(x, toCascadeState(zi))
+	zf = fromCascadeState(final)
+	return
+}
+
+// SOSFilterZi returns the state each section settles into after a long unit step input
+// scaled by a signal's first sample, it starts SOSFilterState without a startup transient
+//
+// returns ErrInvalidSOS as SOSFilter does, and ErrNoSteadyState if a section has a pole at DC
+//
+// equivalent to scipy.signal.sosfilt_zi(sos)
+func SOSFilterZi(sos SOS) (zi [][2]float64, err error) {
+	c, err := sos.toCascade()
+	if err != nil {
+		return nil, err
+	}
+	state, err := c.steadyState()
+	if err != nil {
+		return nil, err
+	}
+	zi = fromCascadeState(state)
+	return
+}
+
 // digitalFilter is a validated IIR filter in transfter-function form
 // normalised so a[0] == 1, with b and a zero-padded to the same length
 type digitalFilter struct {
@@ -26,6 +134,17 @@ func newDigitalFilter(b, a []float64) (f digitalFilter, err error) {
 	}
 	for i, v := range a {
 		f.a[i] = v / a[0]
+	}
+	return
+}
+
+// validateCoefficients checks that b and a describe a filter: both non-empty, and a[0] non-zero
+func validateCoefficients(b, a []float64) (err error) {
+	if len(b) == 0 || len(a) == 0 {
+		return fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
+	}
+	if a[0] == 0 {
+		return fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
 	}
 	return
 }
@@ -76,25 +195,6 @@ func (f digitalFilter) steadyState() (zi []float64, err error) {
 	return
 }
 
-// Filter applies the IIR filter, b, a to x causally (one direction only)
-// start from rest, so the output is phase-shifted; use FiltFilt for zero phase
-//
-// a must describe a stable filter (all poles strictly inside the unit circle);
-// this isn't checked, matching scipy.signal.lfilter and MATLAB's filter,
-// and an unstable filter produces output that grows without bound
-//
-// returns ErrInvalidCoefficients if b or a is empty, or a[0] is zero
-//
-// equivalent to scipy.signal.lfilter(b, a, x) and MATLAB's filter(b, a, x)
-func Filter(b, a, x []float64) (y []float64, err error) {
-	f, err := newDigitalFilter(b, a)
-	if err != nil {
-		return nil, err
-	}
-	y, _ = f.apply(x, nil)
-	return
-}
-
 // sums returns sum(b) and sum(a): the numerator and denominator at z = 1, which is DC.
 // They're summed with compensation, as a sharp filter's coefficients nearly cancel
 func (f digitalFilter) sums() (sumB, sumA float64) {
@@ -107,49 +207,68 @@ func (f digitalFilter) sums() (sumB, sumA float64) {
 	return
 }
 
-// FilterState is Filter starting from state zi, of length max(len(a), len(b)) - 1,
-// and also returns the final state zf. Passing each block's zf as the next block's zi
-// filters a long signal in blocks exactly as filtering it in one go would
-//
-// returns ErrInvalidCoefficients as Filter does, and ErrInvalidState if zi has the wrong length
-//
-// equivalent to scipy.signal.lfilter(b, a, x, zi=zi)
-func FilterState(b, a, x, zi []float64) (y, zf []float64, err error) {
-	f, err := newDigitalFilter(b, a)
-	if err != nil {
-		return nil, nil, err
+// cascade is a filter as sections applied in turn, each section's output feeding the next
+// a single (b, a) filter is a cascade of one, and an SOS is a cascade of second-order sections
+type cascade []digitalFilter
+
+// apply runs x through each section in turn, starting each from its state in initial
+// every section at rest when initial is nil
+// returns the output and each section's final state
+// equivalent to scipy.signal.sosfilter, or lfilter for a single section
+func (c cascade) apply(x []float64, initial [][]float64) (y []float64, final [][]float64) {
+	y = x
+	final = make([][]float64, len(c))
+	for i, f := range c {
+		var zi []float64
+		if initial != nil {
+			zi = initial[i]
+		}
+		y, final[i] = f.apply(y, zi)
 	}
-	if len(zi) != len(f.a)-1 {
-		return nil, nil, fmt.Errorf("%w: zi has %d values; this filter needs max(len(a), len(b)) - 1 = %d",
-			ErrInvalidState, len(zi), len(f.a)-1)
-	}
-	y, zf = f.apply(x, zi)
 	return
 }
 
-// FilterZi returns the state the filter settles into after a long unit step input
-// scaled by a signal's first sample, it starts FilterState without a startup transient
-//
-// returns ErrInvalidCoefficients as Filter does,
-// ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
-//
-// equivalent to scipy.signal.lfilter_zi(b, a)
-func FilterZi(b, a []float64) (zi []float64, err error) {
-	f, err := newDigitalFilter(b, a)
-	if err != nil {
-		return nil, err
+// steadyState returns each section's state after a long unit step into the cascade
+// each section's own steady state, scaled by the DC gain of the sections before it
+// equivalent to scipy.signal.sosfilt_zi, or lfilter_zi for a single section
+func (c cascade) steadyState() (zi [][]float64, err error) {
+	zi = make([][]float64, len(c))
+	scale := 1.0
+	for i, f := range c {
+		sectionZi, err := f.steadyState()
+		if err != nil {
+			return nil, err
+		}
+		zi[i] = floats.Scaled(sectionZi, scale)
+		sumB, sumA := f.sums()
+		scale *= sumB / sumA
 	}
-	zi, err = f.steadyState()
 	return
 }
 
-// validateCoefficients checks that b and a describe a filter: both non-empty, and a[0] non-zero
-func validateCoefficients(b, a []float64) (err error) {
-	if len(b) == 0 || len(a) == 0 {
-		return fmt.Errorf("%w: b and a must be non-empty, got len(b)=%d len(a)=%d", ErrInvalidCoefficients, len(b), len(a))
+// scaledState returns a copy of every section's state multiplied by s
+func scaledState(zi [][]float64, s float64) (scaled [][]float64) {
+	scaled = make([][]float64, len(zi))
+	for i := range zi {
+		scaled[i] = floats.Scaled(zi[i], s)
 	}
-	if a[0] == 0 {
-		return fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
+	return
+}
+
+// toCascadeState converts per-section states from SOS's fixed pairs to cascade's slices
+func toCascadeState(zi [][2]float64) (state [][]float64) {
+	state = make([][]float64, len(zi))
+	for i := range zi {
+		state[i] = []float64{zi[i][0], zi[i][1]}
+	}
+	return
+}
+
+// fromCascadeState converts per-section states from cascade's slices to SOS's fixed pairs
+func fromCascadeState(state [][]float64) (zi [][2]float64) {
+	zi = make([][2]float64, len(state))
+	for i := range state {
+		zi[i] = [2]float64{state[i][0], state[i][1]}
 	}
 	return
 }
