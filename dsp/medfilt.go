@@ -8,27 +8,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// MedFiltEdge is how MedFilt treats a window that runs past the ends of x
-type MedFiltEdge int
-
-const (
-	// MedFiltTruncate takes the median of only the samples inside x,
-	// so a window near the ends is shorter, and uneven.
-	// The default: the ends stay where the signal is, wherever that is
-	MedFiltTruncate MedFiltEdge = iota
-	// MedFiltZeroPad fills the window past the ends with zeros,
-	// which pulls the ends towards 0, it suits a signal centred on 0
-	MedFiltZeroPad
-)
-
-// MedFiltOption configures MedFilt
-type MedFiltOption func(*medFiltConfig)
-
-// MedFiltEdges sets how MedFilt treats the ends. MedFiltTruncate by default.
-func MedFiltEdges(edge MedFiltEdge) MedFiltOption {
-	return func(c *medFiltConfig) { c.edge = edge }
-}
-
 // MedFilt replaces each sample of x with the median of the n samples centred on it,
 // which removes spikes without blurring steps. n must be odd.
 // A window holding a NaN gives NaN.
@@ -77,6 +56,27 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 		y[i] = window.median(zeros)
 	}
 	return
+}
+
+// MedFiltEdge is how MedFilt treats a window that runs past the ends of x
+type MedFiltEdge int
+
+const (
+	// MedFiltTruncate takes the median of only the samples inside x,
+	// so a window near the ends is shorter, and uneven.
+	// The default: the ends stay where the signal is, wherever that is
+	MedFiltTruncate MedFiltEdge = iota
+	// MedFiltZeroPad fills the window past the ends with zeros,
+	// which pulls the ends towards 0, it suits a signal centred on 0
+	MedFiltZeroPad
+)
+
+// MedFiltOption configures MedFilt
+type MedFiltOption func(*medFiltConfig)
+
+// MedFiltEdges sets how MedFilt treats the ends. MedFiltTruncate by default.
+func MedFiltEdges(edge MedFiltEdge) MedFiltOption {
+	return func(c *medFiltConfig) { c.edge = edge }
 }
 
 // medFiltConfig is MedFilt's settings, built from MedFiltOptions

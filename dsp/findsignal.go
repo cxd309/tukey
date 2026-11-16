@@ -10,6 +10,36 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
+// FindSignal returns the window of data closest to signal, by the sum of
+// squared differences, with ties to the earliest window.
+//
+// Returns:
+//   - ErrInvalidLength for an empty signal, or one longer than data,
+//   - ErrInvalidMode for an unknown SearchMethod.
+//
+// Equivalent to MATLAB [istart, istop, dist] = findsignal(data, signal),
+// with 0-based indices. No SciPy equivalent.
+func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalMatch, err error) {
+	if len(signal) == 0 || len(signal) > len(data) {
+		return match, fmt.Errorf("%w: signal of length %d in data of length %d", ErrInvalidLength, len(signal), len(data))
+	}
+	var cfg findSignalConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	switch cfg.method {
+	case SearchDirect:
+		match = findSignalDirect(data, signal)
+	case SearchFast:
+		match, err = findSignalFast(data, signal)
+	case SearchHybrid:
+		match, err = findSignalHybrid(data, signal)
+	default:
+		err = fmt.Errorf("%w: SearchMethod %d", ErrInvalidMode, cfg.method)
+	}
+	return
+}
+
 // SignalMatch is the window of data closest to the signal FindSignal looks for.
 type SignalMatch struct {
 	Start    int
@@ -46,36 +76,6 @@ type FindSignalOption func(*findSignalConfig)
 // SignalSearch sets how FindSignal scores each window.
 func SignalSearch(method SearchMethod) FindSignalOption {
 	return func(c *findSignalConfig) { c.method = method }
-}
-
-// FindSignal returns the window of data closest to signal, by the sum of
-// squared differences, with ties to the earliest window.
-//
-// Returns:
-//   - ErrInvalidLength for an empty signal, or one longer than data,
-//   - ErrInvalidMode for an unknown SearchMethod.
-//
-// Equivalent to MATLAB [istart, istop, dist] = findsignal(data, signal),
-// with 0-based indices. No SciPy equivalent.
-func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalMatch, err error) {
-	if len(signal) == 0 || len(signal) > len(data) {
-		return match, fmt.Errorf("%w: signal of length %d in data of length %d", ErrInvalidLength, len(signal), len(data))
-	}
-	var cfg findSignalConfig
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	switch cfg.method {
-	case SearchDirect:
-		match = findSignalDirect(data, signal)
-	case SearchFast:
-		match, err = findSignalFast(data, signal)
-	case SearchHybrid:
-		match, err = findSignalHybrid(data, signal)
-	default:
-		err = fmt.Errorf("%w: SearchMethod %d", ErrInvalidMode, cfg.method)
-	}
-	return
 }
 
 // findSignalConfig is FindSignal's settings, built from FindSignalOptions.

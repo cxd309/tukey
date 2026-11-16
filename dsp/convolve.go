@@ -8,54 +8,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// ConvolveMethod is how Convolve and Correlate compute their sums.
-type ConvolveMethod int
-
-const (
-	// ConvolveAuto chooses ConvolveDirect or ConvolveFFT by which is faster for the inputs' lengths,
-	// ConvolveFFT for all but the shortest inputs.
-	// If either input has a NaN or infinite sample it uses ConvolveDirect,
-	// so the same affects only the outputs it's summed into.
-	// The default option. For inputs with high dynamic range, set ConvolveDirect.
-	ConvolveAuto ConvolveMethod = iota
-	// ConvolveDirect sums every product directly, each kept exactly and summed with compensation,
-	// so each output is within about 1 ULP of its exact value, however small it is beside the others.
-	// O(len(a)·len(v)).
-	ConvolveDirect
-	// ConvolveFFT multiplies the inputs' spectra, O(n log n).
-	// Its error is relative to the largest output, so outputs much smaller than that lose relative accuracy:
-	// 1e-3 noise beside a 1e8 spikes keeps only a few digits.
-	// A NaN or infinite sample spreads to every output.
-	ConvolveFFT
-)
-
-// ConvolveOption configures Convolve and Correlate
-type ConvolveOption func(*convolveConfig)
-
-// ConvolveSame returns the central len(a) outputs of the full result,
-// from (len(v)-1)/2 rounded down, same numpy and scipy "same" mode
-func ConvolveSame() ConvolveOption {
-	return func(c *convolveConfig) { c.output = outputSame }
-}
-
-// ConvolveValid returns only the outputs where the shorter input lies wholly inside the longer,
-// |len(a) - len(v)| + 1 of them, same as scipy "valid" mode.
-// Convolution is commutative, so it doesn't matter which input is longer.
-func ConvolveValid() ConvolveOption {
-	return func(c *convolveConfig) { c.output = outputValid }
-}
-
-// ConvolveBy sets how the sums are computed. ConvolveAuto by default.
-func ConvolveBy(method ConvolveMethod) ConvolveOption {
-	return func(c *convolveConfig) { c.method = method }
-}
-
-// Correlation is a cross-correlation: Values[i] is at lag Lags[i]
-type Correlation struct {
-	Values []float64
-	Lags   []int
-}
-
 // Convolve returns the convolution of a and v, c[k] = Σ a[i]·v[k-i]:
 // by default the full results, len(a) + len(v) - 1 outputs,
 // or the segment selected by ConvolveSame or ConvolveValid.
@@ -122,6 +74,54 @@ func Correlate(a, v []float64, opts ...ConvolveOption) (c Correlation, err error
 		c.Lags[i] = start + i - (len(v) - 1) // full's first output is lag -(len(v)-1)
 	}
 	return
+}
+
+// ConvolveMethod is how Convolve and Correlate compute their sums.
+type ConvolveMethod int
+
+const (
+	// ConvolveAuto chooses ConvolveDirect or ConvolveFFT by which is faster for the inputs' lengths,
+	// ConvolveFFT for all but the shortest inputs.
+	// If either input has a NaN or infinite sample it uses ConvolveDirect,
+	// so the same affects only the outputs it's summed into.
+	// The default option. For inputs with high dynamic range, set ConvolveDirect.
+	ConvolveAuto ConvolveMethod = iota
+	// ConvolveDirect sums every product directly, each kept exactly and summed with compensation,
+	// so each output is within about 1 ULP of its exact value, however small it is beside the others.
+	// O(len(a)·len(v)).
+	ConvolveDirect
+	// ConvolveFFT multiplies the inputs' spectra, O(n log n).
+	// Its error is relative to the largest output, so outputs much smaller than that lose relative accuracy:
+	// 1e-3 noise beside a 1e8 spikes keeps only a few digits.
+	// A NaN or infinite sample spreads to every output.
+	ConvolveFFT
+)
+
+// ConvolveOption configures Convolve and Correlate
+type ConvolveOption func(*convolveConfig)
+
+// ConvolveSame returns the central len(a) outputs of the full result,
+// from (len(v)-1)/2 rounded down, same numpy and scipy "same" mode
+func ConvolveSame() ConvolveOption {
+	return func(c *convolveConfig) { c.output = outputSame }
+}
+
+// ConvolveValid returns only the outputs where the shorter input lies wholly inside the longer,
+// |len(a) - len(v)| + 1 of them, same as scipy "valid" mode.
+// Convolution is commutative, so it doesn't matter which input is longer.
+func ConvolveValid() ConvolveOption {
+	return func(c *convolveConfig) { c.output = outputValid }
+}
+
+// ConvolveBy sets how the sums are computed. ConvolveAuto by default.
+func ConvolveBy(method ConvolveMethod) ConvolveOption {
+	return func(c *convolveConfig) { c.method = method }
+}
+
+// Correlation is a cross-correlation: Values[i] is at lag Lags[i]
+type Correlation struct {
+	Values []float64
+	Lags   []int
 }
 
 // convolveConfig is Convolve's and Correlate's settings, built from ConvolveOptions.

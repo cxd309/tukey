@@ -23,14 +23,6 @@ const (
 // Option configures a tranform (see Norm and N)
 type Option func(*config)
 
-// config is a tranform's settings
-// built from Options
-type config struct {
-	norm Normalisation
-	n    int  // tranform length
-	nSet bool // if N was given, otherwise n is len(input)
-}
-
 // Norm sets the normalisation, default is NormBackward
 func Norm(norm Normalisation) (option Option) {
 	option = func(c *config) { c.norm = norm }
@@ -43,6 +35,14 @@ func Norm(norm Normalisation) (option Option) {
 func N(n int) (option Option) {
 	option = func(c *config) { c.n, c.nSet = n, true }
 	return
+}
+
+// config is a tranform's settings
+// built from Options
+type config struct {
+	norm Normalisation
+	n    int  // tranform length
+	nSet bool // if N was given, otherwise n is len(input)
 }
 
 func newConfig(opts []Option, inputLength int) (cfg config, err error) {

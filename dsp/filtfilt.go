@@ -6,6 +6,68 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
+// FiltFilt applies the IIR filter b, a to x twice, forward then backwards
+// giving zeros phase distortion: features stay where they are in the signal
+// and the magnitude response is squared (so the -3dB cutoff becomes -6dB)
+//
+// x is extended past each end (see PadType, PadLen) and each pass starts from
+// the filter's steady state scaled to the edge sample, so neither end shows a
+// startup transient
+// x must be longer than the padding length
+//
+// a must describe a stable filter (all poles strictly inside the unit circle):
+// this isn't checked, matching SciPy and MATLAB
+//
+//	b, a, err := dsp.Butter(2, dsp.Lowpass(0.3))
+//	y, err := dsp.FiltFilt(b, a, x)
+//
+// returns ErrInvalidCoefficients if b or a is empty or a[0] is zero,
+// ErrInvalidPadding for an unknown Padding or a negative padding length,
+// ErrSignalTooShort if len(x) isn't greater than the padding length,
+// and ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
+//
+// equivalent to scipy.signal.filtfilt(b, a, x)
+// or to MATLAB filtfilt(b, a, x) with MATLABPadLen
+func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
+	f, err := newDigitalFilter(b, a)
+	if err != nil {
+		return nil, err
+	}
+	// len(f.a) is max(len(a), len(b)) after newDigitalFilter
+	size := filterSize{ntaps: len(f.a), order: effectiveOrder(f.b, f.a)}
+	y, err = cascade{f}.zeroPhase(x, size, opts)
+	return
+}
+
+// SOSFiltFilt is FiltFilt for a filter given as second-order sections:
+// it filters x forward then backward for zero phase, with the same edge handling options.
+// The default padding length is scipy 3* ntaps, where ntaps is 2* len(sos)+ 1,
+// minus one for each first-order section (b2 and a2 both zero).
+//
+// By default the whole cascade is filtered forward then backward, as scipy sosfiltfilt.
+// With BySection each section is, in turn, same as matlab filtfilt(sos, g, x),
+// which with MATLABPadLen it matches:
+//
+//	y, err := dsp.SOSFiltFilt(sos, x, dsp.BySection(), dsp.MATLABPadLen())
+//
+// matlab g is in the first section already.
+//
+// Returns:
+//   - ErrInvalidSOS same as SOSFilter (if sos has no sections or any section's a0 isn't 1)
+//   - ErrInvalidPadding, ErrSignalTooShort and ErrNoSteadyState same as FiltFilt
+//
+// Equivalent to:
+//   - scipy.signal.sosfiltfilt(sos, x)
+//   - matlab filtfilt(sos, 1, x), with BySection and MATLABPadLen
+func SOSFiltFilt(sos SOS, x []float64, opts ...FiltOption) (y []float64, err error) {
+	c, err := sos.toCascade()
+	if err != nil {
+		return nil, err
+	}
+	y, err = c.zeroPhase(x, sos.size(), opts)
+	return
+}
+
 // FiltOption configures FiltFilt and SOSFiltFilt edge handling
 // see PadLen, MATLABPadLen, PadType and BySection
 type FiltOption func(*filtConfig)
@@ -90,68 +152,6 @@ func (p Padding) String() (name string) {
 	default:
 		name = fmt.Sprintf("Padding(%d)", int(p))
 	}
-	return
-}
-
-// FiltFilt applies the IIR filter b, a to x twice, forward then backwards
-// giving zeros phase distortion: features stay where they are in the signal
-// and the magnitude response is squared (so the -3dB cutoff becomes -6dB)
-//
-// x is extended past each end (see PadType, PadLen) and each pass starts from
-// the filter's steady state scaled to the edge sample, so neither end shows a
-// startup transient
-// x must be longer than the padding length
-//
-// a must describe a stable filter (all poles strictly inside the unit circle):
-// this isn't checked, matching SciPy and MATLAB
-//
-//	b, a, err := dsp.Butter(2, dsp.Lowpass(0.3))
-//	y, err := dsp.FiltFilt(b, a, x)
-//
-// returns ErrInvalidCoefficients if b or a is empty or a[0] is zero,
-// ErrInvalidPadding for an unknown Padding or a negative padding length,
-// ErrSignalTooShort if len(x) isn't greater than the padding length,
-// and ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
-//
-// equivalent to scipy.signal.filtfilt(b, a, x)
-// or to MATLAB filtfilt(b, a, x) with MATLABPadLen
-func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
-	f, err := newDigitalFilter(b, a)
-	if err != nil {
-		return nil, err
-	}
-	// len(f.a) is max(len(a), len(b)) after newDigitalFilter
-	size := filterSize{ntaps: len(f.a), order: effectiveOrder(f.b, f.a)}
-	y, err = cascade{f}.zeroPhase(x, size, opts)
-	return
-}
-
-// SOSFiltFilt is FiltFilt for a filter given as second-order sections:
-// it filters x forward then backward for zero phase, with the same edge handling options.
-// The default padding length is scipy 3* ntaps, where ntaps is 2* len(sos)+ 1,
-// minus one for each first-order section (b2 and a2 both zero).
-//
-// By default the whole cascade is filtered forward then backward, as scipy sosfiltfilt.
-// With BySection each section is, in turn, same as matlab filtfilt(sos, g, x),
-// which with MATLABPadLen it matches:
-//
-//	y, err := dsp.SOSFiltFilt(sos, x, dsp.BySection(), dsp.MATLABPadLen())
-//
-// matlab g is in the first section already.
-//
-// Returns:
-//   - ErrInvalidSOS same as SOSFilter (if sos has no sections or any section's a0 isn't 1)
-//   - ErrInvalidPadding, ErrSignalTooShort and ErrNoSteadyState same as FiltFilt
-//
-// Equivalent to:
-//   - scipy.signal.sosfiltfilt(sos, x)
-//   - matlab filtfilt(sos, 1, x), with BySection and MATLABPadLen
-func SOSFiltFilt(sos SOS, x []float64, opts ...FiltOption) (y []float64, err error) {
-	c, err := sos.toCascade()
-	if err != nil {
-		return nil, err
-	}
-	y, err = c.zeroPhase(x, sos.size(), opts)
 	return
 }
 

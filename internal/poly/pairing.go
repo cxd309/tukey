@@ -52,6 +52,28 @@ func (pr *Pairing) Next() (zeros, poles []complex128) {
 	return
 }
 
+// rootType selects which roots worstPole and nearestRoot consider
+type rootType int
+
+const (
+	rootAny rootType = iota
+	rootReal
+	rootComplex
+)
+
+// matches reports whether r is of type t
+func (t rootType) matches(r complex128) (ok bool) {
+	switch t {
+	case rootReal:
+		ok = isReal(r)
+	case rootComplex:
+		ok = !isReal(r)
+	default:
+		ok = true
+	}
+	return
+}
+
 // lastRealPole pairs the only remaining real pole with the nearest real zero,
 // plus a pole and zero at the origin
 func (pr *Pairing) lastRealPole(p1 complex128) (zeros, poles []complex128) {
@@ -111,28 +133,6 @@ func (pr *Pairing) takePole(t rootType) (p complex128) {
 // takeZero removes and returns the zero of type t nearest to target
 func (pr *Pairing) takeZero(target complex128, t rootType) (z complex128) {
 	z, pr.zeros = takeAt(pr.zeros, nearestRoot(pr.zeros, target, t))
-	return
-}
-
-// rootType selects which roots worstPole and nearestRoot consider
-type rootType int
-
-const (
-	rootAny rootType = iota
-	rootReal
-	rootComplex
-)
-
-// matches reports whether r is of type t
-func (t rootType) matches(r complex128) (ok bool) {
-	switch t {
-	case rootReal:
-		ok = isReal(r)
-	case rootComplex:
-		ok = !isReal(r)
-	default:
-		ok = true
-	}
 	return
 }
 

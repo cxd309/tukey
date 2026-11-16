@@ -4,31 +4,6 @@ package fft
 // larger primes use Bluestein
 const maxRadix = 13
 
-// mixedRadix is the recursive Cooley-Tukey FFT for lengths whose prime factors are all at most maxRadix
-// with n = pm and p the smallest prime factor,
-// x splits into p interleaved subsequences x[r], x[r+p], x[r+2p], ... of length m
-// each transformed recursively as Y_r, output k=q+sm then combines them
-//
-//	X[q + sm] = sum_r (w_n^(rq) Y_r[q]) w_p^(rs)
-//
-// a twiddle between levels, then a p-point DFT (the butterfly)
-func mixedRadix(x []complex128) (y []complex128) {
-	n := len(x)
-	// a large prime is a single Bluestein butterfly
-	// doesn't need the twiddle table or the scratch buffer so don't build
-	if n > maxRadix && smallestPrimeFactor(n) == n {
-		y = bluestein(x)
-		return
-	}
-	y = make([]complex128, n)
-	plan := mixedRadixPlan{
-		table: twiddleTable(n),
-		terms: make([]complex128, max(largestPrimeFactor(n), 4)),
-	}
-	plan.transform(x, 1, y)
-	return
-}
-
 // mixedRadixPlan is what every level of one transform shares
 type mixedRadixPlan struct {
 	table []complex128 // e^(-2 pi i·j/N) for the top-level length N
@@ -71,6 +46,31 @@ func (plan mixedRadixPlan) transform(in []complex128, step int, out []complex128
 		}
 		butterfly(terms, plan.table, m*stride, out[q:], m)
 	}
+}
+
+// mixedRadix is the recursive Cooley-Tukey FFT for lengths whose prime factors are all at most maxRadix
+// with n = pm and p the smallest prime factor,
+// x splits into p interleaved subsequences x[r], x[r+p], x[r+2p], ... of length m
+// each transformed recursively as Y_r, output k=q+sm then combines them
+//
+//	X[q + sm] = sum_r (w_n^(rq) Y_r[q]) w_p^(rs)
+//
+// a twiddle between levels, then a p-point DFT (the butterfly)
+func mixedRadix(x []complex128) (y []complex128) {
+	n := len(x)
+	// a large prime is a single Bluestein butterfly
+	// doesn't need the twiddle table or the scratch buffer so don't build
+	if n > maxRadix && smallestPrimeFactor(n) == n {
+		y = bluestein(x)
+		return
+	}
+	y = make([]complex128, n)
+	plan := mixedRadixPlan{
+		table: twiddleTable(n),
+		terms: make([]complex128, max(largestPrimeFactor(n), 4)),
+	}
+	plan.transform(x, 1, y)
+	return
 }
 
 // smallestPrimeFactor returns n's smallest prime factor or n itself if n is prime (n<=2)

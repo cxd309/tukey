@@ -9,33 +9,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// Tolerance says how close got must be to want for a slice comparison
-// a value passes if |got-want| <= Scaled*scale + Rel*|want|, where scale is
-// max|want|, or the floor given to CompareScaled if that's larger
-type Tolerance struct {
-	Rel    float64 // relative to each expected value
-	Scaled float64 // relative to the comparison's scale, so small but valid slices are still checked
-}
-
-// Number is the element types Compare can handle
-type Number interface {
-	float64 | complex128
-}
-
-// Mismatch is one element outside tolerance
-type Mismatch struct {
-	Index         int
-	Diff, Allowed float64
-}
-
-// Comparison is the outcome of comparing got against want
-type Comparison struct {
-	// Worst is the largest |got-want| relative to the comparison's scale:
-	// the measured error that tolerances are set from
-	Worst      float64
-	Mismatches []Mismatch
-}
-
 // Compare measures got against want element by element,
 // with errors relative to max|want| (see Tolerance)
 // NaN in the same position of both counts as a match, as in numpy.allclose(equal_nan=True)
@@ -93,6 +66,33 @@ func AssertClose[T Number](t testing.TB, name string, got, want []T, tol Toleran
 	if testing.Verbose() {
 		t.Logf("%s: worst %.3e (%.0f ULPs)", name, c.Worst, c.Worst/floats.Epsilon)
 	}
+}
+
+// Tolerance says how close got must be to want for a slice comparison
+// a value passes if |got-want| <= Scaled*scale + Rel*|want|, where scale is
+// max|want|, or the floor given to CompareScaled if that's larger
+type Tolerance struct {
+	Rel    float64 // relative to each expected value
+	Scaled float64 // relative to the comparison's scale, so small but valid slices are still checked
+}
+
+// Number is the element types Compare can handle
+type Number interface {
+	float64 | complex128
+}
+
+// Mismatch is one element outside tolerance
+type Mismatch struct {
+	Index         int
+	Diff, Allowed float64
+}
+
+// Comparison is the outcome of comparing got against want
+type Comparison struct {
+	// Worst is the largest |got-want| relative to the comparison's scale:
+	// the measured error that tolerances are set from
+	Worst      float64
+	Mismatches []Mismatch
 }
 
 // magnitude is |v| for real values and the modulus for complex ones

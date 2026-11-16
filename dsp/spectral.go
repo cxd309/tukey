@@ -10,87 +10,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// SpectralScaling is the units power is given in
-type SpectralScaling int
-
-const (
-	// ScalingDensity gives power spectral density, in units^2/Hz:
-	// comparable across samples rates and windows, and the default
-	ScalingDensity SpectralScaling = iota
-	// ScalingSpectrum gives power spectrum, in units^2: a sine's peak reads its power
-	ScalingSpectrum
-)
-
-// SpectralAverage is how Welch combines its segments' spectra
-type SpectralAverage int
-
-const (
-	// AverageMean averages them, default option
-	AverageMean SpectralAverage = iota
-	// AverageMedian takes their median, corrected for its bias,
-	// which is robust to a few segments with transients in them
-	AverageMedian
-)
-
-// TimeFrequency is a signal's spectrum over time: one spectrum per segment
-type TimeFrequency[T complex128 | float64] struct {
-	Frequencies []float64 // Hz, one for each value in a segment's spectrum
-	Times       []float64 // s, the centre of each segment
-	Values      [][]T     // Values[segment][frequency]
-}
-
-// SpectralOption configures STFT, Spectrogram, Welch and Periodogram.
-// A function given an option that doesn't apply to it returns ErrInvalidParameter
-type SpectralOption func(*spectralConfig)
-
-// Spectrum is a power spectrum: one value per frequency
-type Spectrum struct {
-	Frequencies []float64 // Hz
-	Power       []float64 // units^2/Hz, or units^2 with ScalingSpectrum
-}
-
-// Overlap sets how many samples neighbouring segments share.
-// Half the window by default
-func Overlap(n int) SpectralOption {
-	return func(c *spectralConfig) { c.overlap, c.given[optionOverlap] = n, true }
-}
-
-// NFFT zero-pads each segment to n samples before transforming it,
-// for more finely spaced frequencies. The window's length by default.
-func NFFT(n int) SpectralOption {
-	return func(c *spectralConfig) { c.nfft, c.given[optionNFFT] = n, true }
-}
-
-// AtFrequencies evaluates each segment's transform at these frequencies, in Hz,
-// rather than at the FFT's bins: to look closely at a band without a huge NFFT.
-// It can't be combined with NFFT or TwoSided.
-func AtFrequencies(f []float64) SpectralOption {
-	f = append([]float64(nil), f...)
-	return func(c *spectralConfig) { c.frequencies, c.given[optionAtFrequencies] = f, true }
-}
-
-// TwoSided keeps the negative frequencies too, ordered as fft.Freq orders them.
-// One-sided by default, as a real signal's negative frequencies mirror its positive ones.
-func TwoSided() SpectralOption {
-	return func(c *spectralConfig) { c.twoSided, c.given[optionTwoSided] = true, true }
-}
-
-// SegmentDetrend detrends each segment, before it's windowed, same as Detrend.
-// No detrending by default: to remove the whole signal's mean or trend, call Detrend first.
-func SegmentDetrend(mode DetrendMode) SpectralOption {
-	return func(c *spectralConfig) { c.detrend, c.given[optionSegmentDetrend] = mode, true }
-}
-
-// Scaling sets the units power is given . ScalingDensity by default.
-func Scaling(s SpectralScaling) SpectralOption {
-	return func(c *spectralConfig) { c.scaling, c.given[optionScaling] = s, true }
-}
-
-// Average sets how Welch combines its segments' spectra. AverageMean by default
-func Average(a SpectralAverage) SpectralOption {
-	return func(c *spectralConfig) { c.average, c.given[optionAverage] = a, true }
-}
-
 // STFT returns the short-time Fourier transofrm of x, sampled at fs Hz:
 // x cut into segments of len(window) samples,
 // each multiplied by window and tranformed.
@@ -192,6 +111,87 @@ func Periodogram(x []float64, fs float64, window []float64, opts ...SpectralOpti
 	}
 	spectrum = Spectrum{Frequencies: binFrequencies(cfg, fs), Power: power[0]}
 	return
+}
+
+// SpectralScaling is the units power is given in
+type SpectralScaling int
+
+const (
+	// ScalingDensity gives power spectral density, in units^2/Hz:
+	// comparable across samples rates and windows, and the default
+	ScalingDensity SpectralScaling = iota
+	// ScalingSpectrum gives power spectrum, in units^2: a sine's peak reads its power
+	ScalingSpectrum
+)
+
+// SpectralAverage is how Welch combines its segments' spectra
+type SpectralAverage int
+
+const (
+	// AverageMean averages them, default option
+	AverageMean SpectralAverage = iota
+	// AverageMedian takes their median, corrected for its bias,
+	// which is robust to a few segments with transients in them
+	AverageMedian
+)
+
+// TimeFrequency is a signal's spectrum over time: one spectrum per segment
+type TimeFrequency[T complex128 | float64] struct {
+	Frequencies []float64 // Hz, one for each value in a segment's spectrum
+	Times       []float64 // s, the centre of each segment
+	Values      [][]T     // Values[segment][frequency]
+}
+
+// SpectralOption configures STFT, Spectrogram, Welch and Periodogram.
+// A function given an option that doesn't apply to it returns ErrInvalidParameter
+type SpectralOption func(*spectralConfig)
+
+// Spectrum is a power spectrum: one value per frequency
+type Spectrum struct {
+	Frequencies []float64 // Hz
+	Power       []float64 // units^2/Hz, or units^2 with ScalingSpectrum
+}
+
+// Overlap sets how many samples neighbouring segments share.
+// Half the window by default
+func Overlap(n int) SpectralOption {
+	return func(c *spectralConfig) { c.overlap, c.given[optionOverlap] = n, true }
+}
+
+// NFFT zero-pads each segment to n samples before transforming it,
+// for more finely spaced frequencies. The window's length by default.
+func NFFT(n int) SpectralOption {
+	return func(c *spectralConfig) { c.nfft, c.given[optionNFFT] = n, true }
+}
+
+// AtFrequencies evaluates each segment's transform at these frequencies, in Hz,
+// rather than at the FFT's bins: to look closely at a band without a huge NFFT.
+// It can't be combined with NFFT or TwoSided.
+func AtFrequencies(f []float64) SpectralOption {
+	f = append([]float64(nil), f...)
+	return func(c *spectralConfig) { c.frequencies, c.given[optionAtFrequencies] = f, true }
+}
+
+// TwoSided keeps the negative frequencies too, ordered as fft.Freq orders them.
+// One-sided by default, as a real signal's negative frequencies mirror its positive ones.
+func TwoSided() SpectralOption {
+	return func(c *spectralConfig) { c.twoSided, c.given[optionTwoSided] = true, true }
+}
+
+// SegmentDetrend detrends each segment, before it's windowed, same as Detrend.
+// No detrending by default: to remove the whole signal's mean or trend, call Detrend first.
+func SegmentDetrend(mode DetrendMode) SpectralOption {
+	return func(c *spectralConfig) { c.detrend, c.given[optionSegmentDetrend] = mode, true }
+}
+
+// Scaling sets the units power is given . ScalingDensity by default.
+func Scaling(s SpectralScaling) SpectralOption {
+	return func(c *spectralConfig) { c.scaling, c.given[optionScaling] = s, true }
+}
+
+// Average sets how Welch combines its segments' spectra. AverageMean by default
+func Average(a SpectralAverage) SpectralOption {
+	return func(c *spectralConfig) { c.average, c.given[optionAverage] = a, true }
 }
 
 // spectralConfig is a spectral function's settings built from SpectralOptions

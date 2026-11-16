@@ -48,10 +48,10 @@ func EllipKM1(p float64) (k float64) {
 // losing about two digitis by mc = 1e-6 and found by 1e-9.
 // In (K/2, K], cn is small, and its relative error grows as it shrinks:
 // a caller needing it there should use u′ = K-u, where
-// 	- cn(u) = √mc·sn(u′)/dn(u′),
-// 	- dn(u) = √mc/dn(u′), and,
-// 	- sn(u) = cn(u′)/dn(u′).
-
+//   - cn(u) = √mc·sn(u′)/dn(u′),
+//   - dn(u) = √mc/dn(u′), and,
+//   - sn(u) = cn(u′)/dn(u′).
+//
 // Equivalent to:
 //   - scipy.special.ellipj(u, m) (first 3 outputs)
 //   - matlab ellipj(u, m)
@@ -117,9 +117,6 @@ func CarlsonRF(x, y, z float64) (rf float64) {
 	return
 }
 
-// nomeAtHalf is e^-pi, the nome where m=1/2
-var nomeAtHalf = math.Exp(-math.Pi)
-
 // ParameterFromNome is the parameter m whose nome q = exp(-pi·K(1-m)/K(m))
 // is q, for q in [0,1), by the theta series
 // m = 16q·(Σ_{n≥0} q^{n(n+1)} / (1 + 2·Σ_{n≥1} q^{n²}))⁴.
@@ -140,23 +137,6 @@ func ParameterFromNome(q float64) (m float64) {
 		return 1 - parameterFromSmallNome(math.Exp(math.Pi*math.Pi/math.Log(q)))
 	}
 	m = parameterFromSmallNome(q)
-	return
-}
-
-// parameterFromSmallNome is ParameterFromNome for q in [0, e^−π], where the
-// series converges within 4 terms.
-func parameterFromSmallNome(q float64) (m float64) {
-	numerator, denominator := 1.0, 1.0 // the n = 0 terms
-	for n := 1; n <= 8; n++ {
-		term := math.Pow(q, float64(n*(n+1)))
-		numerator += term
-		denominator += 2 * math.Pow(q, float64(n*n))
-		if term <= 1e-17*numerator {
-			break
-		}
-	}
-	ratio := numerator / denominator
-	m = 16 * q * ratio * ratio * ratio * ratio
 	return
 }
 
@@ -186,5 +166,25 @@ func JacobiInQuarter(u, uc, m, mc float64) (sn, cn, dn float64) {
 	snc, cnc, dnc := Jacobi(uc, m, mc)
 	rootMC := math.Sqrt(mc)
 	sn, cn, dn = cnc/dnc, rootMC*snc/dnc, rootMC/dnc
+	return
+}
+
+// nomeAtHalf is e^-pi, the nome where m=1/2
+var nomeAtHalf = math.Exp(-math.Pi)
+
+// parameterFromSmallNome is ParameterFromNome for q in [0, e^−π], where the
+// series converges within 4 terms.
+func parameterFromSmallNome(q float64) (m float64) {
+	numerator, denominator := 1.0, 1.0 // the n = 0 terms
+	for n := 1; n <= 8; n++ {
+		term := math.Pow(q, float64(n*(n+1)))
+		numerator += term
+		denominator += 2 * math.Pow(q, float64(n*n))
+		if term <= 1e-17*numerator {
+			break
+		}
+	}
+	ratio := numerator / denominator
+	m = 16 * q * ratio * ratio * ratio * ratio
 	return
 }

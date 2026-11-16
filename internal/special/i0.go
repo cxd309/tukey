@@ -3,6 +3,35 @@ package special
 
 import "math"
 
+// I0 is the modified Bessel function of the first kind, order zero:
+// the sum over k of ((x/2)^k / k!)^2
+// it's even, I0(0) = 1, and it grows like exp(|x|) / sqrt(2 pi |x|),
+// overflowing to +Inf beyond |x| ~ 713.99; I0(±Inf) is +Inf and I0(NaN) is NaN
+//
+// relative error within ~6e-16 (Cephes's measurement over [0, 30])
+//
+// the method and coefficients are Cephes's i0, via SciPy's xsf (see THIRD_PARTY_NOTICES):
+// a Chebyshev expansion of exp(-x) I0(x) on [0, 8], and of exp(-x) sqrt(x) I0(x)
+// in 32/x beyond; as current xsf, and unlike SciPy 1.18, it stays finite past
+// exp's overflow at x ~ 709.78 (~709.44 with Go's amd64 math.Exp)
+func I0(x float64) (y float64) {
+	x = math.Abs(x)
+	switch {
+	case x <= 8:
+		y = math.Exp(x) * chebyshev(x/2-2, i0Small[:])
+	case math.IsInf(x, 1):
+		y = x // the formula below would give Inf/Inf
+	case x > expSplit:
+		// exp(x) overflows near here though I0(x) is finite up to ~713.99,
+		// so the exponential is applied in two halves
+		e := math.Exp(x / 2)
+		y = e * chebyshev(32/x-2, i0Large[:]) / math.Sqrt(x) * e
+	default:
+		y = math.Exp(x) * chebyshev(32/x-2, i0Large[:]) / math.Sqrt(x)
+	}
+	return
+}
+
 // Chebyshev coefficients of I0, highest order first and the constant term
 // last, as chebyshev expects; from Cephes's i0, via SciPy's xsf
 // (see THIRD_PARTY_NOTICES)
@@ -39,35 +68,6 @@ var (
 // overflow on every architecture: the true limit is log(MaxFloat64) ~ 709.78,
 // but Go's amd64 math.Exp overflows from ~709.44
 const expSplit = 700
-
-// I0 is the modified Bessel function of the first kind, order zero:
-// the sum over k of ((x/2)^k / k!)^2
-// it's even, I0(0) = 1, and it grows like exp(|x|) / sqrt(2 pi |x|),
-// overflowing to +Inf beyond |x| ~ 713.99; I0(±Inf) is +Inf and I0(NaN) is NaN
-//
-// relative error within ~6e-16 (Cephes's measurement over [0, 30])
-//
-// the method and coefficients are Cephes's i0, via SciPy's xsf (see THIRD_PARTY_NOTICES):
-// a Chebyshev expansion of exp(-x) I0(x) on [0, 8], and of exp(-x) sqrt(x) I0(x)
-// in 32/x beyond; as current xsf, and unlike SciPy 1.18, it stays finite past
-// exp's overflow at x ~ 709.78 (~709.44 with Go's amd64 math.Exp)
-func I0(x float64) (y float64) {
-	x = math.Abs(x)
-	switch {
-	case x <= 8:
-		y = math.Exp(x) * chebyshev(x/2-2, i0Small[:])
-	case math.IsInf(x, 1):
-		y = x // the formula below would give Inf/Inf
-	case x > expSplit:
-		// exp(x) overflows near here though I0(x) is finite up to ~713.99,
-		// so the exponential is applied in two halves
-		e := math.Exp(x / 2)
-		y = e * chebyshev(32/x-2, i0Large[:]) / math.Sqrt(x) * e
-	default:
-		y = math.Exp(x) * chebyshev(32/x-2, i0Large[:]) / math.Sqrt(x)
-	}
-	return
-}
 
 // chebyshev sums the Chebyshev series with coefficients c at x/2, by
 // Clenshaw's recurrence; c is highest order first, constant term last,

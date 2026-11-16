@@ -10,10 +10,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// conjugateTolerance is SciPy's tolerance for treating a root as real, or two roots as conjugates
-// 100 machine epsilons, relative to the root's magnitude
-const conjugateTolerance = 100 * floats.Epsilon
-
 // CollapseConjugates replaces each conjugate pair with one root:
 // the member with positive imaginary part, averaged with the other's conjugate to cancel rounding
 // pairs come first, sorted by real part then imaginary part,
@@ -37,6 +33,10 @@ func CollapseConjugates(roots []complex128) (collapsed []complex128, err error) 
 	collapsed = append(collapsed, reals...)
 	return
 }
+
+// conjugateTolerance is SciPy's tolerance for treating a root as real, or two roots as conjugates
+// 100 machine epsilons, relative to the root's magnitude
+const conjugateTolerance = 100 * floats.Epsilon
 
 // sortedByRealThenImag returns a copy of roots sorted by real part then by the magnitude of the imaginary part
 func sortedByRealThenImag(roots []complex128) (sorted []complex128) {

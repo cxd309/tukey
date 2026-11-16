@@ -10,27 +10,6 @@ import (
 	"testing"
 )
 
-// Source is the tool a set of reference vectors come from
-// and the testdata/ directory they are in
-type Source string
-
-const (
-	SourceSciPy  Source = "scipy"
-	SourceMATLAB Source = "matlab"
-)
-
-// Meta is the header every reference vector file carries: embed it in each vector type
-type Meta struct {
-	Description string            `json:"description"`
-	Versions    map[string]string `json:"versions"` // e.g. {"scipy": "1.18.1", "numpy": "2.5.3"}
-}
-
-// File is one decoded reference vector file
-type File[T any] struct {
-	Name   string // file name, e.g. "butter2_lp0.3_step.json"
-	Vector T
-}
-
 // Load decodes every testdata/<source>/<category>/*.json into a T, in file-name order
 // unknown JSON fields are an error, so a mistyped struct tag fails loudly
 // instead of silently decoding as an empty field
@@ -70,6 +49,27 @@ func Run[T any](t *testing.T, source Source, category string, check func(t *test
 	for _, f := range files {
 		t.Run(f.Name, func(t *testing.T) { check(t, f.Vector) })
 	}
+}
+
+// Source is the tool a set of reference vectors come from
+// and the testdata/ directory they are in
+type Source string
+
+const (
+	SourceSciPy  Source = "scipy"
+	SourceMATLAB Source = "matlab"
+)
+
+// Meta is the header every reference vector file carries: embed it in each vector type
+type Meta struct {
+	Description string            `json:"description"`
+	Versions    map[string]string `json:"versions"` // e.g. {"scipy": "1.18.1", "numpy": "2.5.3"}
+}
+
+// File is one decoded reference vector file
+type File[T any] struct {
+	Name   string // file name, e.g. "butter2_lp0.3_step.json"
+	Vector T
 }
 
 // testdataDir is the repository's testdata/, located from this source file rather

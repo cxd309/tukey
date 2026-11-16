@@ -8,14 +8,6 @@ import (
 	"github.com/cxd309/tukey/internal/special"
 )
 
-// FIROption configures FIRWin
-type FIROption func(*firConfig)
-
-// NoScale leaves FIRWin's taps unscaled: the windowed ideal response as it is
-func NoScale() FIROption {
-	return func(c *firConfig) { c.noScale = true }
-}
-
 // FIRWin designs a linear-phase FIR filter for band by the window method and
 // returns its taps: the ideal response's impulse response, truncated to the
 // window's length and multiplied by it.
@@ -86,6 +78,14 @@ func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err er
 		h[k] /= scale
 	}
 	return
+}
+
+// FIROption configures FIRWin
+type FIROption func(*firConfig)
+
+// NoScale leaves FIRWin's taps unscaled: the windowed ideal response as it is
+func NoScale() FIROption {
+	return func(c *firConfig) { c.noScale = true }
 }
 
 // firConfig is FIRWin's settings, built from FIROptions

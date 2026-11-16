@@ -7,30 +7,6 @@ import (
 	"github.com/cxd309/tukey/internal/special"
 )
 
-// MatchBand is the band edge an order selection meets exactly.
-// The smallest order meeting a specification usually has margin to spare,
-// and the band it returns decides where the margin goes.
-type MatchBand int
-
-const (
-	// MatchPassband meets the passband edge exactly, at -rippleDB,
-	// and the stopband is attenuated more than asked from its edge.
-	// The default, same as scipy buttord, cheb1ord, cheb2ord and ellipord
-	MatchPassband MatchBand = iota
-	// MatchStopband meets the stopband edge exactly, at -attenuationDB,
-	// and the passband reaches further than its edge.
-	// Same as matlab buttord and cheb2ord
-	MatchStopband
-)
-
-// OrderOption configures ButterOrd, Cheby1Ord, Cheby2Ord and EllipOrd
-type OrderOption func(*orderConfig)
-
-// Matching sets the band edge met exactly. Default MatchPassband
-func Matching(band MatchBand) OrderOption {
-	return func(c *orderConfig) { c.match = band }
-}
-
 // ButterOrd returns the lowest order of Butter filter that meets a specification,
 // and the band to design it for:
 // at most rippleDB of loss up to the passband's edges, and at least attenuationDB from the stopband's.
@@ -114,6 +90,30 @@ func Cheby2Ord(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOp
 //     where MATLAB returns the passband edges unmoved
 func EllipOrd(pass, stop Band, rippleDB, attenuationDB float64, opts ...OrderOption) (order int, wn Band, err error) {
 	return selectOrder(orderEllip, pass, stop, rippleDB, attenuationDB, opts)
+}
+
+// MatchBand is the band edge an order selection meets exactly.
+// The smallest order meeting a specification usually has margin to spare,
+// and the band it returns decides where the margin goes.
+type MatchBand int
+
+const (
+	// MatchPassband meets the passband edge exactly, at -rippleDB,
+	// and the stopband is attenuated more than asked from its edge.
+	// The default, same as scipy buttord, cheb1ord, cheb2ord and ellipord
+	MatchPassband MatchBand = iota
+	// MatchStopband meets the stopband edge exactly, at -attenuationDB,
+	// and the passband reaches further than its edge.
+	// Same as matlab buttord and cheb2ord
+	MatchStopband
+)
+
+// OrderOption configures ButterOrd, Cheby1Ord, Cheby2Ord and EllipOrd
+type OrderOption func(*orderConfig)
+
+// Matching sets the band edge met exactly. Default MatchPassband
+func Matching(band MatchBand) OrderOption {
+	return func(c *orderConfig) { c.match = band }
 }
 
 // orderConfig is the order selection settings, built from OrderOptions

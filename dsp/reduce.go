@@ -8,28 +8,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// PercentileMethod is how Percentile places p between the sorted samples.
-type PercentileMethod int
-
-const (
-	// PercentileLinear interpolates at sorted position p/100·(n-1),
-	// so 0 and 100 give the minimum ad maximum exactly.
-	// The default option, same as numpy, R and Excel
-	PercentileLinear PercentileMethod = iota
-	// PercentileHazen interpolates at sorted position p/100·n - 0.5,
-	// clamped to the ends, same as matlab prctile and numpy "hazen"
-	PercentileHazen
-)
-
-// PercentileOption configures Percentile
-type PercentileOption func(*percentileConfig)
-
-// PercentileBy sets how Percentile interpolates.
-// PercentileLinear by default.
-func PercentileBy(method PercentileMethod) PercentileOption {
-	return func(c *percentileConfig) { c.method = method }
-}
-
 // Sum returns the total of x, 0 for an empty x.
 // It's summed with compensation, to maintain low bit accuracy.
 //
@@ -107,6 +85,28 @@ func Percentile(x []float64, p float64, opts ...PercentileOption) (value float64
 	slices.Sort(sorted)
 	value = interpolated(sorted, cfg.method.position(p/100, len(sorted)))
 	return
+}
+
+// PercentileMethod is how Percentile places p between the sorted samples.
+type PercentileMethod int
+
+const (
+	// PercentileLinear interpolates at sorted position p/100·(n-1),
+	// so 0 and 100 give the minimum ad maximum exactly.
+	// The default option, same as numpy, R and Excel
+	PercentileLinear PercentileMethod = iota
+	// PercentileHazen interpolates at sorted position p/100·n - 0.5,
+	// clamped to the ends, same as matlab prctile and numpy "hazen"
+	PercentileHazen
+)
+
+// PercentileOption configures Percentile
+type PercentileOption func(*percentileConfig)
+
+// PercentileBy sets how Percentile interpolates.
+// PercentileLinear by default.
+func PercentileBy(method PercentileMethod) PercentileOption {
+	return func(c *percentileConfig) { c.method = method }
 }
 
 // mean is Sum(x) divided by its length, for internal use where x is known not to be empty.

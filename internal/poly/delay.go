@@ -8,20 +8,6 @@ import (
 	"github.com/cxd309/tukey/internal/special"
 )
 
-// delayConditionLimit is the condition number of B(e^(-jω)) above which it's evaluated in big.Float:
-// the sum of its terms' magnitudes over its own.
-// Below it, float64 is within 1e-14 of the exact delay on every reference vector.
-// Above it, float64 loses up to 0.4% on butter(8, 0.01)'s (b, a).
-const delayConditionLimit = 1000
-
-// delayPrec is the working precision of the big.Float evaluation, in bits,
-// enough for a condition number of 1e60
-const delayPrec = 256
-
-// bigPi is π to 365 bits, beyond delayPrec
-var bigPi, _ = new(big.Float).SetPrec(delayPrec).SetString(
-	"3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651")
-
 // DelayGrid is the frequency grid ω = π·i/n, at which a polynomial's group delay is found.
 // It's the grid freqz uses, n points from 0 to just below π.
 type DelayGrid struct {
@@ -88,6 +74,20 @@ func (g DelayGrid) Delay(c []float64, i int) (delay float64) {
 	}
 	return delay + half - (r*dIm.Total()-x*dRe.Total())/(r*r+x*x)
 }
+
+// delayConditionLimit is the condition number of B(e^(-jω)) above which it's evaluated in big.Float:
+// the sum of its terms' magnitudes over its own.
+// Below it, float64 is within 1e-14 of the exact delay on every reference vector.
+// Above it, float64 loses up to 0.4% on butter(8, 0.01)'s (b, a).
+const delayConditionLimit = 1000
+
+// delayPrec is the working precision of the big.Float evaluation, in bits,
+// enough for a condition number of 1e60
+const delayPrec = 256
+
+// bigPi is π to 365 bits, beyond delayPrec
+var bigPi, _ = new(big.Float).SetPrec(delayPrec).SetString(
+	"3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651")
 
 // angle is m·ω/π for m = (2k - N)/2 at ω = π·i/n,
 // as an exact fraction of a half turn, num/(2n), with num reduced to [0, 4n)

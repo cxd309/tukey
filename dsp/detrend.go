@@ -6,6 +6,25 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
+// Detrend returns x with its trend removed:
+// the least-squares line for DetrendLinear, the mean for DetrendConstant,
+// empty x returns empty, and a single sample returns [0]
+//
+// returns ErrInvalidMode for an unknown mode
+//
+// equivalent to scipy.signal.detrend(x, type) and MATLAB's detrend(x, type)
+func Detrend(x []float64, mode DetrendMode) (y []float64, err error) {
+	switch mode {
+	case DetrendLinear:
+		y = detrendLinear(x)
+	case DetrendConstant:
+		y = detrendConstant(x)
+	default:
+		err = fmt.Errorf("%w: unknown detrend mode %v", ErrInvalidMode, mode)
+	}
+	return
+}
+
 // DetrendMode selects what Detrend removes
 type DetrendMode int
 
@@ -25,25 +44,6 @@ func (m DetrendMode) String() (name string) {
 		name = "DetrendConstant"
 	default:
 		name = fmt.Sprintf("DetrendMode(%d)", int(m))
-	}
-	return
-}
-
-// Detrend returns x with its trend removed:
-// the least-squares line for DetrendLinear, the mean for DetrendConstant,
-// empty x returns empty, and a single sample returns [0]
-//
-// returns ErrInvalidMode for an unknown mode
-//
-// equivalent to scipy.signal.detrend(x, type) and MATLAB's detrend(x, type)
-func Detrend(x []float64, mode DetrendMode) (y []float64, err error) {
-	switch mode {
-	case DetrendLinear:
-		y = detrendLinear(x)
-	case DetrendConstant:
-		y = detrendConstant(x)
-	default:
-		err = fmt.Errorf("%w: unknown detrend mode %v", ErrInvalidMode, mode)
 	}
 	return
 }

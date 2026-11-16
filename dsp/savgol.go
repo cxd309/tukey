@@ -8,17 +8,6 @@ import (
 	"github.com/cxd309/tukey/internal/poly"
 )
 
-// SavGolOption configures SavGolFilter
-type SavGolOption func(*savGolConfig)
-
-// SavGolDeriv makes SavGolFilter return the order-th derivative of each fitted polynomial,
-// for samples dx apart, rather than its value:
-// a smoothed derivative.
-// Order 0, the value, by default.
-func SavGolDeriv(order int, dx float64) SavGolOption {
-	return func(c *savGolConfig) { c.deriv, c.dx = order, dx }
-}
-
 // SavGolFilter smooths x with a Savitzky–Golay filter:
 // each sample is replaced by a polynomial of degree polyOrder,
 // fitted by least squares to the n samples centred on it, evaluated there.
@@ -75,6 +64,17 @@ func SavGolFilter(x []float64, n, polyOrder int, opts ...SavGolOption) (y []floa
 		y[len(x)-half+at] = fitted(fit.Weights(right, cfg.deriv), last, right, cfg.deriv) / scale
 	}
 	return
+}
+
+// SavGolOption configures SavGolFilter
+type SavGolOption func(*savGolConfig)
+
+// SavGolDeriv makes SavGolFilter return the order-th derivative of each fitted polynomial,
+// for samples dx apart, rather than its value:
+// a smoothed derivative.
+// Order 0, the value, by default.
+func SavGolDeriv(order int, dx float64) SavGolOption {
+	return func(c *savGolConfig) { c.deriv, c.dx = order, dx }
 }
 
 // savGolConfig is SavGolFilter's settings, built from SavGolOptions

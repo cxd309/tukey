@@ -9,27 +9,6 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// EnvelopeMethod is how Envelope measures a signal's envelope:
-// EnvelopeAnalytic (the zero EnvelopeMethod) or EnvelopeRMS.
-type EnvelopeMethod struct {
-	rms    bool
-	window int
-}
-
-// EnvelopeAnalytic is the magnitude of the analytic signal (see Hilbert).
-// It follows each scillation's peaks closely, so suits a signal with one main frequency
-func EnvelopeAnalytic() (method EnvelopeMethod) {
-	return
-}
-
-// EnvelopeRMS is the moving RMS over a window of n samples centred on each sample.
-// For an even n the extra sample is after, so n = 10 covers k-4 to k+5.
-// The window shrinks where it would pass either end of the signal.
-func EnvelopeRMS(n int) (method EnvelopeMethod) {
-	method = EnvelopeMethod{rms: true, window: n}
-	return
-}
-
 // Hilbert returns the analytic signal of x:
 // x + (i times x's hilbert transform)
 // which is x frequency shifted by -90 degrees.
@@ -94,6 +73,27 @@ func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err e
 	for i, e := range env {
 		upper[i], lower[i] = m+e, m-e
 	}
+	return
+}
+
+// EnvelopeMethod is how Envelope measures a signal's envelope:
+// EnvelopeAnalytic (the zero EnvelopeMethod) or EnvelopeRMS.
+type EnvelopeMethod struct {
+	rms    bool
+	window int
+}
+
+// EnvelopeAnalytic is the magnitude of the analytic signal (see Hilbert).
+// It follows each scillation's peaks closely, so suits a signal with one main frequency
+func EnvelopeAnalytic() (method EnvelopeMethod) {
+	return
+}
+
+// EnvelopeRMS is the moving RMS over a window of n samples centred on each sample.
+// For an even n the extra sample is after, so n = 10 covers k-4 to k+5.
+// The window shrinks where it would pass either end of the signal.
+func EnvelopeRMS(n int) (method EnvelopeMethod) {
+	method = EnvelopeMethod{rms: true, window: n}
 	return
 }
 

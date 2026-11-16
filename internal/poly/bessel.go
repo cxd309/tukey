@@ -9,33 +9,6 @@ import (
 	"slices"
 )
 
-// ReverseBesselScale is how ReverseBesselRoots scales the roots
-type ReverseBesselScale int
-
-const (
-	// UnitDelay leaves the roots as they are:
-	// θ(0)/θ(s) has a group delay of 1 at DC
-	UnitDelay ReverseBesselScale = iota
-	// UnitProduct divides them by θ(0)^(1/N),
-	// so their magnitudes multiply to 1
-	UnitProduct
-	// UnitHalfPower divides them by the frequency where |θ(0)/θ(jω)|² = 1/2,
-	// moving it to 1
-	UnitHalfPower
-)
-
-// besselStepLimit is how small Aberth's and Newton's last steps must be,
-// relative to their root:
-// far below float64's precision, so the result rounds same as the exact root
-const besselStepLimit = 0x1p-80
-
-// besselMaxIterations bounds the iterations.
-// Past it the roots have failed to converge, which is a bug:
-// with too little working precision for the order,
-// rounding stops the steps shrinking below besselStepLimit,
-// so it panics rather than return inaccurate roots.
-const besselMaxIterations = 200
-
 // ReverseBesselRoots returns the roots of the reverse Bessel polynomial θ of
 // order N, scaled by scale, each rounded once from its exact value:
 //
@@ -83,6 +56,33 @@ func ReverseBesselRoots(order int, scale ReverseBesselScale) (roots []complex128
 	})
 	return
 }
+
+// ReverseBesselScale is how ReverseBesselRoots scales the roots
+type ReverseBesselScale int
+
+const (
+	// UnitDelay leaves the roots as they are:
+	// θ(0)/θ(s) has a group delay of 1 at DC
+	UnitDelay ReverseBesselScale = iota
+	// UnitProduct divides them by θ(0)^(1/N),
+	// so their magnitudes multiply to 1
+	UnitProduct
+	// UnitHalfPower divides them by the frequency where |θ(0)/θ(jω)|² = 1/2,
+	// moving it to 1
+	UnitHalfPower
+)
+
+// besselStepLimit is how small Aberth's and Newton's last steps must be,
+// relative to their root:
+// far below float64's precision, so the result rounds same as the exact root
+const besselStepLimit = 0x1p-80
+
+// besselMaxIterations bounds the iterations.
+// Past it the roots have failed to converge, which is a bug:
+// with too little working precision for the order,
+// rounding stops the steps shrinking below besselStepLimit,
+// so it panics rather than return inaccurate roots.
+const besselMaxIterations = 200
 
 // besselSolver finds a reverse Bessel polynomial's roots at a working
 // precision for its order

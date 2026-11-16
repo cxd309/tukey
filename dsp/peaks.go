@@ -7,6 +7,88 @@ import (
 	"slices"
 )
 
+// FindPeaks returns the local maxima of x in index order.
+// A local maximum is a sample, of a flat run of samples, higher than the
+// samples either side.
+// The first and last samples are never peaks, so x shorter than 3 has none.
+//
+// Options narrow the peaks down. Each of the following just a peak on its own:
+//   - MinHeight
+//   - Threshold
+//   - MinProminence
+//   - MinWidth
+//
+// MinDistance removes the lower of any two peaks that are too close together.
+//
+// Returns ErrInvalidParameter for a MinDistance below 1.
+//
+// Equivalent to scipy.signal.find_peaks.
+// With MATLABPeaks, equivalent to MATLAB findpeaks,
+// which errors for x shorter than 3 and for a MinPeakDIstance of len(x)-1 or more
+func FindPeaks(x []float64, opts ...PeakOption) (peaks []Peak, err error) {
+	cfg, err := newPeakConfig(opts)
+	if err != nil {
+		return
+	}
+	indices := localMaxima(x, cfg.plateau)
+	indices = slices.DeleteFunc(indices, func(i int) bool {
+		return x[i] < cfg.minHeight || min(x[i]-x[i-1], x[i]-x[i+1]) < cfg.threshold
+	})
+	if !cfg.distanceLast {
+		indices = byDistance(x, indices, cfg.minDistance, cfg.ties)
+	}
+	indices = byShape(x, indices, cfg)
+	if cfg.distanceLast {
+		indices = byDistance(x, indices, cfg.minDistance, cfg.ties)
+	}
+	peaks = make([]Peak, len(indices))
+	for k, i := range indices {
+		peaks[k] = Peak{Index: i, Height: x[i]}
+	}
+	return
+}
+
+// PeakProminences returns the prominence of each of peaks in x,
+// and the bases it's measured from.
+//
+// Returns ErrInvalidParameter for a peak outside x.
+//
+// Equivalent to scipy.signal.peak_prominences
+// Equivalent to the fourth output of MATLAB findpeaks
+func PeakProminences(x []float64, peaks []int) (prominences []PeakProminence, err error) {
+	if err = checkPeaks(x, peaks); err != nil {
+		return
+	}
+	prominences = make([]PeakProminence, len(peaks))
+	for k, p := range peaks {
+		prominences[k] = peakProminence(x, p)
+	}
+	return
+}
+
+// PeakWidths returns the width of each of peaks in x,
+// measured relHeight of the way down its prominence:
+// 0.5 is half the prominence, 1 is at its bases.
+//
+// Returns ErrInvalidParameter for a negative relHeight
+// or a peak outside x
+//
+// Equivalent to scipy.signal.peak_widths.
+// Equivalent to third output of MATLAB findpeaks at relHeight 0.5
+func PeakWidths(x []float64, peaks []int, relHeight float64) (widths []PeakWidth, err error) {
+	if !(relHeight >= 0) {
+		return nil, fmt.Errorf("%w: relHeight %g, must be at least 0", ErrInvalidParameter, relHeight)
+	}
+	if err = checkPeaks(x, peaks); err != nil {
+		return
+	}
+	widths = make([]PeakWidth, len(peaks))
+	for k, p := range peaks {
+		widths[k] = peakWidth(x, p, relHeight, peakProminence(x, p))
+	}
+	return
+}
+
 // Peak is a local maximum of a signal: its index, and the signal's value there
 type Peak struct {
 	Index  int
@@ -125,88 +207,6 @@ func MATLABPeaks() PeakOption {
 		c.ties = TieEarlier
 		c.distanceLast = true
 	}
-}
-
-// FindPeaks returns the local maxima of x in index order.
-// A local maximum is a sample, of a flat run of samples, higher than the
-// samples either side.
-// The first and last samples are never peaks, so x shorter than 3 has none.
-//
-// Options narrow the peaks down. Each of the following just a peak on its own:
-//   - MinHeight
-//   - Threshold
-//   - MinProminence
-//   - MinWidth
-//
-// MinDistance removes the lower of any two peaks that are too close together.
-//
-// Returns ErrInvalidParameter for a MinDistance below 1.
-//
-// Equivalent to scipy.signal.find_peaks.
-// With MATLABPeaks, equivalent to MATLAB findpeaks,
-// which errors for x shorter than 3 and for a MinPeakDIstance of len(x)-1 or more
-func FindPeaks(x []float64, opts ...PeakOption) (peaks []Peak, err error) {
-	cfg, err := newPeakConfig(opts)
-	if err != nil {
-		return
-	}
-	indices := localMaxima(x, cfg.plateau)
-	indices = slices.DeleteFunc(indices, func(i int) bool {
-		return x[i] < cfg.minHeight || min(x[i]-x[i-1], x[i]-x[i+1]) < cfg.threshold
-	})
-	if !cfg.distanceLast {
-		indices = byDistance(x, indices, cfg.minDistance, cfg.ties)
-	}
-	indices = byShape(x, indices, cfg)
-	if cfg.distanceLast {
-		indices = byDistance(x, indices, cfg.minDistance, cfg.ties)
-	}
-	peaks = make([]Peak, len(indices))
-	for k, i := range indices {
-		peaks[k] = Peak{Index: i, Height: x[i]}
-	}
-	return
-}
-
-// PeakProminences returns the prominence of each of peaks in x,
-// and the bases it's measured from.
-//
-// Returns ErrInvalidParameter for a peak outside x.
-//
-// Equivalent to scipy.signal.peak_prominences
-// Equivalent to the fourth output of MATLAB findpeaks
-func PeakProminences(x []float64, peaks []int) (prominences []PeakProminence, err error) {
-	if err = checkPeaks(x, peaks); err != nil {
-		return
-	}
-	prominences = make([]PeakProminence, len(peaks))
-	for k, p := range peaks {
-		prominences[k] = peakProminence(x, p)
-	}
-	return
-}
-
-// PeakWidths returns the width of each of peaks in x,
-// measured relHeight of the way down its prominence:
-// 0.5 is half the prominence, 1 is at its bases.
-//
-// Returns ErrInvalidParameter for a negative relHeight
-// or a peak outside x
-//
-// Equivalent to scipy.signal.peak_widths.
-// Equivalent to third output of MATLAB findpeaks at relHeight 0.5
-func PeakWidths(x []float64, peaks []int, relHeight float64) (widths []PeakWidth, err error) {
-	if !(relHeight >= 0) {
-		return nil, fmt.Errorf("%w: relHeight %g, must be at least 0", ErrInvalidParameter, relHeight)
-	}
-	if err = checkPeaks(x, peaks); err != nil {
-		return
-	}
-	widths = make([]PeakWidth, len(peaks))
-	for k, p := range peaks {
-		widths[k] = peakWidth(x, p, relHeight, peakProminence(x, p))
-	}
-	return
 }
 
 // peakConfig is FindPeak' settings, built from PeakOptions.

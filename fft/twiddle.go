@@ -10,7 +10,7 @@ import "math"
 //
 // Instead, k/n is reduced to an eigth of a turn using exact integer arithmetic
 // sin and cos are evaluated only on that small and symmetry maps the results back
-
+//
 // Quarter and half turns come out exact: 1, -i, -1, i
 func twiddle(k, n int) (w complex128) {
 	k %= n

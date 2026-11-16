@@ -7,25 +7,6 @@ import (
 	"sort"
 )
 
-// Fill is how FillMissing replaces missing (NaN) samples:
-// FillLinear (the zero Fill) or FillConstant
-type Fill struct {
-	constant bool
-	value    float64
-}
-
-// FillLinear fills each gap by linear interpolation between the known samples
-// either side, and each end by extending the line through its nearest two
-func FillLinear() (fill Fill) {
-	return
-}
-
-// FillConstant fills every missing sample with value
-func FillConstant(value float64) (fill Fill) {
-	fill = Fill{constant: true, value: value}
-	return
-}
-
 // Interp1 returns y, sampled at strictly increasing points x, linearly,
 // interpolated at each point of xi.
 // A point outside [x[0], x[len(x)-1]], or NaN, gives NaN
@@ -67,6 +48,25 @@ func FillMissing(x []float64, fill Fill) (y []float64) {
 		return
 	}
 	y = fillLinear(x)
+	return
+}
+
+// Fill is how FillMissing replaces missing (NaN) samples:
+// FillLinear (the zero Fill) or FillConstant
+type Fill struct {
+	constant bool
+	value    float64
+}
+
+// FillLinear fills each gap by linear interpolation between the known samples
+// either side, and each end by extending the line through its nearest two
+func FillLinear() (fill Fill) {
+	return
+}
+
+// FillConstant fills every missing sample with value
+func FillConstant(value float64) (fill Fill) {
+	fill = Fill{constant: true, value: value}
 	return
 }
 
