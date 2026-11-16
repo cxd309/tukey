@@ -135,6 +135,11 @@ func cosineSum(a []float64) (value func(k, m int) float64) {
 
 // cosineWindow builds the n-point cosine-sum window with coefficients a
 func cosineWindow(name string, n int, a []float64, opts []Option) (w []float64, err error) {
+	for _, v := range a {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return nil, fmt.Errorf("%w: %s's coefficients must be finite, got %v", ErrInvalidParameter, name, a)
+		}
+	}
 	w, err = newWindow(name, n, opts, cosineSum(a))
 	return
 }

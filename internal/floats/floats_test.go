@@ -94,3 +94,39 @@ func TestMidpoint(t *testing.T) {
 		}
 	}
 }
+
+// Next to an infinite end, interpolation takes the limit, where plain
+// arithmetic gives NaN.
+func TestInfiniteEnd(t *testing.T) {
+	inf := math.Inf(1)
+	cases := []struct {
+		name    string
+		a, b, t float64
+		want    float64
+	}{
+		{"to +Inf", 1, inf, 0.5, inf},
+		{"from -Inf", -inf, 1, 0.5, -inf},
+		{"at the finite start", 1, inf, 0, 1},
+		{"at the finite end", -inf, 1, 1, 1},
+		{"at the infinite start", -inf, 1, 0, -inf},
+		{"same infinities", inf, inf, 0.3, inf},
+		{"before an infinite start", inf, 1, -2, inf},
+		{"beyond a finite end", inf, 1, 3, -inf},
+		{"before a finite start", 1, inf, -2, -inf},
+		{"beyond an infinite end", 1, inf, 3, inf},
+	}
+	for _, c := range cases {
+		v, ok := InfiniteEnd(c.a, c.b, c.t)
+		assert.True(t, ok, c.name)
+		assert.Equal(t, c.want, v, c.name)
+	}
+	v, ok := InfiniteEnd(-inf, inf, 0.5)
+	assert.True(t, ok)
+	assert.True(t, math.IsNaN(v), "opposite infinities")
+	v, _ = InfiniteEnd(inf, inf, 2)
+	assert.True(t, math.IsNaN(v), "beyond the same infinities")
+	_, ok = InfiniteEnd(1, 2, 0.5)
+	assert.False(t, ok, "finite ends")
+	_, ok = InfiniteEnd(math.NaN(), 2, 0.5)
+	assert.False(t, ok, "NaN isn't infinite")
+}

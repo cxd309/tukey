@@ -19,6 +19,9 @@ func (s SOS) validate() (err error) {
 		if section[3] != 1 {
 			return fmt.Errorf("%w: section %d has a0 = %v; every section's a0 must be 1", ErrInvalidSOS, i, section[3])
 		}
+		if !allFinite(section[:]) {
+			return fmt.Errorf("%w: section %d must be finite", ErrInvalidSOS, i)
+		}
 	}
 	return
 }

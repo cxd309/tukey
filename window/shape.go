@@ -1,6 +1,9 @@
 package window
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // shape build an n-point window from value, which gives sample k of the
 // symmetric window of length m, and handles what every window shares:
@@ -68,10 +71,10 @@ func shortWindow(n int) (w []float64, short bool, err error) {
 	return nil, false, nil
 }
 
-// positive returns ErrInvalidParameter unless v > 0, which also rules our NaN
-func positive(window, name string, v float64) (err error) {
-	if !(v > 0) {
-		err = fmt.Errorf("%w: %s's %s must be >0, got %g", ErrInvalidParameter, window, name, v)
+// positiveFinite returns ErrInvalidParameter unless v > 0 and finite, which also rules out NaN
+func positiveFinite(window, name string, v float64) (err error) {
+	if !(v > 0) || math.IsInf(v, 1) {
+		err = fmt.Errorf("%w: %s's %s must be positive and finite, got %g", ErrInvalidParameter, window, name, v)
 	}
 	return
 }

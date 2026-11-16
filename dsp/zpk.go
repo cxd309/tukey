@@ -2,6 +2,8 @@ package dsp
 
 import (
 	"fmt"
+	"math"
+	"math/cmplx"
 
 	"github.com/cxd309/tukey/internal/poly"
 )
@@ -16,6 +18,9 @@ type ZPK struct {
 }
 
 func (f ZPK) BA() (b, a []float64, err error) {
+	if err = f.validate(); err != nil {
+		return nil, nil, err
+	}
 	bComplex := poly.FromRoots(f.Zeros)
 	for i := range bComplex {
 		bComplex[i] *= complex(f.Gain, 0)
@@ -35,11 +40,15 @@ func (f ZPK) BA() (b, a []float64, err error) {
 // this keeps each section's peak gain small
 // this makes SOS numerically robust at orders where BA's coefficients are not
 //
-// returns ErrInvalidZPK if complex zeros or poles aren't in conjugate pairs
+// returns ErrInvalidZPK if complex zeros or poles aren't in conjugate pairs,
+// or if the gain, a zero or a pole isn't finite
 //
 // equivalent to scipy.signal.zpk2sos with its default pairing='nearest'
 // the algorithm follows SciPy's implementation (see THIRD_PARTY_NOTICES)
 func (f ZPK) SOS() (sos SOS, err error) {
+	if err = f.validate(); err != nil {
+		return nil, err
+	}
 	if len(f.Zeros) == 0 && len(f.Poles) == 0 {
 		sos = SOS{{f.Gain, 0, 0, 1, 0, 0}}
 		return
@@ -79,5 +88,20 @@ func section(zeros, poles []complex128) (s [6]float64, err error) {
 	}
 	copy(s[3-len(b):3], b)
 	copy(s[6-len(a):6], a)
+	return
+}
+
+// validate returns ErrInvalidZPK unless the gain, zeros and poles are all finite
+func (f ZPK) validate() (err error) {
+	if math.IsNaN(f.Gain) || math.IsInf(f.Gain, 0) {
+		return fmt.Errorf("%w: gain %g, must be finite", ErrInvalidZPK, f.Gain)
+	}
+	for _, roots := range [][]complex128{f.Zeros, f.Poles} {
+		for _, r := range roots {
+			if cmplx.IsNaN(r) || cmplx.IsInf(r) {
+				return fmt.Errorf("%w: root %v, must be finite", ErrInvalidZPK, r)
+			}
+		}
+	}
 	return
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"sort"
+
+	"github.com/cxd309/tukey/internal/floats"
 )
 
 // Interp1 returns y, sampled at strictly increasing points x, linearly,
@@ -63,7 +65,8 @@ func FillLinear() (fill Fill) {
 	return
 }
 
-// FillConstant fills every missing sample with value
+// FillConstant fills every missing sample with value.
+// FillConstant(math.NaN()) leaves x as it is.
 func FillConstant(value float64) (fill Fill) {
 	fill = Fill{constant: true, value: value}
 	return
@@ -85,6 +88,9 @@ func interpolate(x, y []float64, q float64) (v float64) {
 
 // line is the value at q of the straight line through (x0, y0) and (x1, y1)
 func line(x0, y0, x1, y1, q float64) (v float64) {
+	if v, ok := floats.InfiniteEnd(y0, y1, (q-x0)/(x1-x0)); ok {
+		return v
+	}
 	slope := (y1 - y0) / (x1 - x0)
 	v = slope*(q-x0) + y0
 	return

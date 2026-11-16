@@ -30,6 +30,7 @@ import (
 //     Highpass or Bandstop, whose response at Nyquist an even-length filter
 //     can't pass
 //   - ErrInvalidBand for a band Butter rejects
+//   - ErrInvalidParameter for a NaN or infinite window tap
 //
 // Equivalent to:
 //   - scipy.signal.firwin(len(window), wn, window, pass_zero=btype), whose
@@ -48,6 +49,8 @@ func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err er
 	switch {
 	case n == 0:
 		return nil, fmt.Errorf("%w: FIRWin needs a window of at least 1 sample", ErrInvalidLength)
+	case !allFinite(window):
+		return nil, fmt.Errorf("%w: FIRWin's window has a NaN or infinite tap", ErrInvalidParameter)
 	case passesNyquist && n%2 == 0:
 		return nil, fmt.Errorf("%w: FIRWin: %v needs an odd number of taps, got %d", ErrInvalidLength, band, n)
 	}

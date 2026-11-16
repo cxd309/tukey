@@ -20,7 +20,11 @@ import (
 //
 // MinDistance removes the lower of any two peaks that are too close together.
 //
-// Returns ErrInvalidParameter for a MinDistance below 1.
+// A NaN is never a peak, nor is a sample beside one, as it isn't known to be higher.
+// A peak whose prominence or width search reaches a NaN has neither, so fails MinProminence and MinWidth.
+// An infinite limit is allowed: -Inf is no limit, and +Inf passes no peak.
+//
+// Returns ErrInvalidParameter for a MinDistance below 1, or a NaN limit.
 //
 // Equivalent to scipy.signal.find_peaks.
 // With MATLABPeaks, equivalent to MATLAB findpeaks,
@@ -50,6 +54,8 @@ func FindPeaks(x []float64, opts ...PeakOption) (peaks []Peak, err error) {
 
 // PeakProminences returns the prominence of each of peaks in x,
 // and the bases it's measured from.
+// A peak whose search reaches a NaN before a higher sample has a NaN prominence,
+// as the NaN might be higher.
 //
 // Returns ErrInvalidParameter for a peak outside x.
 //
@@ -70,14 +76,16 @@ func PeakProminences(x []float64, peaks []int) (prominences []PeakProminence, er
 // measured relHeight of the way down its prominence:
 // 0.5 is half the prominence, 1 is at its bases.
 //
-// Returns ErrInvalidParameter for a negative relHeight
+// A peak with a NaN prominence (see PeakProminences) has a NaN width.
+//
+// Returns ErrInvalidParameter for a relHeight that isn't at least 0 and finite,
 // or a peak outside x
 //
 // Equivalent to scipy.signal.peak_widths.
 // Equivalent to third output of MATLAB findpeaks at relHeight 0.5
 func PeakWidths(x []float64, peaks []int, relHeight float64) (widths []PeakWidth, err error) {
-	if !(relHeight >= 0) {
-		return nil, fmt.Errorf("%w: relHeight %g, must be at least 0", ErrInvalidParameter, relHeight)
+	if !(relHeight >= 0) || math.IsInf(relHeight, 1) {
+		return nil, fmt.Errorf("%w: relHeight %g, must be at least 0 and finite", ErrInvalidParameter, relHeight)
 	}
 	if err = checkPeaks(x, peaks); err != nil {
 		return
@@ -242,6 +250,20 @@ func newPeakConfig(opts []PeakOption) (cfg peakConfig, err error) {
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+	limits := []struct {
+		name  string
+		value float64
+	}{
+		{"MinPeakHeight", cfg.minHeight},
+		{"PeakThreshold", cfg.threshold},
+		{"MinPeakProminence", cfg.minProminence},
+		{"MinPeakWidth", cfg.minWidth},
+	}
+	for _, limit := range limits {
+		if math.IsNaN(limit.value) {
+			return cfg, fmt.Errorf("%w: %s is NaN", ErrInvalidParameter, limit.name)
+		}
+	}
 	if cfg.minDistance < 1 {
 		err = fmt.Errorf("%w: MinDistance %d, must be at least 1", ErrInvalidParameter, cfg.minDistance)
 	}
@@ -325,31 +347,38 @@ func byShape(x []float64, indices []int, cfg peakConfig) (kept []int) {
 	}
 	kept = slices.DeleteFunc(indices, func(i int) bool {
 		prominence := peakProminence(x, i)
-		if prominence.Prominence < cfg.minProminence {
+		if !(prominence.Prominence >= cfg.minProminence) { // NaN fails too
 			return true
 		}
-		return byWidth && peakWidth(x, i, 0.5, prominence).Width < cfg.minWidth
+		return byWidth && !(peakWidth(x, i, 0.5, prominence).Width >= cfg.minWidth)
 	})
 	return
 }
 
 // peakProminence walks out from peak each way until x rises above it,
-// and measures from the higher of the lowest points found
+// and measures from the higher of the lowest points found.
+// A NaN met on the way leaves the prominence unknown, so NaN.
 func peakProminence(x []float64, peak int) (p PeakProminence) {
 	height := x[peak]
 	leftMin, rightMin := height, height
 	p.LeftBase, p.RightBase = peak, peak
-	for i := peak; i >= 0 && x[i] <= height; i-- {
+	i := peak
+	for ; i >= 0 && x[i] <= height; i-- {
 		if x[i] < leftMin {
 			leftMin, p.LeftBase = x[i], i
 		}
 	}
-	for i := peak; i < len(x) && x[i] <= height; i++ {
+	metNaN := i >= 0 && math.IsNaN(x[i])
+	for i = peak; i < len(x) && x[i] <= height; i++ {
 		if x[i] < rightMin {
 			rightMin, p.RightBase = x[i], i
 		}
 	}
+	metNaN = metNaN || i < len(x) && math.IsNaN(x[i])
 	p.Prominence = height - max(leftMin, rightMin)
+	if metNaN {
+		p.Prominence = math.NaN()
+	}
 	return
 }
 
@@ -357,12 +386,19 @@ func peakProminence(x []float64, peak int) (p PeakProminence) {
 // until x drops to the width height, then interpolates the crossing between samples
 func peakWidth(x []float64, peak int, relHeight float64, prominence PeakProminence) (w PeakWidth) {
 	w.Height = x[peak] - prominence.Prominence*relHeight
+	if math.IsNaN(prominence.Prominence) {
+		w.Width, w.Left, w.Right = math.NaN(), math.NaN(), math.NaN()
+		return
+	}
 	i := peak
 	for prominence.LeftBase < i && w.Height < x[i] {
 		i--
 	}
 	w.Left = float64(i)
-	if x[i] < w.Height {
+	switch {
+	case math.IsInf(x[i], -1): // the crossing's limit is the next sample
+		w.Left++
+	case x[i] < w.Height:
 		w.Left += (w.Height - x[i]) / (x[i+1] - x[i])
 	}
 	i = peak
@@ -370,7 +406,10 @@ func peakWidth(x []float64, peak int, relHeight float64, prominence PeakProminen
 		i++
 	}
 	w.Right = float64(i)
-	if x[i] < w.Height {
+	switch {
+	case math.IsInf(x[i], -1):
+		w.Right--
+	case x[i] < w.Height:
 		w.Right -= (w.Height - x[i]) / (x[i-1] - x[i])
 	}
 	w.Width = w.Right - w.Left

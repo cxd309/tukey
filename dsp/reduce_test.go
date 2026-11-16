@@ -245,3 +245,32 @@ func TestPercentileDoesNotModifyInput(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, before, x)
 }
+
+// Next to an infinite sample the percentile is that infinity,
+// where NumPy's arithmetic gives NaN from Inf - Inf or 0·Inf.
+func TestPercentileOfInfinity(t *testing.T) {
+	inf := math.Inf(1)
+	cases := []struct {
+		name string
+		x    []float64
+		p    float64
+		want float64
+	}{
+		{"minimum of -Inf", []float64{-inf, 1, 2, 3}, 0, -inf},
+		{"maximum of +Inf", []float64{1, 2, inf}, 100, inf},
+		{"between 1 and +Inf", []float64{1, inf}, 50, inf},
+		{"between -Inf and 1", []float64{-inf, 1}, 50, -inf},
+		{"a finite sample beside infinities", []float64{-inf, 2, inf}, 50, 2},
+	}
+	for _, method := range []PercentileOption{PercentileLinear(), PercentileHazen()} {
+		for _, c := range cases {
+			value, err := Percentile(c.x, c.p, method)
+			require.NoError(t, err)
+			assert.Equal(t, c.want, value, c.name)
+		}
+	}
+	// halfway between opposite infinities has no value
+	value, err := Percentile([]float64{-inf, inf}, 50)
+	require.NoError(t, err)
+	assert.True(t, math.IsNaN(value))
+}

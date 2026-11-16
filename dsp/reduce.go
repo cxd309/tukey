@@ -141,6 +141,9 @@ func interpolated(sorted []float64, position float64) (value float64) {
 		return sorted[len(sorted)-1]
 	}
 	a, b := sorted[i], sorted[i+1]
+	if v, ok := floats.InfiniteEnd(a, b, fraction); ok {
+		return v
+	}
 	if fraction >= 0.5 {
 		return b - (b-a)*(1-fraction)
 	}

@@ -84,3 +84,36 @@ func Midpoint(a, b float64) (mid float64) {
 	mid = sum / 2
 	return
 }
+
+// InfiniteEnd is the value fraction t of the way along the line from a to b,
+// when a or b is infinite, as its limit.
+// t may be outside [0, 1], to extrapolate.
+// With one end infinite, the line is that infinity on its side of the finite end,
+// the finite end itself, and the opposite infinity beyond it.
+// With both ends infinite it's a at t = 0, b at t = 1, and the shared infinity between them,
+// and NaN anywhere else.
+// Plain interpolation gives NaN instead, from Inf - Inf or 0·Inf.
+// ok is false when neither end is infinite, for the caller to interpolate as usual.
+func InfiniteEnd(a, b, t float64) (v float64, ok bool) {
+	aInf, bInf := math.IsInf(a, 0), math.IsInf(b, 0)
+	switch {
+	case !aInf && !bInf:
+		return 0, false
+	case t == 0:
+		return a, true
+	case t == 1:
+		return b, true
+	case aInf && bInf:
+		if a == b && t > 0 && t < 1 {
+			return a, true
+		}
+		return math.NaN(), true
+	case aInf && t < 1:
+		return a, true
+	case aInf:
+		return -a, true
+	case t > 0:
+		return b, true
+	}
+	return -b, true
+}

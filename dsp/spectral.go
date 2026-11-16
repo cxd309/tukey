@@ -22,8 +22,8 @@ import (
 //   - ErrInvalidLength for an empty window, an NFFT shorter than the window,
 //     or AtFrequencies with no frequencies
 //   - ErrSignalTooShort for a window longer than x
-//   - ErrInvalidParameter for an fs that isn't positive, or an Overlap that's negative
-//     or at least the window's length
+//   - ErrInvalidParameter for an fs that isn't positive and finite, a NaN or infinite window tap,
+//     or an Overlap that's negative or at least the window's length
 //   - ErrInvalidOption for an option that doesn't apply, or AtFrequencies with NFFT or TwoSided
 //
 // Equivalent to MATLAB [S, F, T] = spectrogram(x, window, nooverlap, nfft, fs), with S transposed,
@@ -41,10 +41,11 @@ func STFT(x []float64, fs float64, window []float64, opts ...SpectralOption) (tf
 		tf.Values = transformAt(windowed, cfg.frequencies, fs)
 		return
 	}
-	tf.Frequencies = binFrequencies(cfg, fs)
+	if tf.Frequencies, err = binFrequencies(cfg, fs); err != nil {
+		return
+	}
 	tf.Values, err = transformBins(windowed, cfg.nfft, cfg.twoSided)
 	return
-
 }
 
 // Spectrogram returns the power of x's STFT (see STFT): one power spectrum per segment
@@ -62,7 +63,11 @@ func Spectrogram(x []float64, fs float64, window []float64, opts ...SpectralOpti
 	if err != nil {
 		return
 	}
-	tf = TimeFrequency[float64]{Frequencies: binFrequencies(cfg, fs), Times: times, Values: power}
+	frequencies, err := binFrequencies(cfg, fs)
+	if err != nil {
+		return
+	}
+	tf = TimeFrequency[float64]{Frequencies: frequencies, Times: times, Values: power}
 	return
 }
 
@@ -83,7 +88,11 @@ func Welch(x []float64, fs float64, window []float64, opts ...SpectralOption) (s
 	if err != nil {
 		return
 	}
-	spectrum = Spectrum{Frequencies: binFrequencies(cfg, fs), Power: averaged(power, cfg.average)}
+	frequencies, err := binFrequencies(cfg, fs)
+	if err != nil {
+		return
+	}
+	spectrum = Spectrum{Frequencies: frequencies, Power: averaged(power, cfg.average)}
 	return
 }
 
@@ -108,7 +117,11 @@ func Periodogram(x []float64, fs float64, window []float64, opts ...SpectralOpti
 	if err != nil {
 		return
 	}
-	spectrum = Spectrum{Frequencies: binFrequencies(cfg, fs), Power: power[0]}
+	frequencies, err := binFrequencies(cfg, fs)
+	if err != nil {
+		return
+	}
+	spectrum = Spectrum{Frequencies: frequencies, Power: power[0]}
 	return
 }
 
@@ -180,7 +193,8 @@ func AverageMean() SpectralOption {
 }
 
 // AverageMedian combines Welch's segments' spectra by their median, corrected for its bias,
-// which is robust to a few segments with transients in them
+// which is robust to a few segments with transients in them.
+// Any NaN segment, or one holding an infinite sample, makes the median NaN.
 func AverageMedian() SpectralOption {
 	return func(c *spectralConfig) { c.average, c.given[optionAverage] = averageMedian, true }
 }
@@ -263,6 +277,8 @@ func newSpectralConfig(function string, x []float64, fs float64, window []float6
 		err = fmt.Errorf("%w: fs %g, must be positive and finite", ErrInvalidParameter, fs)
 	case len(window) == 0:
 		err = fmt.Errorf("%w: an empty window", ErrInvalidLength)
+	case !allFinite(window):
+		err = fmt.Errorf("%w: the window has a NaN or infinite tap", ErrInvalidParameter)
 	case len(window) > len(x):
 		err = fmt.Errorf("%w: window of length %d for x of length %d", ErrSignalTooShort, len(window), len(x))
 	case cfg.overlap < 0 || cfg.overlap >= len(window):
@@ -342,11 +358,14 @@ func twiddles(f, fs float64, length int) (cos, sin []float64) {
 }
 
 // binFrequencies is the frequency of each FFT bin, in Hz.
-func binFrequencies(cfg spectralConfig, fs float64) (frequencies []float64) {
+// fs is already checked, so it fails only for an fs so small that 1/fs overflows.
+func binFrequencies(cfg spectralConfig, fs float64) (frequencies []float64, err error) {
 	if cfg.twoSided {
-		return fft.Freq(cfg.nfft, 1/fs)
+		frequencies, err = fft.Freq(cfg.nfft, 1/fs)
+		return
 	}
-	return fft.RealFreq(cfg.nfft, 1/fs)
+	frequencies, err = fft.RealFreq(cfg.nfft, 1/fs)
+	return
 }
 
 // tranformBins is each windowed segment's FFT, zero-padded to nfft:
@@ -428,8 +447,12 @@ func averaged(power [][]float64, average spectralAverage) (combined []float64) {
 	return
 }
 
-// median is the middle value of x, or the mean of the middle two. It sorts x
+// median is the middle value of x, or the mean of the middle two, and NaN if x holds a NaN.
+// It sorts x
 func median(x []float64) (m float64) {
+	if slices.ContainsFunc(x, math.IsNaN) {
+		return math.NaN()
+	}
 	slices.Sort(x)
 	n := len(x)
 	if n%2 == 1 {

@@ -58,7 +58,8 @@ func TestNPadsWithZeros(t *testing.T) {
 // shifting the frequencies puts them in ascending order, and InverseShift undoes Shift
 func TestShiftOrdersFrequencies(t *testing.T) {
 	for _, n := range []int{8, 9} {
-		f := Freq(n, 1)
+		f, err := Freq(n, 1)
+		require.NoError(t, err)
 		assert.True(t, slices.IsSorted(Shift(f)), "n=%d", n)
 		assert.Equal(t, f, InverseShift(Shift(f)), "n=%d", n)
 	}

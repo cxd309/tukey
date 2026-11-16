@@ -129,9 +129,17 @@ type fftFreqVector struct {
 var fftFreqSciPySuite = newSuite("fft.Freq", reference.SourceSciPy, "fftfreq",
 	reference.Tolerance{},
 	func(v fftFreqVector) (outputs []Output, err error) {
+		freq, err := fft.Freq(v.Params.N, v.Params.D)
+		if err != nil {
+			return nil, err
+		}
+		rfreq, err := fft.RealFreq(v.Params.N, v.Params.D)
+		if err != nil {
+			return nil, err
+		}
 		outputs = []Output{
-			{Name: "freq", Got: fft.Freq(v.Params.N, v.Params.D), Want: v.Output.Freq},
-			{Name: "rfreq", Got: fft.RealFreq(v.Params.N, v.Params.D), Want: v.Output.RFreq},
+			{Name: "freq", Got: freq, Want: v.Output.Freq},
+			{Name: "rfreq", Got: rfreq, Want: v.Output.RFreq},
 		}
 		return
 	})

@@ -432,4 +432,21 @@
 // Invalid input returns an error wrapping one of the Err sentinels, so check
 // for specific failures with errors.Is. Filtering functions don't check that a
 // filter is stable. Like SciPy and MATLAB, they assume it is.
+//
+// # NaN and infinity
+//
+// A NaN or infinite sample affects only the outputs it contributes to, as plain arithmetic would.
+// A sample is part of the signal, so it's never an error.
+// What it contributes to depends on the function:
+//   - a running sum, a filter with feedback, or FiltFilt's backward pass carries it on,
+//   - a transform, such as Hilbert, Envelope's analytic method or ConvolveFFT, mixes every sample into every output,
+//   - Detrend and Envelope's RMS method use the whole signal's trend or mean.
+//
+// A sample and a filter coefficient of exactly 0 contribute nothing,
+// so a zero coefficient never turns a NaN or infinite sample into NaN.
+// Interpolating next to an infinite value gives that infinity, its limit.
+// Each function's doc says where it differs, e.g. Percentile, where any NaN gives NaN.
+//
+// A NaN or infinite parameter, coefficient, state or window tap returns an error,
+// unless the function's doc gives it a meaning, e.g. MinPeakHeight(math.Inf(-1)) is no limit.
 package dsp

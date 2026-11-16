@@ -24,7 +24,7 @@ func Taylor(n, nbar int, sll float64, opts ...Option) (w []float64, err error) {
 	if nbar < 1 {
 		return nil, fmt.Errorf("%w: Taylor's nbar must be >= 1, got %d", ErrInvalidParameter, nbar)
 	}
-	if err = positive("Taylor", "sll", sll); err != nil {
+	if err = positiveFinite("Taylor", "sll", sll); err != nil {
 		return nil, err
 	}
 	f := taylorCoefficients(nbar, sll)

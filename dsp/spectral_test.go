@@ -130,7 +130,9 @@ func TestSTFTTwoSided(t *testing.T) {
 			require.NoError(t, err)
 			one, err := STFT(x, fs, win, NFFT(c.nfft))
 			require.NoError(t, err)
-			assert.Equal(t, fft.Freq(c.nfft, 1/fs), two.Frequencies)
+			freq, err := fft.Freq(c.nfft, 1/fs)
+			require.NoError(t, err)
+			assert.Equal(t, freq, two.Frequencies)
 			for i, spectrum := range two.Values {
 				require.Len(t, spectrum, c.nfft)
 				mirrored := make([]complex128, c.nfft)
@@ -340,10 +342,27 @@ func TestPowerSpectraInvalid(t *testing.T) {
 		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
 		{"ScalingSpectrum on STFT", func() error { _, err := STFT(x, 1, win, ScalingSpectrum()); return err }, ErrInvalidOption},
 		{"AverageMedian on STFT", func() error { _, err := STFT(x, 1, win, AverageMedian()); return err }, ErrInvalidOption},
+		{"NaN in the window", func() error { _, err := Welch(x, 1, []float64{1, math.NaN(), 1, 1}); return err }, ErrInvalidParameter},
+		{"infinite window", func() error { _, err := STFT(x, 1, []float64{1, 1, math.Inf(1), 1}); return err }, ErrInvalidParameter},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			assert.ErrorIs(t, c.call(), c.want)
 		})
+	}
+}
+
+// A NaN segment makes the median unknown, so every bin is NaN, same as SciPy.
+// An infinite sample does the same, as its segment's transform is NaN.
+func TestWelchMedianOfNonFinite(t *testing.T) {
+	win := []float64{1, 1, 1, 1, 1, 1, 1, 1}
+	for _, v := range []float64{math.NaN(), math.Inf(1)} {
+		x := noise(64, 3)
+		x[20] = v
+		median, err := Welch(x, 1, win, AverageMedian())
+		require.NoError(t, err)
+		for k, p := range median.Power {
+			assert.True(t, math.IsNaN(p), "sample %g, bin %d", v, k)
+		}
 	}
 }

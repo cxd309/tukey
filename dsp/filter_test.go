@@ -19,6 +19,9 @@ func TestFilterRejectsInvalidInput(t *testing.T) {
 		{"empty b", nil, []float64{1}, ErrInvalidCoefficients},
 		{"empty a", []float64{1}, nil, ErrInvalidCoefficients},
 		{"a[0] zero", []float64{1}, []float64{0, 1}, ErrInvalidCoefficients},
+		{"NaN in b", []float64{1, math.NaN()}, []float64{1}, ErrInvalidCoefficients},
+		{"infinite a[0]", []float64{1}, []float64{math.Inf(1), 1}, ErrInvalidCoefficients},
+		{"infinite a[1]", []float64{1}, []float64{1, math.Inf(-1)}, ErrInvalidCoefficients},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -164,6 +167,12 @@ func TestSOSFilteringRejectsInvalidInput(t *testing.T) {
 	_, err = SOSFilter(SOS{{1, 0, 0, 2, -0.5, 0}}, x)
 	assert.ErrorIs(t, err, ErrInvalidSOS, "a0 not 1")
 
+	_, err = SOSFilter(SOS{{1, math.NaN(), 0, 1, -0.5, 0}}, x)
+	assert.ErrorIs(t, err, ErrInvalidSOS, "NaN coefficient")
+
+	_, _, err = SOSFilterState(valid, x, [][2]float64{{0, math.Inf(1)}})
+	assert.ErrorIs(t, err, ErrInvalidState, "infinite state")
+
 	_, _, err = SOSFilterState(valid, x, make([][2]float64, 2))
 	assert.ErrorIs(t, err, ErrInvalidState, "one section, two state pairs")
 
@@ -188,4 +197,53 @@ func TestSOSFilteringDoesNotModifyInputs(t *testing.T) {
 	assert.Equal(t, sosBefore, sos)
 	assert.Equal(t, xBefore, x)
 	assert.Equal(t, ziBefore, zi)
+}
+
+func TestFilterStateRejectsNonFiniteState(t *testing.T) {
+	for _, v := range []float64{math.NaN(), math.Inf(1)} {
+		_, _, err := FilterState([]float64{1, 1}, []float64{1, -0.5}, testSignal(10), []float64{v})
+		assert.ErrorIs(t, err, ErrInvalidState, "zi %g", v)
+	}
+}
+
+// A NaN or infinite sample reaches only the outputs whose taps are non-zero,
+// where 0·NaN in the state would carry NaN to every later output.
+func TestFilterZeroCoefficientsDropNonFinite(t *testing.T) {
+	const bad = 5
+	cases := []struct {
+		name     string
+		b        []float64
+		affected []int
+	}{
+		{"FIR", []float64{0.2, 0.4, 0.2}, []int{5, 6, 7}},
+		{"FIR with a zero tap", []float64{1, 0, 1}, []int{5, 7}},
+	}
+	for _, c := range cases {
+		for _, v := range []float64{math.NaN(), math.Inf(1)} {
+			x := testSignal(12)
+			x[bad] = v
+			ys := map[string][]float64{}
+			var err error
+			ys["Filter"], err = Filter(c.b, []float64{1}, x)
+			require.NoError(t, err)
+			ys["SOSFilter"], err = SOSFilter(SOS{{c.b[0], c.b[1], c.b[2], 1, 0, 0}}, x)
+			require.NoError(t, err)
+			clean, err := Filter(c.b, []float64{1}, testSignal(12))
+			require.NoError(t, err)
+			for name, y := range ys {
+				for i := range y {
+					if slices.Contains(c.affected, i) {
+						assert.False(t, isFinite(y[i]), "%s %s, %g, output %d", name, c.name, v, i)
+						continue
+					}
+					assert.Equal(t, clean[i], y[i], "%s %s, %g, output %d", name, c.name, v, i)
+				}
+			}
+		}
+	}
+}
+
+// isFinite reports whether v is neither NaN nor infinite
+func isFinite(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }

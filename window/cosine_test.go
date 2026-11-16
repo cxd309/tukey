@@ -1,6 +1,7 @@
 package window
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,4 +43,13 @@ func TestHannSmall(t *testing.T) {
 func TestGeneralCosineNeedsCoefficients(t *testing.T) {
 	_, err := GeneralCosine(8, nil)
 	assert.ErrorIs(t, err, ErrInvalidParameter)
+}
+
+func TestCosineSumsRejectNonFinite(t *testing.T) {
+	assertInvalidParameter(t, map[string]func() ([]float64, error){
+		"GeneralCosine NaN":   func() ([]float64, error) { return GeneralCosine(8, []float64{0.5, math.NaN()}) },
+		"GeneralCosine Inf":   func() ([]float64, error) { return GeneralCosine(8, []float64{math.Inf(1)}) },
+		"GeneralHamming NaN":  func() ([]float64, error) { return GeneralHamming(8, math.NaN()) },
+		"GeneralHamming -Inf": func() ([]float64, error) { return GeneralHamming(8, math.Inf(-1)) },
+	})
 }

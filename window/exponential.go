@@ -12,7 +12,7 @@ import (
 // equivalent to scipy.signal.windows.gaussian(n, std),
 // equivalent to MATLAB sgausswin(n, alpha) with alpha = (n-1)/(2*std)
 func Gaussian(n int, std float64, opts ...Option) (w []float64, err error) {
-	if err = positive("Gaussian", "std", std); err != nil {
+	if err = positiveFinite("Gaussian", "std", std); err != nil {
 		return nil, err
 	}
 	w, err = newWindow("Gaussian", n, opts, func(k, m int) float64 {
@@ -31,10 +31,10 @@ func Gaussian(n int, std float64, opts ...Option) (w []float64, err error) {
 //
 // equivalent to scipy.signal.windows.general_gaussian(n, p, sig); MATLAB has none
 func GeneralGaussian(n int, p, sig float64, opts ...Option) (w []float64, err error) {
-	if err = positive("GeneralGaussian", "p", p); err != nil {
+	if err = positiveFinite("GeneralGaussian", "p", p); err != nil {
 		return nil, err
 	}
-	if err = positive("GeneralGaussian", "sig", sig); err != nil {
+	if err = positiveFinite("GeneralGaussian", "sig", sig); err != nil {
 		return nil, err
 	}
 	w, err = newWindow("GeneralGaussian", n, opts, func(k, m int) float64 {
@@ -57,7 +57,7 @@ func Exponential(n int, tau float64, opts ...Option) (w []float64, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = positive("Exponential", "tau", tau); err != nil {
+	if err = positiveFinite("Exponential", "tau", tau); err != nil {
 		return nil, err
 	}
 	if !cfg.given[optionCenter] {
@@ -69,8 +69,8 @@ func Exponential(n int, tau float64, opts ...Option) (w []float64, err error) {
 	switch {
 	case !cfg.periodic:
 		return nil, fmt.Errorf("%w: Exponential's Center needs Periodic: a symmetric window is centred", ErrInvalidOption)
-	case math.IsNaN(cfg.center):
-		return nil, fmt.Errorf("%w: Exponential's Center is NaN", ErrInvalidParameter)
+	case math.IsNaN(cfg.center) || math.IsInf(cfg.center, 0):
+		return nil, fmt.Errorf("%w: Exponential's Center %g, must be finite", ErrInvalidParameter, cfg.center)
 	}
 	// moved off the middle the window isn't symmetric, so every sample is computed
 	w, err = sampled(n, func(i int) float64 {

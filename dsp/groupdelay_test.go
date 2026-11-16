@@ -150,6 +150,12 @@ func TestGroupDelayRejectsInvalidInput(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidCoefficients)
 	_, _, err = GroupDelay([]float64{1}, []float64{1}, -1)
 	assert.ErrorIs(t, err, ErrInvalidLength)
+	for _, v := range []float64{math.NaN(), math.Inf(1)} {
+		_, _, err = GroupDelay([]float64{1, v}, []float64{1, -0.5}, 8)
+		assert.ErrorIs(t, err, ErrInvalidCoefficients, "b[1] %g", v)
+		_, _, err = SOSGroupDelay(SOS{{1, v, 0, 1, 0, 0}}, 8)
+		assert.ErrorIs(t, err, ErrInvalidSOS, "b1 %g", v)
+	}
 
 	_, _, err = SOSGroupDelay(nil, 8)
 	assert.ErrorIs(t, err, ErrInvalidSOS)

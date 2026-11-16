@@ -23,7 +23,7 @@ func Chebwin(n int, attenuation float64, opts ...Option) (w []float64, err error
 	if err != nil {
 		return nil, err
 	}
-	if err = positive("Chebwin", "attenuation", attenuation); err != nil {
+	if err = positiveFinite("Chebwin", "attenuation", attenuation); err != nil {
 		return nil, err
 	}
 	if w, short, err := shortWindow(n); short {

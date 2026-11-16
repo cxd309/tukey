@@ -28,7 +28,7 @@ y, err = dsp.SavGolFilter(x, 21, 3) // noise smoothed, peaks kept
 import "github.com/cxd309/tukey/fft"
 
 spectrum, err := fft.ForwardReal(x)  // any length, O(n log n)
-freqs := fft.RealFreq(len(x), 1/fs)  // each bin's frequency in Hz
+freqs, err := fft.RealFreq(len(x), 1/fs)  // each bin's frequency in Hz
 ```
 
 ```go
@@ -360,7 +360,7 @@ The `fft` package's names read after the package rather than repeating it:
 | `ifft(X)`              | `scipy.fft.ifft(X)`          | `fft.Inverse(X)`                        |
 | `fft(x)`, first half   | `scipy.fft.rfft(x)`          | `fft.ForwardReal(x)`                    |
 | `ifft(X, 'symmetric')` | `scipy.fft.irfft(X, n)`      | `fft.InverseReal(X, n)` (n is required) |
-| `(0:n-1)*fs/n`         | `scipy.fft.fftfreq(n, 1/fs)` | `fft.Freq(n, 1/fs)`                     |
+| `(0:n-1)*fs/n`         | `scipy.fft.fftfreq(n, 1/fs)` | `f, err := fft.Freq(n, 1/fs)`           |
 | `fftshift(X)`          | `scipy.fft.fftshift(X)`      | `fft.Shift(X)`                          |
 | `ifftshift(X)`         | `scipy.fft.ifftshift(X)`     | `fft.InverseShift(X)`                   |
 

@@ -10,6 +10,8 @@ var (
 	ErrInvalidLength = errors.New("fft: invalid length")
 	// ErrSignalTooShort is an input with too few samples, including none
 	ErrSignalTooShort = errors.New("fft: signal too short")
+	// ErrInvalidParameter is a value outside its domain
+	ErrInvalidParameter = errors.New("fft: invalid parameter")
 	// ErrInvalidOption is an option or enum value that's unknown or doesn't apply
 	ErrInvalidOption = errors.New("fft: invalid option")
 )

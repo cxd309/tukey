@@ -146,3 +146,15 @@ func assertEqualNaN(t *testing.T, want, got []float64) {
 		assert.Equal(t, want[i], got[i], "got[%d]", i)
 	}
 }
+
+// Between a finite and an infinite sample the line is that infinity,
+// and beyond the finite sample, the opposite one.
+func TestInterp1AndFillMissingNextToInfinity(t *testing.T) {
+	inf := math.Inf(1)
+	yi, err := Interp1([]float64{0, 1, 2}, []float64{1, inf, 3}, []float64{0.5, 1, 1.5})
+	require.NoError(t, err)
+	assert.Equal(t, []float64{inf, inf, inf}, yi)
+
+	assert.Equal(t, []float64{-inf, -inf, 2, 4, 6}, FillMissing([]float64{nan, -inf, 2, nan, 6}, FillLinear()))
+	assert.Equal(t, []float64{inf, inf, 1, -inf}, FillMissing([]float64{inf, nan, 1, nan}, FillLinear()))
+}

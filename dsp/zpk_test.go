@@ -1,6 +1,7 @@
 package dsp
 
 import (
+	"math"
 	"slices"
 	"testing"
 
@@ -80,4 +81,20 @@ func TestSOSDoesNotModifyZPK(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, zeros, f.Zeros)
 	assert.Equal(t, poles, f.Poles)
+}
+
+func TestZPKRejectsNonFinite(t *testing.T) {
+	nan, inf := math.NaN(), math.Inf(1)
+	cases := map[string]ZPK{
+		"NaN gain":      {Gain: nan},
+		"infinite gain": {Gain: -inf},
+		"NaN zero":      {Zeros: []complex128{complex(nan, 0)}, Gain: 1},
+		"infinite pole": {Poles: []complex128{complex(0.5, inf), complex(0.5, -inf)}, Gain: 1},
+	}
+	for name, f := range cases {
+		_, _, err := f.BA()
+		assert.ErrorIs(t, err, ErrInvalidZPK, "BA, %s", name)
+		_, err = f.SOS()
+		assert.ErrorIs(t, err, ErrInvalidZPK, "SOS, %s", name)
+	}
 }

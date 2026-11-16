@@ -1,6 +1,7 @@
 package window
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +37,8 @@ func TestTaylorNormalisesToCentre(t *testing.T) {
 
 func TestTaylorRejectsInvalidParameters(t *testing.T) {
 	assertInvalidParameter(t, map[string]func() ([]float64, error){
-		"nbar 0": func() ([]float64, error) { return Taylor(8, 0, 30) },
-		"sll 0":  func() ([]float64, error) { return Taylor(8, 4, 0) },
+		"nbar 0":  func() ([]float64, error) { return Taylor(8, 0, 30) },
+		"sll 0":   func() ([]float64, error) { return Taylor(8, 4, 0) },
+		"sll Inf": func() ([]float64, error) { return Taylor(8, 4, math.Inf(1)) },
 	})
 }

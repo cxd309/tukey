@@ -121,4 +121,8 @@ func TestFIRWinRejectsInvalidInput(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidBand)
 	_, err = FIRWin(make([]float64, 31), Lowpass(1.2))
 	assert.ErrorIs(t, err, ErrInvalidBand)
+	for _, v := range []float64{math.NaN(), math.Inf(1)} {
+		_, err = FIRWin([]float64{1, v, 1}, Lowpass(0.3))
+		assert.ErrorIs(t, err, ErrInvalidParameter, "a window tap of %g", v)
+	}
 }

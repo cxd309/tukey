@@ -41,6 +41,12 @@ func TestExponentialFamilyRejectsInvalidParameters(t *testing.T) {
 		"Exponential Center NaN": func() ([]float64, error) {
 			return Exponential(8, 3, Periodic(), Center(math.NaN()))
 		},
+		"Gaussian std +Inf":        func() ([]float64, error) { return Gaussian(8, math.Inf(1)) },
+		"GeneralGaussian p +Inf":   func() ([]float64, error) { return GeneralGaussian(8, math.Inf(1), 2) },
+		"GeneralGaussian sig +Inf": func() ([]float64, error) { return GeneralGaussian(8, 1, math.Inf(1)) },
+		"Exponential tau +Inf":     func() ([]float64, error) { return Exponential(8, math.Inf(1)) },
+		"Exponential Center +Inf":  func() ([]float64, error) { return Exponential(8, 3, Periodic(), Center(math.Inf(1))) },
+		"Exponential Center -Inf":  func() ([]float64, error) { return Exponential(8, 3, Periodic(), Center(math.Inf(-1))) },
 	})
 	// Center needs Periodic, as a symmetric window is centred
 	_, err := Exponential(8, 3, Center(0))

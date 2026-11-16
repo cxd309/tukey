@@ -2,6 +2,7 @@ package dsp
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/cxd309/tukey/internal/floats"
 )
@@ -13,7 +14,7 @@ import (
 // this isn't checked, matching scipy.signal.lfilter and MATLAB's filter,
 // and an unstable filter produces output that grows without bound
 //
-// returns ErrInvalidCoefficients if b or a is empty, or a[0] is zero
+// returns ErrInvalidCoefficients if b or a is empty, a[0] is zero, or any coefficient is NaN or infinite
 //
 // equivalent to scipy.signal.lfilter(b, a, x) and MATLAB's filter(b, a, x)
 func Filter(b, a, x []float64) (y []float64, err error) {
@@ -29,7 +30,7 @@ func Filter(b, a, x []float64) (y []float64, err error) {
 // and also returns the final state zf. Passing each block's zf as the next block's zi
 // filters a long signal in blocks exactly as filtering it in one go would
 //
-// returns ErrInvalidCoefficients as Filter does, and ErrInvalidState if zi has the wrong length
+// returns ErrInvalidCoefficients as Filter does, and ErrInvalidState if zi has the wrong length or isn't finite
 //
 // equivalent to scipy.signal.lfilter(b, a, x, zi=zi)
 func FilterState(b, a, x, zi []float64) (y, zf []float64, err error) {
@@ -40,6 +41,9 @@ func FilterState(b, a, x, zi []float64) (y, zf []float64, err error) {
 	if len(zi) != len(f.a)-1 {
 		return nil, nil, fmt.Errorf("%w: zi has %d values; this filter needs max(len(a), len(b)) - 1 = %d",
 			ErrInvalidState, len(zi), len(f.a)-1)
+	}
+	if !allFinite(zi) {
+		return nil, nil, fmt.Errorf("%w: zi must be finite", ErrInvalidState)
 	}
 	y, zf = f.apply(x, zi)
 	return
@@ -64,7 +68,7 @@ func FilterZi(b, a []float64) (zi []float64, err error) {
 // SOSFilter applies the filter sos to x causally, section by section, starting from rest
 // stays accurate at high orders and narrow bands, where Filter's (b, a) form loses precision
 //
-// returns ErrInvalidSOS if sos has no sections or any section's a0 isn't 1
+// returns ErrInvalidSOS if sos has no sections, any section's a0 isn't 1, or any coefficient is NaN or infinite
 //
 // equivalent to scipy.signal.sosfilt(sos, x) and MATLAB's sosfilt(sos, x)
 func SOSFilter(sos SOS, x []float64) (y []float64, err error) {
@@ -79,7 +83,7 @@ func SOSFilter(sos SOS, x []float64) (y []float64, err error) {
 // SOSFilterState is SOSFilter starting from state zi, one pair per section, and also returns the final state zf
 // passing each block's zf as the next block's zi filters a long signal in blocks exactly as filtering it in one go would
 //
-// returns ErrInvalidSOS as SOSFilter does, and ErrInvalidState if zi doesn't have one pair per section
+// returns ErrInvalidSOS as SOSFilter does, and ErrInvalidState if zi doesn't have one pair per section or isn't finite
 //
 // equivalent to scipy.signal.sosfilt(sos, x, zi=zi)
 func SOSFilterState(sos SOS, x []float64, zi [][2]float64) (y []float64, zf [][2]float64, err error) {
@@ -89,6 +93,11 @@ func SOSFilterState(sos SOS, x []float64, zi [][2]float64) (y []float64, zf [][2
 	}
 	if len(zi) != len(sos) {
 		return nil, nil, fmt.Errorf("%w: zi has %d pairs but sos has %d sections", ErrInvalidState, len(zi), len(sos))
+	}
+	for i, pair := range zi {
+		if !allFinite(pair[:]) {
+			return nil, nil, fmt.Errorf("%w: zi[%d] must be finite", ErrInvalidState, i)
+		}
 	}
 	y, final := c.apply(x, toCascadeState(zi))
 	zf = fromCascadeState(final)
@@ -146,6 +155,9 @@ func validateCoefficients(b, a []float64) (err error) {
 	if a[0] == 0 {
 		return fmt.Errorf("%w: a[0] must be non-zero", ErrInvalidCoefficients)
 	}
+	if !allFinite(b) || !allFinite(a) {
+		return fmt.Errorf("%w: b and a must be finite", ErrInvalidCoefficients)
+	}
 	return
 }
 
@@ -162,8 +174,15 @@ func (f digitalFilter) apply(x, initial []float64) (y, final []float64) {
 	y = make([]float64, len(x))
 	for i, xi := range x {
 		yi := f.b[0]*xi + state[0]
+		if math.IsNaN(yi) {
+			yi = term(f.b[0], xi) + state[0]
+		}
 		for k := range n - 1 {
-			state[k] = f.b[k+1]*xi - f.a[k+1]*yi + state[k+1]
+			next := f.b[k+1]*xi - f.a[k+1]*yi + state[k+1]
+			if math.IsNaN(next) {
+				next = term(f.b[k+1], xi) - term(f.a[k+1], yi) + state[k+1]
+			}
+			state[k] = next
 		}
 		y[i] = yi
 	}
@@ -270,5 +289,16 @@ func fromCascadeState(state [][]float64) (zi [][2]float64) {
 	for i := range state {
 		zi[i] = [2]float64{state[i][0], state[i][1]}
 	}
+	return
+}
+
+// term is c·v, or 0 when c is exactly 0, so a coefficient of 0 drops a NaN or infinite v,
+// which 0·v would turn into NaN.
+// apply uses it only to recompute a NaN, so every finite result is unchanged.
+func term(c, v float64) (t float64) {
+	if c == 0 {
+		return 0
+	}
+	t = c * v
 	return
 }

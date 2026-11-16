@@ -161,6 +161,80 @@ func TestFindPeaksInvalidDistance(t *testing.T) {
 	}
 }
 
+func TestFindPeaksRejectsNaNLimits(t *testing.T) {
+	nan := math.NaN()
+	for name, opt := range map[string]PeakOption{
+		"MinPeakHeight":     MinPeakHeight(nan),
+		"PeakThreshold":     PeakThreshold(nan),
+		"MinPeakProminence": MinPeakProminence(nan),
+		"MinPeakWidth":      MinPeakWidth(nan),
+	} {
+		_, err := FindPeaks([]float64{0, 1, 0}, opt)
+		assert.ErrorIs(t, err, ErrInvalidParameter, name)
+	}
+}
+
+// An infinite limit is allowed: -Inf is no limit, and +Inf passes no peak.
+func TestFindPeaksInfiniteLimits(t *testing.T) {
+	x := []float64{0, 1, 0, 2, 0}
+	inf := math.Inf(1)
+	for name, opts := range map[string][2]PeakOption{
+		"MinPeakHeight":     {MinPeakHeight(-inf), MinPeakHeight(inf)},
+		"PeakThreshold":     {PeakThreshold(-inf), PeakThreshold(inf)},
+		"MinPeakProminence": {MinPeakProminence(-inf), MinPeakProminence(inf)},
+		"MinPeakWidth":      {MinPeakWidth(-inf), MinPeakWidth(inf)},
+	} {
+		all, err := FindPeaks(x, opts[0])
+		require.NoError(t, err)
+		assert.Equal(t, []int{1, 3}, peakIndices(all), "%s -Inf", name)
+		none, err := FindPeaks(x, opts[1])
+		require.NoError(t, err)
+		assert.Empty(t, none, "%s +Inf", name)
+	}
+}
+
+// A sample next to a NaN isn't known to be a peak, so it isn't one.
+// A NaN reached while looking for a peak's base leaves its prominence and width unknown,
+// so NaN, and a prominence or width limit drops it.
+// A NaN beyond a higher sample isn't reached, so changes nothing.
+func TestPeaksAroundNaN(t *testing.T) {
+	nan := math.NaN()
+	x := []float64{0, 3, 1, 4, 2, nan, 1, 5, 0}
+	peaks, err := FindPeaks(x)
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 3, 7}, peakIndices(peaks))
+	beside, err := FindPeaks([]float64{0, 2, nan, 0})
+	require.NoError(t, err)
+	assert.Empty(t, beside)
+
+	prominences, err := PeakProminences(x, []int{1, 3, 7})
+	require.NoError(t, err)
+	assert.Equal(t, PeakProminence{Prominence: 2, LeftBase: 0, RightBase: 2}, prominences[0], "4 is reached before the NaN")
+	assert.True(t, math.IsNaN(prominences[1].Prominence), "peak 3 reaches the NaN on its right")
+	assert.True(t, math.IsNaN(prominences[2].Prominence), "peak 7 reaches the NaN on its left")
+
+	widths, err := PeakWidths(x, []int{3}, 0.5)
+	require.NoError(t, err)
+	assert.True(t, math.IsNaN(widths[0].Width))
+
+	kept, err := FindPeaks(x, MinPeakProminence(0.5))
+	require.NoError(t, err)
+	assert.Equal(t, []int{1}, peakIndices(kept))
+	kept, err = FindPeaks(x, MinPeakWidth(0.5))
+	require.NoError(t, err)
+	assert.Equal(t, []int{1}, peakIndices(kept))
+}
+
+// Beside a -Inf the width's crossing is the next sample, its limit,
+// where interpolating towards -Inf gives NaN.
+func TestPeakWidthsBesideMinusInfinity(t *testing.T) {
+	x := []float64{0, math.Inf(-1), 1, 2, 1, 0}
+	widths, err := PeakWidths(x, []int{3}, 0.5)
+	require.NoError(t, err)
+	assert.Equal(t, 2.0, widths[0].Left)
+	assert.Equal(t, 4.0, widths[0].Right)
+}
+
 func TestPeakProminences(t *testing.T) {
 	x := []float64{0, 1, 0, 2, 0, 3, 0}
 	got, err := PeakProminences(x, []int{1, 3, 5})
@@ -201,7 +275,7 @@ func TestPeakProminencesAndWidthsInvalid(t *testing.T) {
 		_, err = PeakWidths(x, []int{peak}, 0.5)
 		assert.ErrorIs(t, err, ErrInvalidParameter)
 	}
-	for _, relHeight := range []float64{-0.5, math.NaN()} {
+	for _, relHeight := range []float64{-0.5, math.NaN(), math.Inf(1)} {
 		_, err := PeakWidths(x, []int{1}, relHeight)
 		assert.ErrorIs(t, err, ErrInvalidParameter)
 	}

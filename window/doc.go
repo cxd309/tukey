@@ -120,5 +120,9 @@
 // Every function is stateless: a new slice comes back, inputs are never
 // modified, and all functions are safe for concurrent use.
 // Invalid input returns an error wrapping ErrInvalidLength, ErrInvalidParameter or ErrInvalidOption,
-// can easily be checked with errors.Is
+// so check for one with errors.Is.
+//
+// A NaN or infinite parameter returns ErrInvalidParameter.
+// The one exception is Tukey's alpha, where at or below 0 is Boxcar and at or above 1 is Hann, infinities included.
+// For a flat window, use Boxcar rather than an infinite std or tau.
 package window

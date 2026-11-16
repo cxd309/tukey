@@ -70,6 +70,10 @@
 //
 // Every function is stateless: a new slice comes back, inputs are never
 // modified, and all functions are safe for concurrent use.
-// Invalid input returns an error wrapping ErrInvalidLength, ErrSignalTooShort or ErrInvalidOption,
-// can easily be checked with errors.Is
+// Invalid input returns an error wrapping ErrInvalidLength, ErrSignalTooShort,
+// ErrInvalidParameter or ErrInvalidOption, so check for one with errors.Is.
+//
+// A NaN or infinite sample is never an error.
+// A transform mixes every sample into every bin, so it makes every bin NaN.
+// A NaN or infinite parameter, such as Freq's d, returns ErrInvalidParameter.
 package fft
