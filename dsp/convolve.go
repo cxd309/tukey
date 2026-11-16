@@ -32,49 +32,6 @@ const (
 // ConvolveOption configures Convolve and Correlate
 type ConvolveOption func(*convolveConfig)
 
-// convolveOutput is which part of the full result is returned
-type convolveOutput int
-
-// bounds is where the selected outputs lie in the full result of na and nv samples
-func (o convolveOutput) bounds(na, nv int) (start, stop int) {
-	switch o {
-	case outputSame:
-		start = (nv - 1) / 2
-		stop = start + na
-	case outputValid:
-		start, stop = min(na, nv)-1, max(na, nv)
-	default:
-		start, stop = 0, na+nv-1
-	}
-	return
-}
-
-const (
-	outputFull convolveOutput = iota
-	outputSame
-	outputValid
-)
-
-// convolveConfig is Convolve's and Correlate's settings, built from ConvolveOptions.
-type convolveConfig struct {
-	output convolveOutput
-	method ConvolveMethod
-}
-
-// newConvolveConfig applies opts and checks the inputs, for the function name
-func newConvolveConfig(name string, a, v []float64, opts []ConvolveOption) (cfg convolveConfig, err error) {
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	switch {
-	case len(a) == 0 || len(v) == 0:
-		err = fmt.Errorf("%w: %s of %d and %d samples, needs at least 1 each", ErrInvalidLength, name, len(a), len(v))
-	case cfg.method < ConvolveAuto || cfg.method > ConvolveFFT:
-		err = fmt.Errorf("%w: ConvolveMethod %d", ErrInvalidMode, cfg.method)
-	}
-	return
-}
-
 // ConvolveSame returns the central len(a) outputs of the full result,
 // from (len(v)-1)/2 rounded down, same numpy and scipy "same" mode
 func ConvolveSame() ConvolveOption {
@@ -91,6 +48,12 @@ func ConvolveValid() ConvolveOption {
 // ConvolveBy sets how the sums are computed. ConvolveAuto by default.
 func ConvolveBy(method ConvolveMethod) ConvolveOption {
 	return func(c *convolveConfig) { c.method = method }
+}
+
+// Correlation is a cross-correlation: Values[i] is at lag Lags[i]
+type Correlation struct {
+	Values []float64
+	Lags   []int
 }
 
 // Convolve returns the convolution of a and v, c[k] = Σ a[i]·v[k-i]:
@@ -124,12 +87,6 @@ func Convolve(a, v []float64, opts ...ConvolveOption) (c []float64, err error) {
 	start, stop := cfg.output.bounds(len(a), len(v))
 	c = full[start:stop:stop]
 	return
-}
-
-// Correlation is a cross-correlation: Values[i] is at lag Lags[i]
-type Correlation struct {
-	Values []float64
-	Lags   []int
 }
 
 // Correlate returns the cross-correlation of a and v, Σ a[n+k]·v[n] at each lag k:
@@ -167,6 +124,49 @@ func Correlate(a, v []float64, opts ...ConvolveOption) (c Correlation, err error
 	return
 }
 
+// convolveConfig is Convolve's and Correlate's settings, built from ConvolveOptions.
+type convolveConfig struct {
+	output convolveOutput
+	method ConvolveMethod
+}
+
+// convolveOutput is which part of the full result is returned
+type convolveOutput int
+
+const (
+	outputFull convolveOutput = iota
+	outputSame
+	outputValid
+)
+
+// bounds is where the selected outputs lie in the full result of na and nv samples
+func (o convolveOutput) bounds(na, nv int) (start, stop int) {
+	switch o {
+	case outputSame:
+		start = (nv - 1) / 2
+		stop = start + na
+	case outputValid:
+		start, stop = min(na, nv)-1, max(na, nv)
+	default:
+		start, stop = 0, na+nv-1
+	}
+	return
+}
+
+// newConvolveConfig applies opts and checks the inputs, for the function name
+func newConvolveConfig(name string, a, v []float64, opts []ConvolveOption) (cfg convolveConfig, err error) {
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	switch {
+	case len(a) == 0 || len(v) == 0:
+		err = fmt.Errorf("%w: %s of %d and %d samples, needs at least 1 each", ErrInvalidLength, name, len(a), len(v))
+	case cfg.method < ConvolveAuto || cfg.method > ConvolveFFT:
+		err = fmt.Errorf("%w: ConvolveMethod %d", ErrInvalidMode, cfg.method)
+	}
+	return
+}
+
 // convolveFull is the full convolution of a and v, by method
 func convolveFull(a, v []float64, method ConvolveMethod) (full []float64, err error) {
 	if method == ConvolveAuto {
@@ -190,6 +190,23 @@ func autoMethod(a, v []float64) (method ConvolveMethod) {
 	return
 }
 
+// fasterMethod is ConvolveDirect or ConvolveFFT,
+// whichever the cost model determines is faster for inputs of na and nv samples
+func fasterMethod(na, nv int) (method ConvolveMethod) {
+	size := float64(fft.FastLength(na + nv - 1))
+	if float64(na)*float64(nv) <= fftCostOverhead+fftCostPerUnit*size*math.Log2(size) {
+		return ConvolveDirect
+	}
+	return ConvolveFFT
+}
+
+// The FFT'a measured cost, in units of one direct compensated product:
+// a fixed overhead, then a cost per size·log2(size)
+const (
+	fftCostOverhead = 130
+	fftCostPerUnit  = 0.4
+)
+
 // allFinite reports whether x has no NaN or infinite samples
 func allFinite(x []float64) bool {
 	for _, s := range x {
@@ -198,25 +215,6 @@ func allFinite(x []float64) bool {
 		}
 	}
 	return true
-}
-
-// convolveDirect sums each output's products directly.
-// Each product's rounding error is recovered exactly by FMA and summed with it,
-// so each output is its exact sum of products, rounded close to once.
-func convolveDirect(a, v []float64) (full []float64) {
-	full = make([]float64, len(a)+len(v)-1)
-	for k := range full {
-		var sum floats.Sum
-		for i := max(0, k-len(v)+1); i <= min(k, len(a)-1); i++ {
-			p := float64(a[i] * v[k-i]) // the conversion rounds, so p can't be fused into the sum
-			sum.Add(p)
-			if !math.IsInf(p, 0) { // an infinite product has no finite rounding error
-				sum.Add(math.FMA(a[i], v[k-i], -p))
-			}
-		}
-		full[k] = sum.Total()
-	}
-	return
 }
 
 // convolveFFT multiplies a's and v's spectra,
@@ -243,19 +241,21 @@ func convolveFFT(a, v []float64) (full []float64, err error) {
 	return
 }
 
-// The FFT'a measured cost, in units of one direct compensated product:
-// a fixed overhead, then a cost per size·log2(size)
-const (
-	fftCostOverhead = 130
-	fftCostPerUnit  = 0.4
-)
-
-// fasterMethod is ConvolveDirect or ConvolveFFT,
-// whichever the cost model determines is faster for inputs of na and nv samples
-func fasterMethod(na, nv int) (method ConvolveMethod) {
-	size := float64(fft.FastLength(na + nv - 1))
-	if float64(na)*float64(nv) <= fftCostOverhead+fftCostPerUnit*size*math.Log2(size) {
-		return ConvolveDirect
+// convolveDirect sums each output's products directly.
+// Each product's rounding error is recovered exactly by FMA and summed with it,
+// so each output is its exact sum of products, rounded close to once.
+func convolveDirect(a, v []float64) (full []float64) {
+	full = make([]float64, len(a)+len(v)-1)
+	for k := range full {
+		var sum floats.Sum
+		for i := max(0, k-len(v)+1); i <= min(k, len(a)-1); i++ {
+			p := float64(a[i] * v[k-i]) // the conversion rounds, so p can't be fused into the sum
+			sum.Add(p)
+			if !math.IsInf(p, 0) { // an infinite product has no finite rounding error
+				sum.Add(math.FMA(a[i], v[k-i], -p))
+			}
+		}
+		full[k] = sum.Total()
 	}
-	return ConvolveFFT
+	return
 }

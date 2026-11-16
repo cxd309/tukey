@@ -24,11 +24,6 @@ const (
 // MedFiltOption configures MedFilt
 type MedFiltOption func(*medFiltConfig)
 
-// medFiltConfig is MedFilt's settings, built from MedFiltOptions
-type medFiltConfig struct {
-	edge MedFiltEdge
-}
-
 // MedFiltEdges sets how MedFilt treats the ends. MedFiltTruncate by default.
 func MedFiltEdges(edge MedFiltEdge) MedFiltOption {
 	return func(c *medFiltConfig) { c.edge = edge }
@@ -84,16 +79,16 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 	return
 }
 
+// medFiltConfig is MedFilt's settings, built from MedFiltOptions
+type medFiltConfig struct {
+	edge MedFiltEdge
+}
+
 // sortedWindow is a sliding window's samples, kept sorted,
 // with its NaNs counted apart, as they don't sort
 type sortedWindow struct {
 	sorted []float64
 	nans   int
-}
-
-// count is how many samples the window holds, NaN included
-func (w *sortedWindow) count() int {
-	return len(w.sorted) + w.nans
 }
 
 // add puts v into the window, in order
@@ -114,6 +109,11 @@ func (w *sortedWindow) remove(v float64) {
 	}
 	i, _ := slices.BinarySearch(w.sorted, v)
 	w.sorted = slices.Delete(w.sorted, i, i+1)
+}
+
+// count is how many samples the window holds, NaN included
+func (w *sortedWindow) count() int {
+	return len(w.sorted) + w.nans
 }
 
 // median is the median of the window with zeros extra zeros in it,

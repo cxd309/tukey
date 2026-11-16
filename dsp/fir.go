@@ -11,58 +11,9 @@ import (
 // FIROption configures FIRWin
 type FIROption func(*firConfig)
 
-// firConfig is FIRWin's settings, built from FIROptions
-type firConfig struct {
-	noScale bool
-}
-
 // NoScale leaves FIRWin's taps unscaled: the windowed ideal response as it is
 func NoScale() FIROption {
 	return func(c *firConfig) { c.noScale = true }
-}
-
-// passband is one band an ideal FIR response passes, from left to right,
-// normalised to Nyquist
-type passband struct {
-	left, right float64
-}
-
-// passbands is the bands band passes, and where a scaled design has gain 1:
-// DC if the first reaches it, Nyquist if it reaches that, otherwise its centre
-func (band Band) passbands() (bands []passband, scaleAt float64) {
-	edges := band.edges
-	switch band.btype {
-	case lowpassType:
-		bands = []passband{{0, edges[0]}}
-	case highpassType:
-		bands = []passband{{edges[0], 1}}
-	case bandpassType:
-		bands = []passband{{edges[0], edges[1]}}
-	default:
-		bands = []passband{{0, edges[0]}, {edges[1], 1}}
-	}
-	switch first := bands[0]; {
-	case first.left == 0:
-		scaleAt = 0
-	case first.right == 1:
-		scaleAt = 1
-	default:
-		scaleAt = (first.left + first.right) / 2
-	}
-	return
-}
-
-// response is the ideal response's impulse response at m samples from the centre:
-// for each passband, (sin(π·right·m) − sin(π·left·m))/(π·m), or right − left at m = 0.
-// The difference of sines is formed as the product 2·cos(π·centre·m)·sin(π·halfWidth·m),
-// which doesn't cancel for a narrow band.
-func (p passband) response(m float64) (h float64) {
-	if m == 0 {
-		return p.right - p.left
-	}
-	_, cos := special.SinCosPiProduct((p.left+p.right)/2, m)
-	sin, _ := special.SinCosPiProduct((p.right-p.left)/2, m)
-	return 2 * cos * sin / (math.Pi * m)
 }
 
 // FIRWin designs a linear-phase FIR filter for band by the window method and
@@ -135,4 +86,53 @@ func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err er
 		h[k] /= scale
 	}
 	return
+}
+
+// firConfig is FIRWin's settings, built from FIROptions
+type firConfig struct {
+	noScale bool
+}
+
+// passbands is the bands band passes, and where a scaled design has gain 1:
+// DC if the first reaches it, Nyquist if it reaches that, otherwise its centre
+func (band Band) passbands() (bands []passband, scaleAt float64) {
+	edges := band.edges
+	switch band.btype {
+	case lowpassType:
+		bands = []passband{{0, edges[0]}}
+	case highpassType:
+		bands = []passband{{edges[0], 1}}
+	case bandpassType:
+		bands = []passband{{edges[0], edges[1]}}
+	default:
+		bands = []passband{{0, edges[0]}, {edges[1], 1}}
+	}
+	switch first := bands[0]; {
+	case first.left == 0:
+		scaleAt = 0
+	case first.right == 1:
+		scaleAt = 1
+	default:
+		scaleAt = (first.left + first.right) / 2
+	}
+	return
+}
+
+// passband is one band an ideal FIR response passes, from left to right,
+// normalised to Nyquist
+type passband struct {
+	left, right float64
+}
+
+// response is the ideal response's impulse response at m samples from the centre:
+// for each passband, (sin(π·right·m) − sin(π·left·m))/(π·m), or right − left at m = 0.
+// The difference of sines is formed as the product 2·cos(π·centre·m)·sin(π·halfWidth·m),
+// which doesn't cancel for a narrow band.
+func (p passband) response(m float64) (h float64) {
+	if m == 0 {
+		return p.right - p.left
+	}
+	_, cos := special.SinCosPiProduct((p.left+p.right)/2, m)
+	sin, _ := special.SinCosPiProduct((p.right-p.left)/2, m)
+	return 2 * cos * sin / (math.Pi * m)
 }

@@ -43,11 +43,6 @@ const (
 // FindSignalOption configures FindSignal.
 type FindSignalOption func(*findSignalConfig)
 
-// findSignalConfig is FindSignal's settings, built from FindSignalOptions.
-type findSignalConfig struct {
-	method SearchMethod
-}
-
 // SignalSearch sets how FindSignal scores each window.
 func SignalSearch(method SearchMethod) FindSignalOption {
 	return func(c *findSignalConfig) { c.method = method }
@@ -83,6 +78,11 @@ func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalM
 	return
 }
 
+// findSignalConfig is FindSignal's settings, built from FindSignalOptions.
+type findSignalConfig struct {
+	method SearchMethod
+}
+
 // findSignalDirect scores every window of data exactly,
 // keeping the first of any equally close.
 func findSignalDirect(data, signal []float64) (match SignalMatch) {
@@ -106,6 +106,14 @@ func windowDistance(window, signal []float64) (distance float64) {
 		sum.Add(diff * diff)
 	}
 	distance = sum.Total()
+	return
+}
+
+// closer reports whether distance d beats best.
+// A NaN distance never wins, and anything that isn't NaN beats a NaN best,
+// so NaN in the data can't hide a later match.
+func closer(d, best float64) (ok bool) {
+	ok = d < best || (math.IsNaN(best) && !math.IsNaN(d))
 	return
 }
 
@@ -221,13 +229,5 @@ func profileErrorBound(data, signal []float64) (bound float64) {
 	}
 	depth := math.Log2(float64(fft.FastLength(len(data)))) + 1
 	bound = 16 * floats.Epsilon * depth * squares
-	return
-}
-
-// closer reports whether distance d beats best.
-// A NaN distance never wins, and anything that isn't NaN beats a NaN best,
-// so NaN in the data can't hide a later match.
-func closer(d, best float64) (ok bool) {
-	ok = d < best || (math.IsNaN(best) && !math.IsNaN(d))
 	return
 }

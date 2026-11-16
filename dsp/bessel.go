@@ -25,36 +25,12 @@ const (
 	BesselNormDelay
 )
 
-// besselScales is each BesselNorm's scaling of the reverse Bessel polynomial's roots
-var besselScales = [...]poly.ReverseBesselScale{
-	BesselNormMagnitude: poly.UnitHalfPower,
-	BesselNormPhase:     poly.UnitProduct,
-	BesselNormDelay:     poly.UnitDelay,
-}
-
 // BesselOption configures Bessel
 type BesselOption func(*besselConfig)
-
-// besselConfig is Bessel's settings, built from BesselOptions
-type besselConfig struct {
-	norm BesselNorm
-}
 
 // BesselNormalised sets where the band edge is. BesselNormMagnitude by default.
 func BesselNormalised(norm BesselNorm) BesselOption {
 	return func(c *besselConfig) { c.norm = norm }
-}
-
-// besselPrototype returns the analog Bessel lowpass prototype:
-// poles at the roots of the reverse Bessel polynomial,
-// scaled for norm, no finite zeros, and 0 dB at DC.
-//
-// Equivalent to scipy.signal.besselap(order, norm), but every pole exact,
-// rounded once, where SciPy's are within about 1e-15, or 1e-13 for norm="mag".
-func besselPrototype(order int, norm BesselNorm) (proto analogZPK) {
-	proto.Poles = poly.ReverseBesselRoots(order, besselScales[norm])
-	proto.Gain = real(poly.Prod(poly.MapRoots(proto.Poles, negate)))
-	return
 }
 
 // Bessel designs a digital Bessel filter for band and returns ZPK.
@@ -91,4 +67,28 @@ func Bessel(order int, band Band, opts ...BesselOption) (f ZPK, err error) {
 		return f, fmt.Errorf("%w: BesselNorm %d", ErrInvalidMode, cfg.norm)
 	}
 	return designDigital(order, band, func() analogZPK { return besselPrototype(order, cfg.norm) })
+}
+
+// besselConfig is Bessel's settings, built from BesselOptions
+type besselConfig struct {
+	norm BesselNorm
+}
+
+// besselPrototype returns the analog Bessel lowpass prototype:
+// poles at the roots of the reverse Bessel polynomial,
+// scaled for norm, no finite zeros, and 0 dB at DC.
+//
+// Equivalent to scipy.signal.besselap(order, norm), but every pole exact,
+// rounded once, where SciPy's are within about 1e-15, or 1e-13 for norm="mag".
+func besselPrototype(order int, norm BesselNorm) (proto analogZPK) {
+	proto.Poles = poly.ReverseBesselRoots(order, besselScales[norm])
+	proto.Gain = real(poly.Prod(poly.MapRoots(proto.Poles, negate)))
+	return
+}
+
+// besselScales is each BesselNorm's scaling of the reverse Bessel polynomial's roots
+var besselScales = [...]poly.ReverseBesselScale{
+	BesselNormMagnitude: poly.UnitHalfPower,
+	BesselNormPhase:     poly.UnitProduct,
+	BesselNormDelay:     poly.UnitDelay,
 }

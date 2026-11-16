@@ -8,10 +8,48 @@ import (
 	"github.com/cxd309/tukey/internal/poly"
 )
 
-// rippleFactor is ε= sqrt(10^(dB/10)- 1), by Expm1 so a small dB keeps its digits
-func rippleFactor(dB float64) (epsilon float64) {
-	epsilon = math.Sqrt(math.Expm1(dB * math.Ln10 / 10))
-	return
+// Cheby1 designs a digital Chebyshev type I filter for band and returns ZPK.
+// It has equal ripple of rippleDB in the passband and falls monotonically after it,
+// a sharper transition than Butter's for the same order.
+// A band edge is where the gain first drops below -rippleDB, not -3 dB
+//
+//	f, err := dsp.Cheby1(4, 1, dsp.Lowpass(0.3))
+//
+// Returns:
+//   - ErrInvalidOrder if order < 1
+//   - ErrInvalidBand for a band Butter rejects
+//   - ErrInvalidParameter if rippleDB isn't positive and finite
+//
+// Equivalent to:
+//   - scipy.signal.cheby1(order, rippleDB, wn, btype, output='zpk')
+//   - matlab cheby1(order, rippleDB, wn, ftype)
+func Cheby1(order int, rippleDB float64, band Band) (f ZPK, err error) {
+	if err = checkDB("rippleDB", rippleDB); err != nil {
+		return f, err
+	}
+	return designDigital(order, band, func() analogZPK { return chebyshev1Prototype(order, rippleDB) })
+}
+
+// Cheby2 designs a digital Chebyshev type II filter for band and returns ZPK.
+// It's flat in the passband, with equal ripple in the stopband at least attenuationDB down.
+// A band edge is the start of the stopband, where the gain first reaches -attenuationDB,
+// not the end of the passband as for Butter and Cheby1.
+//
+//	f, err := dsp.Cheby2(4, 40, dsp.Lowpass(0.3))
+//
+// Returns:
+//   - ErrInvalidOrder if order < 1
+//   - ErrInvalidBand for a band Butter rejects
+//   - ErrInvalidParameter if attenuationDB isn't positive and finite
+//
+// Equivalent to:
+//   - scipy.signal.cheby2(order, attenuationDB, wn, btype, output='zpk')
+//   - matlab cheby2(order, attenuationDB, wn, ftype)
+func Cheby2(order int, attenuationDB float64, band Band) (f ZPK, err error) {
+	if err = checkDB("attenuationDB", attenuationDB); err != nil {
+		return f, err
+	}
+	return designDigital(order, band, func() analogZPK { return chebyshev2Prototype(order, attenuationDB) })
 }
 
 // checkDB returns ErrInvalidParameter unless dB is positive and finite
@@ -40,26 +78,10 @@ func chebyshev1Prototype(order int, rippleDB float64) (proto analogZPK) {
 	return
 }
 
-// Cheby1 designs a digital Chebyshev type I filter for band and returns ZPK.
-// It has equal ripple of rippleDB in the passband and falls monotonically after it,
-// a sharper transition than Butter's for the same order.
-// A band edge is where the gain first drops below -rippleDB, not -3 dB
-//
-//	f, err := dsp.Cheby1(4, 1, dsp.Lowpass(0.3))
-//
-// Returns:
-//   - ErrInvalidOrder if order < 1
-//   - ErrInvalidBand for a band Butter rejects
-//   - ErrInvalidParameter if rippleDB isn't positive and finite
-//
-// Equivalent to:
-//   - scipy.signal.cheby1(order, rippleDB, wn, btype, output='zpk')
-//   - matlab cheby1(order, rippleDB, wn, ftype)
-func Cheby1(order int, rippleDB float64, band Band) (f ZPK, err error) {
-	if err = checkDB("rippleDB", rippleDB); err != nil {
-		return f, err
-	}
-	return designDigital(order, band, func() analogZPK { return chebyshev1Prototype(order, rippleDB) })
+// rippleFactor is ε= sqrt(10^(dB/10)- 1), by Expm1 so a small dB keeps its digits
+func rippleFactor(dB float64) (epsilon float64) {
+	epsilon = math.Sqrt(math.Expm1(dB * math.Ln10 / 10))
+	return
 }
 
 // chebyshev2Prototype returns the analog Chebyshev type II lowpass prototype:
@@ -78,26 +100,4 @@ func chebyshev2Prototype(order int, attenuationDB float64) (proto analogZPK) {
 	}
 	proto.Gain = real(poly.Prod(poly.MapRoots(proto.Poles, negate)) / poly.Prod(poly.MapRoots(proto.Zeros, negate)))
 	return
-}
-
-// Cheby2 designs a digital Chebyshev type II filter for band and returns ZPK.
-// It's flat in the passband, with equal ripple in the stopband at least attenuationDB down.
-// A band edge is the start of the stopband, where the gain first reaches -attenuationDB,
-// not the end of the passband as for Butter and Cheby1.
-//
-//	f, err := dsp.Cheby2(4, 40, dsp.Lowpass(0.3))
-//
-// Returns:
-//   - ErrInvalidOrder if order < 1
-//   - ErrInvalidBand for a band Butter rejects
-//   - ErrInvalidParameter if attenuationDB isn't positive and finite
-//
-// Equivalent to:
-//   - scipy.signal.cheby2(order, attenuationDB, wn, btype, output='zpk')
-//   - matlab cheby2(order, attenuationDB, wn, ftype)
-func Cheby2(order int, attenuationDB float64, band Band) (f ZPK, err error) {
-	if err = checkDB("attenuationDB", attenuationDB); err != nil {
-		return f, err
-	}
-	return designDigital(order, band, func() analogZPK { return chebyshev2Prototype(order, attenuationDB) })
 }

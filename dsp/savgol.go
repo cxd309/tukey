@@ -11,12 +11,6 @@ import (
 // SavGolOption configures SavGolFilter
 type SavGolOption func(*savGolConfig)
 
-// savGolConfig is SavGolFilter's settings, built from SavGolOptions
-type savGolConfig struct {
-	deriv int
-	dx    float64
-}
-
 // SavGolDeriv makes SavGolFilter return the order-th derivative of each fitted polynomial,
 // for samples dx apart, rather than its value:
 // a smoothed derivative.
@@ -81,6 +75,12 @@ func SavGolFilter(x []float64, n, polyOrder int, opts ...SavGolOption) (y []floa
 		y[len(x)-half+at] = fitted(fit.Weights(right, cfg.deriv), last, right, cfg.deriv) / scale
 	}
 	return
+}
+
+// savGolConfig is SavGolFilter's settings, built from SavGolOptions
+type savGolConfig struct {
+	deriv int
+	dx    float64
 }
 
 // fitted is the fit's value, or deriv-th derivative, at window[at], from its weights w:

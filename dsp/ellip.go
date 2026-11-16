@@ -7,6 +7,29 @@ import (
 	"github.com/cxd309/tukey/internal/special"
 )
 
+// Ellip designs a digital elliptic (Cauer) filter for band and returns ZPK.
+// It has equal ripple of rippleDB in the passband and equal ripple at least attenuationDB down in the stopband,
+// the sharpest transition of any filter of its order.
+// A band edge is where the gain first drops below -rippleDB, as for Cheby1.
+//
+//	f, err:= dsp.Ellip(4, 1, 40, dsp.Lowpass(0.3))
+//
+// Returns:
+//   - ErrInvalidOrder if order < 1
+//   - ErrInvalidBand for a band Butter rejects
+//   - ErrInvalidParameter if rippleDB or attenuationDB isn't positive and finite,
+//     or attenuationDB isn't greater than rippleDB
+//
+// Equivalent to:
+//   - scipy.signal.ellip(order, rippleDB, attenuationDB, wn, btype, output='zpk')
+//   - matlab ellip(order, rippleDB, attenuationDB, wn, ftype)
+func Ellip(order int, rippleDB, attenuationDB float64, band Band) (f ZPK, err error) {
+	if err = checkRippleAttenuation(rippleDB, attenuationDB); err != nil {
+		return f, err
+	}
+	return designDigital(order, band, func() analogZPK { return ellipticPrototype(order, rippleDB, attenuationDB) })
+}
+
 // ellipticPrototype returns the analog elliptic lowpass prototype:
 // equal ripple of rippleDB up to 1 rad/s,
 // and equal ripple at least attenuationDB down from the stopband edge 1/√m rad/s,
@@ -68,27 +91,4 @@ func ellipticPrototype(order int, rippleDB, attenuationDB float64) (proto analog
 		proto.Gain *= math.Pow(10, -rippleDB/20)
 	}
 	return
-}
-
-// Ellip designs a digital elliptic (Cauer) filter for band and returns ZPK.
-// It has equal ripple of rippleDB in the passband and equal ripple at least attenuationDB down in the stopband,
-// the sharpest transition of any filter of its order.
-// A band edge is where the gain first drops below -rippleDB, as for Cheby1.
-//
-//	f, err:= dsp.Ellip(4, 1, 40, dsp.Lowpass(0.3))
-//
-// Returns:
-//   - ErrInvalidOrder if order < 1
-//   - ErrInvalidBand for a band Butter rejects
-//   - ErrInvalidParameter if rippleDB or attenuationDB isn't positive and finite,
-//     or attenuationDB isn't greater than rippleDB
-//
-// Equivalent to:
-//   - scipy.signal.ellip(order, rippleDB, attenuationDB, wn, btype, output='zpk')
-//   - matlab ellip(order, rippleDB, attenuationDB, wn, ftype)
-func Ellip(order int, rippleDB, attenuationDB float64, band Band) (f ZPK, err error) {
-	if err = checkRippleAttenuation(rippleDB, attenuationDB); err != nil {
-		return f, err
-	}
-	return designDigital(order, band, func() analogZPK { return ellipticPrototype(order, rippleDB, attenuationDB) })
 }

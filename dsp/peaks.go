@@ -58,19 +58,6 @@ const (
 // Options are applied in order, so a later option overrides an earlier one
 type PeakOption func(*peakConfig)
 
-// peakConfig is FindPeak' settings, built from PeakOptions.
-// A limit of -Inf, or a distance of 1, means no limit
-type peakConfig struct {
-	minHeight     float64
-	threshold     float64
-	minDistance   int
-	minProminence float64
-	minWidth      float64
-	plateau       PlateauPosition
-	ties          TieBreak
-	distanceLast  bool
-}
-
 // MinPeakHeight keeps peaks at least h high
 //
 // Equivalent to SciPy height=h,  MATLAB "MinPeakHeight"
@@ -220,6 +207,19 @@ func PeakWidths(x []float64, peaks []int, relHeight float64) (widths []PeakWidth
 		widths[k] = peakWidth(x, p, relHeight, peakProminence(x, p))
 	}
 	return
+}
+
+// peakConfig is FindPeak' settings, built from PeakOptions.
+// A limit of -Inf, or a distance of 1, means no limit
+type peakConfig struct {
+	minHeight     float64
+	threshold     float64
+	minDistance   int
+	minProminence float64
+	minWidth      float64
+	plateau       PlateauPosition
+	ties          TieBreak
+	distanceLast  bool
 }
 
 // newPeakConfig builds FindPeaks' settings from opts
