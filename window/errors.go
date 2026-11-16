@@ -1,22 +1,15 @@
 package window
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
-// Errors returned for invalid input
-// each is wrapped with the specifics of what was wrong
-// check with errors.Is
+// Errors returned for invalid input.
+// Each is wrapped with the detail of what was wrong, so check for one with errors.Is.
+// They mean the same in every tukey package.
 var (
-	ErrInvalidLength    = errors.New("window: invalid length")
+	// ErrInvalidLength is a window length that's wrong in itself
+	ErrInvalidLength = errors.New("window: invalid length")
+	// ErrInvalidParameter is a value outside its domain
 	ErrInvalidParameter = errors.New("window: invalid parameter")
+	// ErrInvalidOption is an option that doesn't apply to the window
+	ErrInvalidOption = errors.New("window: invalid option")
 )
-
-// positive returns ErrInvalidParameter unless v > 0, which also rules our NaN
-func positive(window, name string, v float64) (err error) {
-	if !(v > 0) {
-		err = fmt.Errorf("%w: %s's %s must be >0, got %g", ErrInvalidParameter, window, name, v)
-	}
-	return
-}

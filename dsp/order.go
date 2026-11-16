@@ -26,7 +26,7 @@ import (
 //     types of band, or if stop's edges aren't beyond pass's
 //   - ErrInvalidParameter if rippleDB or attenuationDB isn't positive and finite,
 //     or attenuationDB isn't greater than rippleDB
-//   - ErrInvalidMode for an unknown MatchBand
+//   - ErrInvalidOption for an unknown MatchBand
 //
 // Equivalent to:
 //   - scipy.signal.buttord(wp, ws, rippleDB, attenuationDB), whose bandstop
@@ -129,7 +129,7 @@ func selectOrder(design orderDesign, pass, stop Band, rippleDB, attenuationDB fl
 		opt(&cfg)
 	}
 	if cfg.match < MatchPassband || cfg.match > MatchStopband {
-		return 0, wn, fmt.Errorf("%w: MatchBand %d", ErrInvalidMode, cfg.match)
+		return 0, wn, fmt.Errorf("%w: MatchBand %d", ErrInvalidOption, cfg.match)
 	}
 	if err = checkRippleAttenuation(rippleDB, attenuationDB); err != nil {
 		return 0, wn, err

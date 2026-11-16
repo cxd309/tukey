@@ -52,11 +52,13 @@ func newConfig(opts []Option, inputLength int) (cfg config, err error) {
 	if !(cfg.norm >= NormBackward && cfg.norm <= NormForward) {
 		return cfg, fmt.Errorf("%w: unknown normalisation %d", ErrInvalidOption, int(cfg.norm))
 	}
-	if !cfg.nSet {
+	switch {
+	case cfg.nSet && cfg.n < 1:
+		return cfg, fmt.Errorf("%w: N %d, must be at least 1", ErrInvalidLength, cfg.n)
+	case !cfg.nSet && inputLength < 1:
+		return cfg, fmt.Errorf("%w: cannot transform an empty signal", ErrSignalTooShort)
+	case !cfg.nSet:
 		cfg.n = inputLength
-	}
-	if cfg.n < 1 {
-		return cfg, fmt.Errorf("%w: tranform length must be >= 1, got %d", ErrInvalidLength, cfg.n)
 	}
 	return
 }

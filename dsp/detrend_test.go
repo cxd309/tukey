@@ -49,7 +49,7 @@ func TestDetrendShortSignals(t *testing.T) {
 
 func TestDetrendRejectsUnknownMode(t *testing.T) {
 	_, err := Detrend([]float64{1, 2, 3}, DetrendMode(7))
-	assert.ErrorIs(t, err, ErrInvalidMode)
+	assert.ErrorIs(t, err, ErrInvalidOption)
 	assert.ErrorContains(t, err, "DetrendMode(7)")
 }
 

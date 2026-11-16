@@ -73,7 +73,7 @@ func TestEnvelopeRMSAroundMean(t *testing.T) {
 
 func TestEnvelopeInvalid(t *testing.T) {
 	_, _, err := Envelope(nil, EnvelopeAnalytic())
-	assert.ErrorIs(t, err, ErrInvalidLength)
+	assert.ErrorIs(t, err, ErrSignalTooShort)
 	for _, window := range []int{0, -1} {
 		_, _, err = Envelope([]float64{1, 2, 3}, EnvelopeRMS(window))
 		assert.ErrorIs(t, err, ErrInvalidParameter)
@@ -151,5 +151,5 @@ func TestHilbertDCAndNyquist(t *testing.T) {
 
 func TestHilbertEmpty(t *testing.T) {
 	_, err := Hilbert(nil)
-	assert.ErrorIs(t, err, ErrInvalidLength)
+	assert.ErrorIs(t, err, ErrSignalTooShort)
 }

@@ -270,7 +270,7 @@ func TestOrderRejectsInvalidInput(t *testing.T) {
 		}
 
 		for _, match := range []MatchBand{-1, 2} {
-			check(lowPass, lowStop, 1, 40, []OrderOption{Matching(match)}, ErrInvalidMode, fmt.Sprintf("MatchBand %d", match))
+			check(lowPass, lowStop, 1, 40, []OrderOption{Matching(match)}, ErrInvalidOption, fmt.Sprintf("MatchBand %d", match))
 		}
 	}
 }

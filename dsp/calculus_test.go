@@ -62,7 +62,7 @@ func TestGradTwoSamples(t *testing.T) {
 func TestGradRejectsInvalidInput(t *testing.T) {
 	for _, x := range [][]float64{nil, {}, {5}} {
 		_, err := Grad(x, 1)
-		assert.ErrorIs(t, err, ErrInvalidLength, "%d samples", len(x))
+		assert.ErrorIs(t, err, ErrSignalTooShort, "%d samples", len(x))
 	}
 	for _, dx := range invalidSpacings {
 		_, err := Grad([]float64{1, 2, 3}, dx)

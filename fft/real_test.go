@@ -80,7 +80,7 @@ func TestInverseRealIgnoresWhatARealSignalCannotHave(t *testing.T) {
 
 func TestRealTransformsRejectInvalidLengths(t *testing.T) {
 	_, err := ForwardReal(nil)
-	assert.ErrorIs(t, err, ErrInvalidLength)
+	assert.ErrorIs(t, err, ErrSignalTooShort)
 	_, err = InverseReal([]complex128{1}, 0)
 	assert.ErrorIs(t, err, ErrInvalidLength)
 }

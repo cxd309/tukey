@@ -20,7 +20,7 @@ func TestRejectsOptionThatDoesNotApply(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := c.call()
-			assert.ErrorIs(t, err, ErrInvalidParameter)
+			assert.ErrorIs(t, err, ErrInvalidOption)
 			assert.ErrorContains(t, err, c.message)
 		})
 	}

@@ -38,11 +38,11 @@ func TestExponentialFamilyRejectsInvalidParameters(t *testing.T) {
 		"GeneralGaussian p -1":  func() ([]float64, error) { return GeneralGaussian(8, -1, 2) },
 		"GeneralGaussian sig 0": func() ([]float64, error) { return GeneralGaussian(8, 1, 0) },
 		"Exponential tau 0":     func() ([]float64, error) { return Exponential(8, 0) },
-		"Exponential Center without Periodic": func() ([]float64, error) {
-			return Exponential(8, 3, Center(0))
-		},
 		"Exponential Center NaN": func() ([]float64, error) {
 			return Exponential(8, 3, Periodic(), Center(math.NaN()))
 		},
 	})
+	// Center needs Periodic, as a symmetric window is centred
+	_, err := Exponential(8, 3, Center(0))
+	assert.ErrorIs(t, err, ErrInvalidOption, "Exponential Center without Periodic")
 }

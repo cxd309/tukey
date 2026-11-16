@@ -10,7 +10,7 @@ import (
 // the least-squares line for DetrendLinear, the mean for DetrendConstant,
 // empty x returns empty, and a single sample returns [0]
 //
-// returns ErrInvalidMode for an unknown mode
+// returns ErrInvalidOption for an unknown mode
 //
 // equivalent to scipy.signal.detrend(x, type) and MATLAB's detrend(x, type)
 func Detrend(x []float64, mode DetrendMode) (y []float64, err error) {
@@ -20,7 +20,7 @@ func Detrend(x []float64, mode DetrendMode) (y []float64, err error) {
 	case DetrendConstant:
 		y = detrendConstant(x)
 	default:
-		err = fmt.Errorf("%w: unknown detrend mode %v", ErrInvalidMode, mode)
+		err = fmt.Errorf("%w: unknown detrend mode %v", ErrInvalidOption, mode)
 	}
 	return
 }

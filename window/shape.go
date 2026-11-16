@@ -67,3 +67,11 @@ func shortWindow(n int) (w []float64, short bool, err error) {
 	}
 	return nil, false, nil
 }
+
+// positive returns ErrInvalidParameter unless v > 0, which also rules our NaN
+func positive(window, name string, v float64) (err error) {
+	if !(v > 0) {
+		err = fmt.Errorf("%w: %s's %s must be >0, got %g", ErrInvalidParameter, window, name, v)
+	}
+	return
+}

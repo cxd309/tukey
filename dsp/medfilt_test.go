@@ -208,6 +208,6 @@ func TestMedFiltRejectsInvalidInput(t *testing.T) {
 	}
 	for _, edge := range []MedFiltEdge{-1, 2} {
 		_, err := MedFilt(x, 3, MedFiltEdges(edge))
-		assert.ErrorIs(t, err, ErrInvalidMode, "edge %d", edge)
+		assert.ErrorIs(t, err, ErrInvalidOption, "edge %d", edge)
 	}
 }

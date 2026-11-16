@@ -70,6 +70,6 @@
 //
 // Every function is stateless: a new slice comes back, inputs are never
 // modified, and all functions are safe for concurrent use.
-// Invalid input returns an error wrapping ErrInvalidLength or ErrInvalidOption,
+// Invalid input returns an error wrapping ErrInvalidLength, ErrSignalTooShort or ErrInvalidOption,
 // can easily be checked with errors.Is
 package fft

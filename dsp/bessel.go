@@ -23,7 +23,7 @@ import (
 // Returns:
 //   - ErrInvalidOrder if order < 1
 //   - ErrInvalidBand for a band Butter rejects
-//   - ErrInvalidMode for an unknown BesselNorm
+//   - ErrInvalidOption for an unknown BesselNorm
 //
 // Equivalent to:
 //   - scipy.signal.bessel(order, wn, btype, norm='mag', output='zpk'), whose
@@ -37,7 +37,7 @@ func Bessel(order int, band Band, opts ...BesselOption) (f ZPK, err error) {
 		opt(&cfg)
 	}
 	if cfg.norm < BesselNormMagnitude || cfg.norm > BesselNormDelay {
-		return f, fmt.Errorf("%w: BesselNorm %d", ErrInvalidMode, cfg.norm)
+		return f, fmt.Errorf("%w: BesselNorm %d", ErrInvalidOption, cfg.norm)
 	}
 	return designDigital(order, band, func() analogZPK { return besselPrototype(order, cfg.norm) })
 }

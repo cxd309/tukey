@@ -159,6 +159,6 @@ func TestBesselRejectsInvalidInput(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidBand)
 	for _, norm := range []BesselNorm{-1, 3} {
 		_, err := Bessel(2, Lowpass(0.3), BesselNormalised(norm))
-		assert.ErrorIs(t, err, ErrInvalidMode, "BesselNorm %d", norm)
+		assert.ErrorIs(t, err, ErrInvalidOption, "BesselNorm %d", norm)
 	}
 }

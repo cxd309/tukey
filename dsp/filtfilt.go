@@ -22,7 +22,7 @@ import (
 //	y, err := dsp.FiltFilt(b, a, x)
 //
 // returns ErrInvalidCoefficients if b or a is empty or a[0] is zero,
-// ErrInvalidPadding for an unknown Padding or a negative padding length,
+// ErrInvalidOption for an unknown Padding, ErrInvalidParameter for a negative padding length,
 // ErrSignalTooShort if len(x) isn't greater than the padding length,
 // and ErrNoSteadyState if the filter has a pole at DC (sum(a) == 0)
 //
@@ -54,7 +54,7 @@ func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
 //
 // Returns:
 //   - ErrInvalidSOS same as SOSFilter (if sos has no sections or any section's a0 isn't 1)
-//   - ErrInvalidPadding, ErrSignalTooShort and ErrNoSteadyState same as FiltFilt
+//   - ErrInvalidOption, ErrInvalidParameter, ErrSignalTooShort and ErrNoSteadyState same as FiltFilt
 //
 // Equivalent to:
 //   - scipy.signal.sosfiltfilt(sos, x)
@@ -192,7 +192,7 @@ func effectiveOrder(b, a []float64) (order int) {
 // (3*ntaps by default, as SciPy) and checks it against the signal's length
 func (cfg filtConfig) padLength(size filterSize, signalLen int) (n int, err error) {
 	if !(cfg.padding >= PaddingOdd && cfg.padding <= PaddingNone) {
-		return 0, fmt.Errorf("%w: unknown padding %v", ErrInvalidPadding, cfg.padding)
+		return 0, fmt.Errorf("%w: unknown padding %v", ErrInvalidOption, cfg.padding)
 	}
 	n = 3 * size.ntaps
 	if cfg.padLen != nil {
@@ -202,7 +202,7 @@ func (cfg filtConfig) padLength(size filterSize, signalLen int) (n int, err erro
 		n = 0 // as in SciPy, no padding means padlen is ignored
 	}
 	if n < 0 {
-		return 0, fmt.Errorf("%w: padding length must be >= 0, got %d", ErrInvalidPadding, n)
+		return 0, fmt.Errorf("%w: padding length must be >= 0, got %d", ErrInvalidParameter, n)
 	}
 	if signalLen <= n {
 		return 0, fmt.Errorf("%w: len(x) = %d must be greater than the padding length %d", ErrSignalTooShort, signalLen, n)

@@ -28,7 +28,7 @@ func Diff(x []float64) (d []float64) {
 // Where Diff gives the slope between samples, Grad gives it at each one, the same length as x.
 //
 // Returns
-//   - ErrInvalidLength for fewer than 2 samples
+//   - ErrSignalTooShort for fewer than 2 samples
 //   - ErrInvalidParameter for a dx that isn't positive and finite
 //
 // Equivalent to:
@@ -36,7 +36,7 @@ func Diff(x []float64) (d []float64) {
 //   - MATLAB gradient(x, dx)
 func Grad(x []float64, dx float64) (g []float64, err error) {
 	if len(x) < 2 {
-		return nil, fmt.Errorf("%w: Gerad of %d samples, needs at least 2", ErrInvalidLength, len(x))
+		return nil, fmt.Errorf("%w: Grad of %d samples, needs at least 2", ErrSignalTooShort, len(x))
 	}
 	if err = checkSpacing(dx); err != nil {
 		return nil, err

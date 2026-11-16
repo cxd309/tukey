@@ -203,7 +203,7 @@ func TestSTFTInvalid(t *testing.T) {
 		want   error
 	}{
 		{"empty window", x, 1, nil, nil, ErrInvalidLength},
-		{"window longer than x", x[:3], 1, win, nil, ErrInvalidLength},
+		{"window longer than x", x[:3], 1, win, nil, ErrSignalTooShort},
 		{"NFFT shorter than window", x, 1, win, []SpectralOption{NFFT(3)}, ErrInvalidLength},
 		{"no frequencies", x, 1, win, []SpectralOption{AtFrequencies(nil)}, ErrInvalidLength},
 		{"zero fs", x, 0, win, nil, ErrInvalidParameter},
@@ -211,9 +211,9 @@ func TestSTFTInvalid(t *testing.T) {
 		{"NaN fs", x, math.NaN(), win, nil, ErrInvalidParameter},
 		{"negative overlap", x, 1, win, []SpectralOption{Overlap(-1)}, ErrInvalidParameter},
 		{"overlap of the whole window", x, 1, win, []SpectralOption{Overlap(4)}, ErrInvalidParameter},
-		{"AtFrequencies with NFFT", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), NFFT(8)}, ErrInvalidParameter},
-		{"AtFrequencies two-sided", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), TwoSided()}, ErrInvalidParameter},
-		{"unknown detrend mode", x, 1, win, []SpectralOption{SegmentDetrend(DetrendMode(99))}, ErrInvalidMode},
+		{"AtFrequencies with NFFT", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), NFFT(8)}, ErrInvalidOption},
+		{"AtFrequencies two-sided", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), TwoSided()}, ErrInvalidOption},
+		{"unknown detrend mode", x, 1, win, []SpectralOption{SegmentDetrend(DetrendMode(99))}, ErrInvalidOption},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -333,13 +333,13 @@ func TestPowerSpectraInvalid(t *testing.T) {
 		want error
 	}{
 		{"Periodogram window shorter than x", func() error { _, err := Periodogram(x, 1, win); return err }, ErrInvalidLength},
-		{"Overlap on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Overlap(1)); return err }, ErrInvalidParameter},
-		{"Average on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
-		{"Average on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
-		{"AtFrequencies on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidParameter},
-		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidParameter},
-		{"Scaling on STFT", func() error { _, err := STFT(x, 1, win, Scaling(ScalingSpectrum)); return err }, ErrInvalidParameter},
-		{"Average on STFT", func() error { _, err := STFT(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
+		{"Overlap on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Overlap(1)); return err }, ErrInvalidOption},
+		{"Average on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Average(AverageMedian)); return err }, ErrInvalidOption},
+		{"Average on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidOption},
+		{"AtFrequencies on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
+		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
+		{"Scaling on STFT", func() error { _, err := STFT(x, 1, win, Scaling(ScalingSpectrum)); return err }, ErrInvalidOption},
+		{"Average on STFT", func() error { _, err := STFT(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidOption},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

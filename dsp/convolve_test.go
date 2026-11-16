@@ -169,15 +169,15 @@ func TestConvolveAndCorrelateLeaveInputsUnchanged(t *testing.T) {
 func TestConvolveAndCorrelateErrors(t *testing.T) {
 	for _, in := range [][2][]float64{{nil, {1}}, {{1}, nil}, {{}, {}}} {
 		_, err := Convolve(in[0], in[1])
-		assert.ErrorIs(t, err, ErrInvalidLength, "Convolve of %d and %d samples", len(in[0]), len(in[1]))
+		assert.ErrorIs(t, err, ErrSignalTooShort, "Convolve of %d and %d samples", len(in[0]), len(in[1]))
 		_, err = Correlate(in[0], in[1])
-		assert.ErrorIs(t, err, ErrInvalidLength, "Correlate of %d and %d samples", len(in[0]), len(in[1]))
+		assert.ErrorIs(t, err, ErrSignalTooShort, "Correlate of %d and %d samples", len(in[0]), len(in[1]))
 	}
 	for _, method := range []ConvolveMethod{ConvolveAuto - 1, ConvolveFFT + 1} {
 		_, err := Convolve([]float64{1}, []float64{1}, ConvolveBy(method))
-		assert.ErrorIs(t, err, ErrInvalidMode, "Convolve, method %d", method)
+		assert.ErrorIs(t, err, ErrInvalidOption, "Convolve, method %d", method)
 		_, err = Correlate([]float64{1}, []float64{1}, ConvolveBy(method))
-		assert.ErrorIs(t, err, ErrInvalidMode, "Correlate, method %d", method)
+		assert.ErrorIs(t, err, ErrInvalidOption, "Correlate, method %d", method)
 	}
 }
 

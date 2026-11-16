@@ -68,7 +68,7 @@ func Exponential(n int, tau float64, opts ...Option) (w []float64, err error) {
 	}
 	switch {
 	case !cfg.periodic:
-		return nil, fmt.Errorf("%w: Exponential's Center needs Periodic: a symmetric window is centred", ErrInvalidParameter)
+		return nil, fmt.Errorf("%w: Exponential's Center needs Periodic: a symmetric window is centred", ErrInvalidOption)
 	case math.IsNaN(cfg.center):
 		return nil, fmt.Errorf("%w: Exponential's Center is NaN", ErrInvalidParameter)
 	}

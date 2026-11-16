@@ -20,8 +20,8 @@ import (
 //	Convolve(x, h, ConvolveSame())
 //
 // Returns:
-//   - ErrInvalidLength if a or v is empty
-//   - ErrInvalidMode for an unknown ConvolveMethod
+//   - ErrSignalTooShort if a or v is empty
+//   - ErrInvalidOption for an unknown ConvolveMethod
 //
 // Equivalent to:
 //   - numpy.convolve(a, v, mode)
@@ -47,8 +47,8 @@ func Convolve(a, v []float64, opts ...ConvolveOption) (c []float64, err error) {
 // If a is v delayed by d samples, the largest value is at lag d.
 //
 // # Returns:
-//   - ErrInvalidLength if a or v is empty
-//   - ErrInvalidMode for an unknown ConvolveMethod
+//   - ErrSignalTooShort if a or v is empty
+//   - ErrInvalidOption for an unknown ConvolveMethod
 //
 // # Equivalent to:
 //   - scipy.signal.correlate(a, v, mode), with Lags from scipy.signal.correlation_lags
@@ -160,9 +160,9 @@ func newConvolveConfig(name string, a, v []float64, opts []ConvolveOption) (cfg 
 	}
 	switch {
 	case len(a) == 0 || len(v) == 0:
-		err = fmt.Errorf("%w: %s of %d and %d samples, needs at least 1 each", ErrInvalidLength, name, len(a), len(v))
+		err = fmt.Errorf("%w: %s of %d and %d samples, needs at least 1 each", ErrSignalTooShort, name, len(a), len(v))
 	case cfg.method < ConvolveAuto || cfg.method > ConvolveFFT:
-		err = fmt.Errorf("%w: ConvolveMethod %d", ErrInvalidMode, cfg.method)
+		err = fmt.Errorf("%w: ConvolveMethod %d", ErrInvalidOption, cfg.method)
 	}
 	return
 }

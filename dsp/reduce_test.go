@@ -96,7 +96,7 @@ func TestMean(t *testing.T) {
 func TestMeanRejectsEmpty(t *testing.T) {
 	for _, x := range [][]float64{nil, {}} {
 		_, err := Mean(x)
-		assert.ErrorIs(t, err, ErrInvalidLength)
+		assert.ErrorIs(t, err, ErrSignalTooShort)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestRMSOfNaNIsNaN(t *testing.T) {
 
 func TestRMSRejectsEmpty(t *testing.T) {
 	_, err := RMS(nil)
-	assert.ErrorIs(t, err, ErrInvalidLength)
+	assert.ErrorIs(t, err, ErrSignalTooShort)
 }
 
 func TestRMSDoesNotModifyInput(t *testing.T) {
@@ -232,14 +232,14 @@ func TestPercentileOfNaNIsNaN(t *testing.T) {
 func TestPercentileRejectsInvalidInput(t *testing.T) {
 	for _, x := range [][]float64{nil, {}} {
 		_, err := Percentile(x, 50)
-		assert.ErrorIs(t, err, ErrInvalidLength)
+		assert.ErrorIs(t, err, ErrSignalTooShort)
 	}
 	for _, p := range []float64{-0.001, 100.001, math.NaN(), math.Inf(1)} {
 		_, err := Percentile([]float64{1, 2, 3}, p)
 		assert.ErrorIs(t, err, ErrInvalidParameter, "p %g", p)
 	}
 	_, err := Percentile([]float64{1, 2, 3}, 50, PercentileBy(PercentileMethod(7)))
-	assert.ErrorIs(t, err, ErrInvalidMode)
+	assert.ErrorIs(t, err, ErrInvalidOption)
 	assert.ErrorContains(t, err, "PercentileMethod 7")
 }
 

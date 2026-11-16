@@ -25,12 +25,12 @@ func Sum(x []float64) (sum float64) {
 
 // Mean returns the arithmetic mean of x: its Sum divided by its length.
 //
-// Returns ErrInvalidLength for an empty x, which has no mean (MATLAB's mean gives NaN)
+// Returns ErrSignalTooShort for an empty x, which has no mean (MATLAB's mean gives NaN)
 //
 // Equivalent to numpy.mean(x) and MATLAB mean(x), summed with compensation like Sum
 func Mean(x []float64) (m float64, err error) {
 	if len(x) == 0 {
-		return 0, fmt.Errorf("%w: Mean of an empty signal", ErrInvalidLength)
+		return 0, fmt.Errorf("%w: Mean of an empty signal", ErrSignalTooShort)
 	}
 	m = mean(x)
 	return
@@ -38,13 +38,13 @@ func Mean(x []float64) (m float64, err error) {
 
 // RMS returns the root mean square of x, sqrt(mean(x^2))
 //
-// returns ErrInvalidLength if x is empty (MATLAB's rms gives NaN)
+// returns ErrSignalTooShort if x is empty (MATLAB's rms gives NaN)
 //
 // equivalent to MATLAB's rms(x).
 // equivalent to numpy.sqrt(numpy.mean(x**2)), no SciPy equivalent
 func RMS(x []float64) (rms float64, err error) {
 	if len(x) == 0 {
-		return 0, fmt.Errorf("%w: RMS of an empty signal", ErrInvalidLength)
+		return 0, fmt.Errorf("%w: RMS of an empty signal", ErrSignalTooShort)
 	}
 	var sum floats.Sum
 	for _, v := range x {
@@ -58,9 +58,9 @@ func RMS(x []float64) (rms float64, err error) {
 // intpolating between the sorted samples according to PercentileBy.
 //
 // Returns:
-//   - ErrInvalidLength for an empty x
+//   - ErrSignalTooShort for an empty x
 //   - ErrInvalidParameter for a p outside 0-100
-//   - ErrInvalidMode for an unknown PercentileMethod
+//   - ErrInvalidOption for an unknown PercentileMethod
 //
 // Equivalent to:
 //   - numpy.percentile(x, p)
@@ -72,11 +72,11 @@ func Percentile(x []float64, p float64, opts ...PercentileOption) (value float64
 	}
 	switch {
 	case len(x) == 0:
-		return 0, fmt.Errorf("%w: Percentile of an empty signal", ErrInvalidLength)
+		return 0, fmt.Errorf("%w: Percentile of an empty signal", ErrSignalTooShort)
 	case !(p >= 0 && p <= 100):
 		return 0, fmt.Errorf("%w: p %g, must be between 0 and 100", ErrInvalidParameter, p)
 	case cfg.method != PercentileLinear && cfg.method != PercentileHazen:
-		return 0, fmt.Errorf("%w: PercentileMethod %d", ErrInvalidMode, cfg.method)
+		return 0, fmt.Errorf("%w: PercentileMethod %d", ErrInvalidOption, cfg.method)
 	}
 	if slices.ContainsFunc(x, math.IsNaN) {
 		return math.NaN(), nil

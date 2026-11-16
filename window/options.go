@@ -6,7 +6,7 @@ import (
 )
 
 // Option configures a window (see Periodic, Center, Unnormalised)
-// a window given an option that doesn't apply to it returns ErrInvalidParameter
+// a window given an option that doesn't apply to it returns ErrInvalidOption
 type Option func(*config)
 
 // Periodic gives the DFT-even window, for spectral analysis:
@@ -81,13 +81,13 @@ type config struct {
 }
 
 // newConfig builds a window's condfig from opts,
-// returning ErrInvalidParameter for any option not in accepted
+// returning ErrInvalidOption for any option not in accepted
 func newConfig(window string, opts []Option, accepted optionSet) (cfg config, err error) {
 	for _, opt := range opts {
 		opt(&cfg)
 	}
 	if rejected := cfg.given.without(accepted); len(rejected) > 0 {
-		err = fmt.Errorf("%w: %s doesn't apply to %s", ErrInvalidParameter, strings.Join(rejected, ", "), window)
+		err = fmt.Errorf("%w: %s doesn't apply to %s", ErrInvalidOption, strings.Join(rejected, ", "), window)
 	}
 	return
 }

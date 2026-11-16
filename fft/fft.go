@@ -1,15 +1,14 @@
 package fft
 
 import (
-	"fmt"
 	"math/cmplx"
 )
 
 // Forward returns the discrete Fourier transform of x:
 // y[k] = sum x[j]·e^(-2 pi i jk/n), for k = 0 … n-1, scaled per Norm
 //
-// returns ErrInvalidLength if the transform length is less than 1, and
-// ErrInvalidOption for an unknown normalisation
+// returns ErrSignalTooShort if x is empty without N, ErrInvalidLength if N is less than 1,
+// and ErrInvalidOption for an unknown normalisation
 //
 // equivalent to scipy.fft.fft(x) and MATLAB fft(x)
 func Forward(x []complex128, opts ...Option) (y []complex128, err error) {
@@ -43,15 +42,6 @@ func Inverse(x []complex128, opts ...Option) (y []complex128, err error) {
 // the forward transform with conjugated twiddles, which is conj(transform(conj(x)))
 func backward(x []complex128) (y []complex128) {
 	y = conjugated(transform(conjugated(x)))
-	return
-}
-
-// checkLength rejects lengths this package can't transform
-// (for now, anything but power of two; mixed radix and Bluestein will change this when implemented)
-func checkLength(n int) (err error) {
-	if n == 0 {
-		return fmt.Errorf("%w: cannot transform an empty signal", ErrInvalidLength)
-	}
 	return
 }
 

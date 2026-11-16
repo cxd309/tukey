@@ -14,14 +14,14 @@ import (
 // squared differences, with ties to the earliest window.
 //
 // Returns:
-//   - ErrInvalidLength for an empty signal, or one longer than data,
-//   - ErrInvalidMode for an unknown SearchMethod.
+//   - ErrSignalTooShort for an empty signal, or one longer than data,
+//   - ErrInvalidOption for an unknown SearchMethod.
 //
 // Equivalent to MATLAB [istart, istop, dist] = findsignal(data, signal),
 // with 0-based indices. No SciPy equivalent.
 func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalMatch, err error) {
 	if len(signal) == 0 || len(signal) > len(data) {
-		return match, fmt.Errorf("%w: signal of length %d in data of length %d", ErrInvalidLength, len(signal), len(data))
+		return match, fmt.Errorf("%w: signal of length %d in data of length %d", ErrSignalTooShort, len(signal), len(data))
 	}
 	var cfg findSignalConfig
 	for _, opt := range opts {
@@ -35,7 +35,7 @@ func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalM
 	case SearchHybrid:
 		match, err = findSignalHybrid(data, signal)
 	default:
-		err = fmt.Errorf("%w: SearchMethod %d", ErrInvalidMode, cfg.method)
+		err = fmt.Errorf("%w: SearchMethod %d", ErrInvalidOption, cfg.method)
 	}
 	return
 }

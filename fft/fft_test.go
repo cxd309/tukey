@@ -90,7 +90,7 @@ func TestForwardImpulseIsAllOnes(t *testing.T) {
 
 func TestForwardRejectsEmpty(t *testing.T) {
 	_, err := Forward(nil)
-	assert.ErrorIs(t, err, ErrInvalidLength)
+	assert.ErrorIs(t, err, ErrSignalTooShort)
 }
 
 func TestForwardDoesNotModifyInput(t *testing.T) {

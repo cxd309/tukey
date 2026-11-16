@@ -19,10 +19,12 @@ import (
 // A prtial last segment is dropped.
 //
 // Returns:
-//   - ErrInvalidLength for an empty window, one longer than x,
-//     an NFFT shorter than the window, or AtFrequencies with no frequencies
-//   - ErrInvalidParameter for an fs that isn't positive, an Overlap that's negative
-//     or at least the window's length, or an option that doesn't apply
+//   - ErrInvalidLength for an empty window, an NFFT shorter than the window,
+//     or AtFrequencies with no frequencies
+//   - ErrSignalTooShort for a window longer than x
+//   - ErrInvalidParameter for an fs that isn't positive, or an Overlap that's negative
+//     or at least the window's length
+//   - ErrInvalidOption for an option that doesn't apply, or AtFrequencies with NFFT or TwoSided
 //
 // Equivalent to MATLAB [S, F, T] = spectrogram(x, window, nooverlap, nfft, fs), with S transposed,
 // Equivalent to scipy.signal.stft(x, fs, window, boundary=None, padded=False, detrend=False)
@@ -143,7 +145,7 @@ type TimeFrequency[T complex128 | float64] struct {
 }
 
 // SpectralOption configures STFT, Spectrogram, Welch and Periodogram.
-// A function given an option that doesn't apply to it returns ErrInvalidParameter
+// A function given an option that doesn't apply to it returns ErrInvalidOption
 type SpectralOption func(*spectralConfig)
 
 // Spectrum is a power spectrum: one value per frequency
@@ -251,17 +253,19 @@ func newSpectralConfig(function string, x []float64, fs float64, window []float6
 	}
 	switch {
 	case len(rejected) > 0:
-		err = fmt.Errorf("%w: %s doesn't apply to %s", ErrInvalidParameter, strings.Join(rejected, ", "), function)
+		err = fmt.Errorf("%w: %s doesn't apply to %s", ErrInvalidOption, strings.Join(rejected, ", "), function)
 	case !(fs > 0):
 		err = fmt.Errorf("%w: fs %g, must be positive", ErrInvalidParameter, fs)
-	case len(window) == 0 || len(window) > len(x):
-		err = fmt.Errorf("%w: window of length %d for x of length %d", ErrInvalidLength, len(window), len(x))
+	case len(window) == 0:
+		err = fmt.Errorf("%w: an empty window", ErrInvalidLength)
+	case len(window) > len(x):
+		err = fmt.Errorf("%w: window of length %d for x of length %d", ErrSignalTooShort, len(window), len(x))
 	case cfg.overlap < 0 || cfg.overlap >= len(window):
 		err = fmt.Errorf("%w: Overlap %d, must be from 0 to %d", ErrInvalidParameter, cfg.overlap, len(window)-1)
 	case cfg.nfft < len(window):
 		err = fmt.Errorf("%w: NFFT %d, shorter than the window's %d", ErrInvalidLength, cfg.nfft, len(window))
 	case cfg.given[optionAtFrequencies] && (cfg.given[optionNFFT] || cfg.given[optionTwoSided]):
-		err = fmt.Errorf("%w: AtFrequencies can't be combined with NFFT or TwoSided", ErrInvalidParameter)
+		err = fmt.Errorf("%w: AtFrequencies can't be combined with NFFT or TwoSided", ErrInvalidOption)
 	case cfg.given[optionAtFrequencies] && len(cfg.frequencies) == 0:
 		err = fmt.Errorf("%w: AtFrequencies with no frequencies", ErrInvalidLength)
 	}

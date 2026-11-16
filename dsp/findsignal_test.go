@@ -132,10 +132,10 @@ func TestFindSignalInvalid(t *testing.T) {
 		opts         []FindSignalOption
 		want         error
 	}{
-		{"empty signal", []float64{1, 2}, nil, nil, ErrInvalidLength},
-		{"empty both", nil, nil, nil, ErrInvalidLength},
-		{"signal longer than data", []float64{1, 2}, []float64{1, 2, 3}, nil, ErrInvalidLength},
-		{"unknown method", []float64{1, 2}, []float64{1}, []FindSignalOption{SignalSearch(SearchMethod(99))}, ErrInvalidMode},
+		{"empty signal", []float64{1, 2}, nil, nil, ErrSignalTooShort},
+		{"empty both", nil, nil, nil, ErrSignalTooShort},
+		{"signal longer than data", []float64{1, 2}, []float64{1, 2, 3}, nil, ErrSignalTooShort},
+		{"unknown method", []float64{1, 2}, []float64{1}, []FindSignalOption{SignalSearch(SearchMethod(99))}, ErrInvalidOption},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

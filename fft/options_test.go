@@ -73,5 +73,5 @@ func TestOptionsRejectInvalidInput(t *testing.T) {
 	_, err = InverseReal([]complex128{1, 2}, 2, N(4))
 	assert.ErrorIs(t, err, ErrInvalidOption, "N on InverseReal")
 	_, err = Forward(nil)
-	assert.ErrorIs(t, err, ErrInvalidLength, "empty input")
+	assert.ErrorIs(t, err, ErrSignalTooShort, "empty input")
 }

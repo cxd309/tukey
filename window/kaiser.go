@@ -38,7 +38,7 @@ func Kaiser(n int, beta float64, opts ...Option) (w []float64, err error) {
 // it's defined only for even n, and only symmetric
 //
 // returns ErrInvalidLength if n < 0 or n is odd (including n = 1),
-// returns ErrInvalidParameter if beta is NaN or +=Inf, or given any option
+// returns ErrInvalidParameter if beta is NaN or +=Inf, and ErrInvalidOption if given any option
 //
 // equivalent to scipy.signal.windows.kaiser_bessel_derived(n, beta),
 // no MATLAB equivalent

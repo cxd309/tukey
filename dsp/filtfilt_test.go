@@ -20,8 +20,8 @@ func TestFiltFiltRejectsInvalidInput(t *testing.T) {
 		wantErr error
 	}{
 		{"empty b", nil, a, x, nil, ErrInvalidCoefficients},
-		{"unknown padding", b, a, x, []FiltOption{PadType(Padding(7))}, ErrInvalidPadding},
-		{"negative padding length", b, a, x, []FiltOption{PadLen(-1)}, ErrInvalidPadding},
+		{"unknown padding", b, a, x, []FiltOption{PadType(Padding(7))}, ErrInvalidOption},
+		{"negative padding length", b, a, x, []FiltOption{PadLen(-1)}, ErrInvalidParameter},
 		{"x as long as the padding", b, a, x[:6], nil, ErrSignalTooShort},
 		{"empty x", b, a, nil, []FiltOption{PadType(PaddingNone)}, ErrSignalTooShort},
 		{"pole at DC", b, []float64{1, -1}, x, nil, ErrNoSteadyState},
@@ -269,8 +269,8 @@ func TestBySectionRejectsInvalidInput(t *testing.T) {
 		opts    []FiltOption
 		wantErr error
 	}{
-		{"unknown padding", sos, []FiltOption{PadType(Padding(7))}, ErrInvalidPadding},
-		{"negative padding length", sos, []FiltOption{PadLen(-1)}, ErrInvalidPadding},
+		{"unknown padding", sos, []FiltOption{PadType(Padding(7))}, ErrInvalidOption},
+		{"negative padding length", sos, []FiltOption{PadLen(-1)}, ErrInvalidParameter},
 		{"pole at DC", SOS{{1, 0, 0, 1, -1, 0}}, nil, ErrNoSteadyState},
 		{"pole at DC in a later section", append(slices.Clone(sos), [6]float64{1, 0, 0, 1, -1, 0}), nil, ErrNoSteadyState},
 		{"invalid sections", SOS{{1, 0, 0, 0, 0, 0}}, nil, ErrInvalidSOS},

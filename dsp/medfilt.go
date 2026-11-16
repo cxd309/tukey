@@ -18,7 +18,7 @@ import (
 //
 // Returns:
 //   - ErrInvalidLength for an n that isn't odd and positive
-//   - ErrInvalidMode for an unknown MedFiltEdge
+//   - ErrInvalidOption for an unknown MedFiltEdge
 //
 // Equivalent to:
 //   - matlab medfilt1(x, n, 'truncate'), or medfilt1(x, n) with MedFiltZeroPad
@@ -33,7 +33,7 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 	case n < 1 || n%2 == 0:
 		return nil, fmt.Errorf("%w: MedFilt needs an odd, positive window length, got %d", ErrInvalidLength, n)
 	case cfg.edge != MedFiltTruncate && cfg.edge != MedFiltZeroPad:
-		return nil, fmt.Errorf("%w: MedFiltEdge %d", ErrInvalidMode, cfg.edge)
+		return nil, fmt.Errorf("%w: MedFiltEdge %d", ErrInvalidOption, cfg.edge)
 	}
 
 	half := n / 2
