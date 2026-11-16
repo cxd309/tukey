@@ -1,6 +1,6 @@
 tukey includes code derived from SciPy (https://scipy.org)
 
-- dsp/sos.go
+- dsp/zpk.go
     - ZPK.SOS -> scipy.signal.zpk2sos 
 - internal/poly/pairing.go
     - Pairing, the pairing loop of ZPK.SOS -> scipy.signal.zpk2sos

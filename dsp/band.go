@@ -2,7 +2,6 @@ package dsp
 
 import (
 	"fmt"
-	"math"
 )
 
 // Band is the frequency response a filter design targets: which frequencies
@@ -15,16 +14,6 @@ type Band struct {
 	btype bandType  // SciPy's name for the same parameter
 	edges []float64 // the cutoff for lowpass/highpass; low, high for bandpass/bandstop
 }
-
-// bandType starts at 1 so the zero Band is detectably invalid
-type bandType int
-
-const (
-	lowpassType bandType = iota + 1
-	highpassType
-	bandpassType
-	bandstopType
-)
 
 // Lowpass passes frequencies below cutoff
 func Lowpass(cutoff float64) (band Band) {
@@ -67,6 +56,22 @@ func (band Band) String() (s string) {
 	return
 }
 
+// Edges returns a copy of the band's edges: the cutoff for a lowpass or
+// highpass, low and high for a bandpass or bandstop
+func (band Band) Edges() (edges []float64) {
+	return append([]float64(nil), band.edges...)
+}
+
+// bandType starts at 1 so the zero Band is detectably invalid
+type bandType int
+
+const (
+	lowpassType bandType = iota + 1
+	highpassType
+	bandpassType
+	bandstopType
+)
+
 // validate reports whether the band can be designed:
 // 1. it must come from a constructor
 // 2. its edges must be ascending within (0, 1)
@@ -84,34 +89,4 @@ func (band Band) validate() (err error) {
 		}
 	}
 	return
-}
-
-// transform prewarps the band edges and moves the lowpass prototype onto them,
-// giving the analog filter that bilinear will map onto this band
-// the band must already have passed validate
-func (band Band) transform(proto analogZPK) (analog analogZPK) {
-	switch band.btype {
-	case lowpassType:
-		analog = proto.toLowpass(prewarp(band.edges[0]))
-	case highpassType:
-		analog = proto.toHighpass(prewarp(band.edges[0]))
-	case bandpassType, bandstopType:
-		low, high := prewarp(band.edges[0]), prewarp(band.edges[1])
-		wo := math.Sqrt(low * high) // geometric centre
-		bw := high - low
-		if band.btype == bandpassType {
-			analog = proto.toBandpass(wo, bw)
-		} else {
-			analog = proto.toBandstop(wo, bw)
-		}
-	default:
-		panic(fmt.Sprintf("dsp: transform called on unvalidated band %v", band))
-	}
-	return
-}
-
-// Edges returns a copy of the band's edges: the cutoff for a lowpass or
-// highpass, low and high for a bandpass or bandstop
-func (band Band) Edges() (edges []float64) {
-	return append([]float64(nil), band.edges...)
 }

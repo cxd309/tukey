@@ -1,11 +1,50 @@
 package dsp
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
 	"github.com/cxd309/tukey/internal/poly"
 )
+
+// designDigital checks order and band,
+// then moves the analog lowpass prototype onto band and maps it to the digital domain.
+// prototype is only called once order is known to be valid.
+func designDigital(order int, band Band, prototype func() analogZPK) (f ZPK, err error) {
+	if order < 1 {
+		return f, fmt.Errorf("%w: order must be >=1, got %d", ErrInvalidOrder, order)
+	}
+	if err = band.validate(); err != nil {
+		return f, err
+	}
+	f = band.transform(prototype()).bilinear()
+	return
+}
+
+// transform prewarps the band edges and moves the lowpass prototype onto them,
+// giving the analog filter that bilinear will map onto this band
+// the band must already have passed validate
+func (band Band) transform(proto analogZPK) (analog analogZPK) {
+	switch band.btype {
+	case lowpassType:
+		analog = proto.toLowpass(prewarp(band.edges[0]))
+	case highpassType:
+		analog = proto.toHighpass(prewarp(band.edges[0]))
+	case bandpassType, bandstopType:
+		low, high := prewarp(band.edges[0]), prewarp(band.edges[1])
+		wo := math.Sqrt(low * high) // geometric centre
+		bw := high - low
+		if band.btype == bandpassType {
+			analog = proto.toBandpass(wo, bw)
+		} else {
+			analog = proto.toBandstop(wo, bw)
+		}
+	default:
+		panic(fmt.Sprintf("dsp: transform called on unvalidated band %v", band))
+	}
+	return
+}
 
 // analogZPK is a filter described by its zeros, poles and gain
 // in either the s-plane (analog) or the z-plane (digital)
@@ -25,14 +64,6 @@ const (
 // using fixed fs=2 convention shared by SciPy and MATLAB
 func prewarp(wn float64) (warped float64) {
 	warped = fs2 * math.Tan(math.Pi*wn/fs)
-	return
-}
-
-// relativeDegree is how many more poles than zeros the filter has
-// each surplus pole is balanced by a zero "at infinity",
-// which frequency transforms and bilinear have to place somewhere finite
-func (f analogZPK) relativeDegree() (degree int) {
-	degree = len(f.Poles) - len(f.Zeros)
 	return
 }
 
@@ -92,6 +123,29 @@ func (f analogZPK) toBandstop(wo, bw float64) (bandstop analogZPK) {
 	return
 }
 
+// splitRoots replaces each root r with the pair r ± sqrt(r²-wo²),
+// the two solutions of x² - 2rx + wo² = 0 that the bandpass and bandstop
+// substitutions reduce to for each root
+// all the "+" roots come first, then all the "-" roots, matching SciPy ordering
+func splitRoots(roots []complex128, wo float64) (split []complex128) {
+	n := len(roots)
+	split = make([]complex128, 2*n)
+	for i, r := range roots {
+		disc := cmplx.Sqrt(r*r - complex(wo*wo, 0))
+		split[i] = r + disc
+		split[n+i] = r - disc
+	}
+	return
+}
+
+// relativeDegree is how many more poles than zeros the filter has
+// each surplus pole is balanced by a zero "at infinity",
+// which frequency transforms and bilinear have to place somewhere finite
+func (f analogZPK) relativeDegree() (degree int) {
+	degree = len(f.Poles) - len(f.Zeros)
+	return
+}
+
 // bilinear maps an analog filter to the digital domain via s = fs2*(z-1)/(z+1)
 // each root r becomes (fs2+r)/(fs2-r), and each zero at infinity lands at z=-1 (Nyquist)
 // equivalent to scipy.signal.bilinear_zpk with fs=2
@@ -111,17 +165,10 @@ func negate(r complex128) (negated complex128) {
 	return
 }
 
-// splitRoots replaces each root r with the pair r ± sqrt(r²-wo²),
-// the two solutions of x² - 2rx + wo² = 0 that the bandpass and bandstop
-// substitutions reduce to for each root
-// all the "+" roots come first, then all the "-" roots, matching SciPy ordering
-func splitRoots(roots []complex128, wo float64) (split []complex128) {
-	n := len(roots)
-	split = make([]complex128, 2*n)
-	for i, r := range roots {
-		disc := cmplx.Sqrt(r*r - complex(wo*wo, 0))
-		split[i] = r + disc
-		split[n+i] = r - disc
-	}
+// prototypeAngle is the angle pi·m/(2·order) of a prototype's k-th pole,
+// with m= -order+1, -order+3, ..., order -1
+func prototypeAngle(order, k int) (theta float64) {
+	m := float64(-order + 1 + 2*k)
+	theta = math.Pi * m / (2 * float64(order))
 	return
 }
