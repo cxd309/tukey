@@ -2,8 +2,8 @@ tukey includes code derived from SciPy (https://scipy.org)
 
 - dsp/sos.go
     - ZPK.SOS -> scipy.signal.zpk2sos 
-- dsp/sospairing.go
-    - ZPK.SOS supporting functions -> scipy.signal.zpk2sos 
+- internal/poly/pairing.go
+    - Pairing, the pairing loop of ZPK.SOS -> scipy.signal.zpk2sos
 - internal/poly/collapseconjugates.go
     - CollapseConjugates -> scipy.signal._filter_design._cplxreal
 

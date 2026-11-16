@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/cxd309/tukey/internal/floats"
+	"github.com/cxd309/tukey/internal/poly"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,13 +53,13 @@ func reversed(v []float64) (r []float64) {
 // weightSize is the largest Σ|w| of any output's weights, for samples 1 apart,
 // which bounds how far the weights' rounding moves an output, relative to x
 func weightSize(n, polyOrder, deriv int) (size float64) {
-	f := newPolyFit(n, polyOrder)
+	f := poly.NewFit(n, polyOrder)
 	for at := range n {
 		var sum float64
-		for _, w := range f.weights(at, deriv) {
+		for _, w := range f.Weights(at, deriv) {
 			sum += math.Abs(w)
 		}
-		size = math.Max(size, sum/math.Pow(float64(f.spacing), float64(deriv)))
+		size = math.Max(size, sum/math.Pow(float64(f.Spacing()), float64(deriv)))
 	}
 	return
 }
@@ -317,24 +317,4 @@ func TestSavGolFilterRejectsInvalidInput(t *testing.T) {
 	assert.ErrorIs(t, err, ErrSignalTooShort)
 	_, err = SavGolFilter(nil, 1, 0)
 	assert.ErrorIs(t, err, ErrSignalTooShort)
-}
-
-// The polynomials stay orthogonal at any degree: q_i·q_j is ‖q_j‖² for i = j
-// and 0 otherwise, to a few ULP, up to degree n − 1.
-func TestPolyFitIsOrthogonal(t *testing.T) {
-	for _, n := range []int{5, 21, 101} {
-		f := newPolyFit(n, n-1)
-		worst := 0.0
-		for i := range f.q {
-			for j := range f.q {
-				want := 0.0
-				if i == j {
-					want = f.norm[j]
-				}
-				// relative to ‖q_i‖·‖q_j‖
-				worst = math.Max(worst, math.Abs(floats.Dot(f.q[i], f.q[j])-want)/math.Sqrt(f.norm[i]*f.norm[j]))
-			}
-		}
-		assert.Less(t, worst, 1e-14, "n %d", n)
-	}
 }

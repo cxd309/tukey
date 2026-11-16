@@ -2,9 +2,6 @@ package dsp
 
 import (
 	"fmt"
-	"math"
-	"math/cmplx"
-	"slices"
 
 	"github.com/cxd309/tukey/internal/poly"
 )
@@ -30,15 +27,15 @@ func (f ZPK) SOS() (sos SOS, err error) {
 		return
 	}
 
-	pr, sections, err := newPairing(f)
+	pr, sections, err := poly.NewPairing(f.Zeros, f.Poles)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrInvalidZPK, err)
 	}
 
 	sos = make(SOS, sections)
 	// built last section first, so the poles closest to the unit circle end up last
 	for si := sections - 1; si >= 0; si-- {
-		zeros, poles := pr.next()
+		zeros, poles := pr.Next()
 		if sos[si], err = section(zeros, poles); err != nil {
 			return nil, err
 		}
@@ -47,92 +44,6 @@ func (f ZPK) SOS() (sos SOS, err error) {
 	for i := range 3 {
 		sos[0][i] *= f.Gain
 	}
-	return
-}
-
-// rootType selects which roots worstPole and nearestRoot consider
-type rootType int
-
-const (
-	rootAny rootType = iota
-	rootReal
-	rootComplex
-)
-
-// matches reports whether r is of type t
-func (t rootType) matches(r complex128) (ok bool) {
-	switch t {
-	case rootReal:
-		ok = isReal(r)
-	case rootComplex:
-		ok = !isReal(r)
-	default:
-		ok = true
-	}
-	return
-}
-
-// isReal reports whether r has no imaginary part
-// collapseConjugates stores real roots with an imaginary part of exactly zero
-// matches numpy.isreal
-func isReal(r complex128) (ok bool) {
-	ok = imag(r) == 0
-	return
-}
-
-// countReal is how many of roots are real
-func countReal(roots []complex128) (n int) {
-	for _, r := range roots {
-		if isReal(r) {
-			n++
-		}
-	}
-	return
-}
-
-// worstPole is the index of the pole of type t closest to the unit circle
-// the first on ties same as numpy.argmin
-func worstPole(poles []complex128, t rootType) (index int) {
-	index = -1
-	best := math.Inf(1)
-	for i, p := range poles {
-		if d := math.Abs(1 - cmplx.Abs(p)); t.matches(p) && d < best {
-			best, index = d, i
-		}
-	}
-	if index < 0 {
-		panic(fmt.Sprintf("dsp: no pole of type %d left to pair", t))
-	}
-	return
-}
-
-// nearestRoot is the index of the root of type t closest to target
-// the first on ties, same as numpy's argsort
-func nearestRoot(roots []complex128, target complex128, t rootType) (index int) {
-	index = -1
-	best := math.Inf(1)
-	for i, r := range roots {
-		if d := cmplx.Abs(r - target); t.matches(r) && d < best {
-			best, index = d, i
-		}
-	}
-	if index < 0 {
-		panic(fmt.Sprintf("dsp: no zero of type %d left to pair", t))
-	}
-	return
-}
-
-// takeAt removes and returns roots[i], keeping the rest in order, same as numpy.delete
-func takeAt(roots []complex128, i int) (r complex128, rest []complex128) {
-	r = roots[i]
-	rest = slices.Delete(roots, i, i+1)
-	return
-}
-
-// padRoots returns a copy of roots extended to length n with roots at the origin
-func padRoots(roots []complex128, n int) (padded []complex128) {
-	padded = make([]complex128, n)
-	copy(padded, roots)
 	return
 }
 
