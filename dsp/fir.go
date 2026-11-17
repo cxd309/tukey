@@ -8,34 +8,33 @@ import (
 	"github.com/cxd309/tukey/internal/special"
 )
 
-// FIRWin designs a linear-phase FIR filter for band by the window method and
-// returns its taps: the ideal response's impulse response, truncated to the
-// window's length and multiplied by it.
-// The window sets the transition width and stopband attenuation,
-// and its length, the number of taps, the sharpness:
+// FIRWin designs a linear-phase FIR filter for band by the window method, and returns its taps:
+// the ideal response's impulse response, truncated to the window's length and multiplied by it.
+// The window's shape sets the transition width and stopband attenuation,
+// and its length, the number of taps, sets the sharpness.
+// The taps are scaled so the response is exactly 1 at DC if the band passes it,
+// at Nyquist for a highpass, and otherwise at the passband's centre, unless FIRNoScale.
+// Any window is accepted, but only a symmetric one gives exactly linear phase,
+// so build it with window's default symmetric form, not Periodic.
+// The filter's delay is (len(window) - 1)/2 samples.
 //
 //	w, err := window.Hamming(101)
 //	h, err := dsp.FIRWin(w, dsp.Lowpass(0.2))
 //	y, err := dsp.Convolve(x, h, dsp.ConvolveSame())
 //
-// The taps are scaled so the response is exactly 1 at DC if the band passes
-// it, at Nyquist for a highpass, and otherwise at the passband's centre.
-// FIRNoScale turns that off.
-// Any window is accepted, but only a symmetric one gives exactly linear phase:
-// build it with window's default symmetric form, not Periodic.
-// Its delay is (len(window) − 1)/2 samples.
+// Units:
+//   - window and h are dimensionless
+//   - band's edges are fractions of Nyquist
 //
 // Returns:
-//   - ErrInvalidLength if window is empty, or has an even length for a
-//     Highpass or Bandstop, whose response at Nyquist an even-length filter
-//     can't pass
-//   - ErrInvalidBand for a band Butter rejects
-//   - ErrInvalidParameter for a NaN or infinite window tap
+//   - ErrInvalidLength for an empty window,
+//     or an even length for a Highpass or Bandstop, as an even-length filter can't pass Nyquist.
+//   - ErrInvalidBand for the zero Band, an edge outside (0, 1), or a low edge not below the high.
+//   - ErrInvalidParameter for a NaN or infinite window tap.
 //
 // Equivalent to:
-//   - scipy.signal.firwin(len(window), wn, window, pass_zero=btype), whose
-//     window is given by name
-//   - matlab fir1(len(window) − 1, wn, ftype, window)
+//   - scipy.signal.firwin(len(window), wn, window=name, pass_zero=btype), whose window is given by name
+//   - MATLAB fir1(len(window) - 1, wn, ftype, window)
 func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err error) {
 	var cfg firConfig
 	for _, opt := range opts {
@@ -83,21 +82,25 @@ func FIRWin(window []float64, band Band, opts ...FIROption) (h []float64, err er
 	return
 }
 
-// FIROption configures FIRWin
+// FIROption configures FIRWin: FIRNoScale.
 type FIROption func(*firConfig)
 
-// FIRNoScale leaves FIRWin's taps unscaled: the windowed ideal response as it is
+// FIRNoScale leaves FIRWin's taps unscaled, the windowed ideal response as it is.
+//
+// Equivalent to:
+//   - scipy.signal.firwin's scale=False
+//   - MATLAB fir1's 'noscale'
 func FIRNoScale() FIROption {
 	return func(c *firConfig) { c.noScale = true }
 }
 
-// firConfig is FIRWin's settings, built from FIROptions
+// firConfig is FIRWin's settings, built from FIROptions.
 type firConfig struct {
 	noScale bool
 }
 
-// passbands is the bands band passes, and where a scaled design has gain 1:
-// DC if the first reaches it, Nyquist if it reaches that, otherwise its centre
+// passbands is the bands band passes, and where a scaled design has a gain of 1:
+// DC if the first reaches it, Nyquist if it reaches that, and otherwise its centre.
 func (band Band) passbands() (bands []passband, scaleAt float64) {
 	edges := band.edges
 	switch band.btype {
@@ -121,14 +124,13 @@ func (band Band) passbands() (bands []passband, scaleAt float64) {
 	return
 }
 
-// passband is one band an ideal FIR response passes, from left to right,
-// normalised to Nyquist
+// passband is one band an ideal FIR response passes, from left to right, as fractions of Nyquist.
 type passband struct {
 	left, right float64
 }
 
 // response is the ideal response's impulse response at m samples from the centre:
-// for each passband, (sin(π·right·m) − sin(π·left·m))/(π·m), or right − left at m = 0.
+// for each passband, (sin(π·right·m) - sin(π·left·m))/(π·m), or right - left at m = 0.
 // The difference of sines is formed as the product 2·cos(π·centre·m)·sin(π·halfWidth·m),
 // which doesn't cancel for a narrow band.
 func (p passband) response(m float64) (h float64) {

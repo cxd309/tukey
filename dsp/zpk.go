@@ -8,15 +8,34 @@ import (
 	"github.com/cxd309/tukey/internal/poly"
 )
 
-// ZPK is a digital filter described by its zeros, poles and gain
-// every IIR design function returns one or can be built by callers
-// complex zeros and poles must come in conjugate pairs for the filter to be real
+// ZPK is a digital filter described by its zeros, poles and gain:
+//
+//	H(z) = Gain·Π (z - zero)/Π (z - pole)
+//
+// Every IIR design returns one, and one can be built by hand.
+// Complex zeros and poles must come in conjugate pairs, for the filter to be real.
+// Use its SOS method for filtering, and its BA method for low orders or for interchange.
 type ZPK struct {
-	Zeros []complex128
-	Poles []complex128
-	Gain  float64
+	Zeros []complex128 // in the z-plane
+	Poles []complex128 // in the z-plane, inside the unit circle for a stable filter
+	Gain  float64      // dimensionless
 }
 
+// BA returns the filter's transfer-function coefficients, b over a, from its zeros and poles,
+// with a[0] = 1.
+// Above about order 8, or for a narrow band, b and a lose digits,
+// and SOS keeps them.
+//
+//	b, a, err := f.BA()
+//	y, err := dsp.Filter(b, a, x)
+//
+// Units: b and a are dimensionless
+//
+// Returns: ErrInvalidZPK if complex zeros or poles aren't in conjugate pairs, or the gain, a zero or a pole isn't finite.
+//
+// Equivalent to:
+//   - scipy.signal.zpk2tf(z, p, k)
+//   - MATLAB zp2tf(z, p, k)
 func (f ZPK) BA() (b, a []float64, err error) {
 	if err = f.validate(); err != nil {
 		return nil, nil, err
@@ -34,17 +53,24 @@ func (f ZPK) BA() (b, a []float64, err error) {
 	return
 }
 
-// SOS converts the filter into second-order sections
-// Each pole is paired with its nearest zero, starting from poles closes to unit circle
-// these go in the last sections
-// this keeps each section's peak gain small
-// this makes SOS numerically robust at orders where BA's coefficients are not
+// SOS returns the filter as second-order sections, for filtering at any order.
+// Each pole is paired with its nearest zero, starting from the poles closest to the unit circle,
+// which go in the last sections.
+// That keeps each section's peak gain small,
+// so SOS stays accurate at orders where BA's coefficients don't.
+// The algorithm follows SciPy's, as THIRD_PARTY_NOTICES records.
 //
-// returns ErrInvalidZPK if complex zeros or poles aren't in conjugate pairs,
-// or if the gain, a zero or a pole isn't finite
+//	f, err := dsp.Butter(8, dsp.Lowpass(0.1))
+//	sos, err := f.SOS()
+//	y, err := dsp.SOSFilter(sos, x)
 //
-// equivalent to scipy.signal.zpk2sos with its default pairing='nearest'
-// the algorithm follows SciPy's implementation (see THIRD_PARTY_NOTICES)
+// Units: sos's coefficients are dimensionless
+//
+// Returns: ErrInvalidZPK if complex zeros or poles aren't in conjugate pairs, or the gain, a zero or a pole isn't finite.
+//
+// Equivalent to:
+//   - scipy.signal.zpk2sos(z, p, k), with its default pairing='nearest'
+//   - MATLAB zp2sos(z, p, k)
 func (f ZPK) SOS() (sos SOS, err error) {
 	if err = f.validate(); err != nil {
 		return nil, err
@@ -74,9 +100,8 @@ func (f ZPK) SOS() (sos SOS, err error) {
 	return
 }
 
-// section builds one second-order section from up to two zeros and two poles
-// right-aligning each polynomial so a missing root leave a leading zero
-// same as SciPy _single_zpksos
+// section builds one second-order section from up to two zeros and two poles,
+// right-aligning each polynomial so a missing root leaves a leading 0, same as SciPy's _single_zpksos.
 func section(zeros, poles []complex128) (s [6]float64, err error) {
 	b, err := poly.RealCoeffs(poly.FromRoots(zeros))
 	if err != nil {
@@ -91,7 +116,7 @@ func section(zeros, poles []complex128) (s [6]float64, err error) {
 	return
 }
 
-// validate returns ErrInvalidZPK unless the gain, zeros and poles are all finite
+// validate returns ErrInvalidZPK unless the gain, zeros and poles are all finite.
 func (f ZPK) validate() (err error) {
 	if math.IsNaN(f.Gain) || math.IsInf(f.Gain, 0) {
 		return fmt.Errorf("%w: gain %g, must be finite", ErrInvalidZPK, f.Gain)
