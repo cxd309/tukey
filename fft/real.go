@@ -6,15 +6,24 @@ import (
 	"slices"
 )
 
-// ForwardReal returns the discrete Fourier tranform of the real signal x
-// keeping on the n/2 + 1 non-negative frequency bins
-// a real signal spectrum is Hermitian, X[n-k] = conj(X[k]), so other bins carry no new information
-// the DC bin and Nyquist bin when n is even are real: imaginary parts exactly zero
+// ForwardReal returns the discrete Fourier transform of the real signal x,
+// keeping only its n/2 + 1 non-negative frequency bins.
+// A real signal's spectrum is Hermitian, X[n-k] = conj(X[k]), so the other bins add nothing.
+// The DC bin, and the Nyquist bin when n is even, are real, with imaginary parts exactly 0.
+// An even n costs about half a complex transform of the same length.
 //
-// returns ErrSignalTooShort if x is empty without N, and ErrInvalidLength if N is less than 1
+//	y, err := fft.ForwardReal(x)
+//	f, err := fft.RealFreq(len(x), 1/fs) // each bin's frequency in Hz
 //
-// equivalent to scipy.fft.rfft(x)
-// MATLAB fft(x) returns all n bins, this is the first n/2 + 1
+// Units: same as x
+//
+// Returns:
+//   - ErrSignalTooShort for an empty x without N.
+//   - ErrInvalidLength for an N below 1.
+//
+// Equivalent to:
+//   - scipy.fft.rfft(x)
+//   - MATLAB fft(x), whose first n/2 + 1 bins these are
 func ForwardReal(x []float64, opts ...Option) (y []complex128, err error) {
 	cfg, err := newConfig(opts, len(x))
 	if err != nil {
@@ -32,18 +41,21 @@ func ForwardReal(x []float64, opts ...Option) (y []complex128, err error) {
 	return
 }
 
-// InverseReal returns the real signal of length n whose non-negative frequency bins are x
-// as ForwardReal produces
-// so Inversereal(ForwardReal(x), len(x)) recovers x
-// n must be given: n/2 + 1 bins come from both an even and an odd length
-// the first n/2 + 1 values of x are used, zero-padded if x is shorter
-// the imaginary parts of the DC bin, and the nyquist bin when n is even are ignored
+// InverseReal returns the real signal of length n whose non-negative frequency bins are x,
+// same as ForwardReal gives, so InverseReal(ForwardReal(x), len(x)) recovers x.
+// n must be given, as n/2 + 1 bins come from both an even and an odd length.
+// The first n/2 + 1 values of x are used, zero-padded if x is shorter.
+// The imaginary parts of the DC bin, and of the Nyquist bin when n is even, are ignored.
 //
-// returns ErrInvalidLength if n<1
-// returns ErrInvalidOption if given N
+// Units: same as x
 //
-// equivalent to scipy.fft.irfft(x, n=n)
-// MATLAB ifft(X, 'symmetric') does the same from the full spectrum
+// Returns:
+//   - ErrInvalidLength for an n below 1.
+//   - ErrInvalidOption for N, as n is InverseReal's length.
+//
+// Equivalent to:
+//   - scipy.fft.irfft(x, n=n)
+//   - MATLAB ifft(X, 'symmetric'), from the full spectrum X
 func InverseReal(x []complex128, n int, opts ...Option) (y []float64, err error) {
 	if n < 1 {
 		return nil, fmt.Errorf("%w: n %d, must be at least 1", ErrInvalidLength, n)
@@ -72,11 +84,12 @@ func InverseReal(x []complex128, n int, opts ...Option) (y []float64, err error)
 	return
 }
 
-// hermitian builds the full length-n spectrum of a real signal
-// from its non-negative frequency bins:
-// X[k] = x[k] and X[n-k] = conj(x[k])
-// with x zero-padded or truncated to n/2. + 1 values
-// and the DC (for even n) Nyquist bins made real
+// hermitian builds the full length-n spectrum of a real signal from its non-negative frequency bins:
+//
+//	X[k] = x[k], X[n-k] = conj(x[k])
+//
+// with x zero-padded or truncated to n/2 + 1 values,
+// and the DC bin, and the Nyquist bin for even n, made real.
 func hermitian(x []complex128, n int) (full []complex128) {
 	half := make([]complex128, n/2+1)
 	copy(half, x)
@@ -93,16 +106,18 @@ func hermitian(x []complex128, n int) (full []complex128) {
 	return
 }
 
-// forwardRealPacked is ForwardReal's transform for even n, at half the cost of the complex one
-// with h = n/2, it packs pairs of samples into one complex value,
-// z[j] = x[2j] + i·x[2j+1]
-// so one h-point FFT gives Z = E + i·O, where E and O are the transforms of the even and odd samples
+// forwardRealPacked is ForwardReal's transform for even n, at half the cost of the complex one.
+// With h = n/2, it packs pairs of samples into one complex value:
+//
+//	z[j] = x[2j] + i·x[2j+1]
+//
+// so one h-point FFT gives Z = E + i·O, where E and O are the transforms of the even and odd samples.
 // Each is a real sequence's spectrum, so Hermitian, which separates them:
 //
 //	E[k] = (Z[k] + conj(Z[h-k]))/2,   O[k] = -i·(Z[k] - conj(Z[h-k]))/2
 //
-// then a radix-2 butterfly with w = e^(-2πi·k/n) combines them, giving bins k
-// and h-k from the same pair:
+// Then a radix-2 butterfly with w = e^(-2πi·k/n) combines them,
+// giving bins k and h-k from the same pair:
 //
 //	X[k] = E[k] + w·O[k],   X[h-k] = conj(E[k] - w·O[k])
 func forwardRealPacked(x []float64) (y []complex128) {
@@ -127,19 +142,19 @@ func forwardRealPacked(x []float64) (y []complex128) {
 	return
 }
 
-// inverseRealPacked is InverseReal's unscaled transform for even n, returning n·x:
-// forwardRealPacked's steps in reverse
-// It rebuilds Z = 2E + 2i·O from the bins, without the halves, so the unscaled h-point inverse gives exactly n·x,
-// matching the 1/n the normalisation then applies:
+// inverseRealPacked is InverseReal's unscaled transform for even n, returning n·x,
+// by forwardRealPacked's steps in reverse.
+// It rebuilds Z = 2E + 2i·O from the bins, without the halves,
+// so the unscaled h-point inverse gives exactly n·x, for the normalisation's 1/n to scale:
 //
 //	Z[k] = A + i·conj(w)·B,   Z[h-k] = conj(A - i·conj(w)·B)
 //	where A = X[k] + conj(X[h-k]), B = X[k] - conj(X[h-k])
 //
-// then unpacks the even samples from the real parts and the odd from the imaginary.
+// Then it unpacks the even samples from the real parts, and the odd from the imaginary.
 // Only the real parts of the DC and Nyquist bins are used.
 func inverseRealPacked(x []complex128, n int) (y []float64) {
 	h := n / 2
-	bins := make([]complex128, h+1) // zero-padded or truncated to h+1, as SciPy
+	bins := make([]complex128, h+1) // zero-padded or truncated to h+1, same as SciPy
 	copy(bins, x)
 	dc, nyquist := real(bins[0]), real(bins[h])
 

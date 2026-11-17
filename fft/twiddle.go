@@ -2,26 +2,24 @@ package fft
 
 import "math"
 
-// twiddle returns e^(-2 pi i k/n), the rotation every DFT is build from,
-// accurately for any integer k
+// twiddle returns e^(-2πi·k/n), the rotation every DFT is built from, accurately for any integer k.
 //
-// Computing it directly as e^(-2 pi i k/n) rounds the angle 2 pi kn before sin and cos see it
-// this is an absolute error that grows with the angle
-//
-// Instead, k/n is reduced to an eigth of a turn using exact integer arithmetic
-// sin and cos are evaluated only on that small and symmetry maps the results back
-//
-// Quarter and half turns come out exact: 1, -i, -1, i
+// Computing it directly rounds the angle 2π·k/n before sin and cos see it,
+// an absolute error that grows with the angle.
+// Instead, k/n is reduced to an eighth of a turn by exact integer arithmetic,
+// sin and cos are evaluated only on that small angle,
+// and symmetry maps the results back.
+// Quarter and half turns come out exact, as 1, -i, -1 and i.
 func twiddle(k, n int) (w complex128) {
 	k %= n
 	if k < 0 {
 		k += n
 	}
-	// the angle is (pi / 4)(8 k/n) which eighth of a turn it's in and how far through
+	// the angle is (π/4)·(8k/n), so octant is which eighth of a turn it's in, and r how far through
 	octant, r := (8*k)/n, (8*k)%n
 
-	// the angle measured from the nearest multiple of pi/4 below (even octant) or above (odd octant)
-	// always in [0, pi/4]
+	// the angle from the nearest multiple of π/4, below in an even octant and above in an odd one,
+	// always in [0, π/4]
 	frac := r
 	if octant%2 == 1 {
 		frac = n - r
@@ -51,9 +49,9 @@ func twiddle(k, n int) (w complex128) {
 	return
 }
 
-// twiddleTable returns e^(-2 pi i j/n) for j=0...n-1
-// every twiddle a transform of length n,
-// or of any length dividing n, needs, since w_m^j = w_n^(j n/m)
+// twiddleTable returns e^(-2πi·j/n) for j = 0, 1, ..., n-1:
+// every twiddle a transform of length n needs,
+// or of any length dividing n, as w_m^j = w_n^(j·n/m).
 func twiddleTable(n int) (table []complex128) {
 	table = make([]complex128, n)
 	for j := range table {

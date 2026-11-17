@@ -4,12 +4,24 @@ import (
 	"math/cmplx"
 )
 
-// Forward returns the discrete Fourier transform of x:
-// y[k] = sum x[j]·e^(-2 pi i jk/n), for k = 0 … n-1, scaled per Norm
+// Forward returns the discrete Fourier transform of x, n = len(x) bins:
 //
-// returns ErrSignalTooShort if x is empty without N, and ErrInvalidLength if N is less than 1
+//	y[k] = Σ x[j]·e^(-2πi·jk/n), for k = 0, 1, ..., n-1
 //
-// equivalent to scipy.fft.fft(x) and MATLAB fft(x)
+// scaled as the Norm options say, unscaled by default.
+// Bin k is at frequency k/n cycles per sample, and Freq gives each bin's frequency.
+//
+//	y, err := fft.Forward(x)
+//
+// Units: same as x
+//
+// Returns:
+//   - ErrSignalTooShort for an empty x without N.
+//   - ErrInvalidLength for an N below 1.
+//
+// Equivalent to:
+//   - scipy.fft.fft(x)
+//   - MATLAB fft(x)
 func Forward(x []complex128, opts ...Option) (y []complex128, err error) {
 	cfg, err := newConfig(opts, len(x))
 	if err != nil {
@@ -20,13 +32,22 @@ func Forward(x []complex128, opts ...Option) (y []complex128, err error) {
 	return
 }
 
-// Inverse returns the inverse discrete Fourier transform of x:
-// y[j] = (1/n)·sum x[k]·e^(+2 pi i·jk/n) by default, so Inverse(Forward(x)) recovers x
-// Norm moves the 1/n
+// Inverse returns the inverse discrete Fourier transform of x, n = len(x) samples:
 //
-// returns errors as Forward does
+//	y[j] = (1/n)·Σ x[k]·e^(+2πi·jk/n), for j = 0, 1, ..., n-1
 //
-// equivalent to scipy.fft.ifft(x) and MATLAB ifft(x)
+// so Inverse(Forward(x)) recovers x.
+// The Norm options move the 1/n.
+//
+// Units: same as x
+//
+// Returns:
+//   - ErrSignalTooShort for an empty x without N.
+//   - ErrInvalidLength for an N below 1.
+//
+// Equivalent to:
+//   - scipy.fft.ifft(x)
+//   - MATLAB ifft(x)
 func Inverse(x []complex128, opts ...Option) (y []complex128, err error) {
 	cfg, err := newConfig(opts, len(x))
 	if err != nil {
@@ -37,14 +58,14 @@ func Inverse(x []complex128, opts ...Option) (y []complex128, err error) {
 	return
 }
 
-// backward is the unscaled inverse transform
-// the forward transform with conjugated twiddles, which is conj(transform(conj(x)))
+// backward is the unscaled inverse transform:
+// the forward transform with conjugated twiddles, which is conj(transform(conj(x))).
 func backward(x []complex128) (y []complex128) {
 	y = conjugated(transform(conjugated(x)))
 	return
 }
 
-// conjugated returns a new slice holding the complex conjuugate of each value in x
+// conjugated returns a new slice holding the complex conjugate of each value in x.
 func conjugated(x []complex128) (c []complex128) {
 	c = make([]complex128, len(x))
 	for i, v := range x {
@@ -53,7 +74,7 @@ func conjugated(x []complex128) (c []complex128) {
 	return
 }
 
-// transform picks the fastest algorithm for x's length
+// transform is the unscaled forward transform, by the fastest algorithm for x's length.
 func transform(x []complex128) (y []complex128) {
 	n := len(x)
 	if isPowerOfTwo(n) {
@@ -64,19 +85,7 @@ func transform(x []complex128) (y []complex128) {
 	return
 }
 
-// inverse is the inverse tranform without input checks:
-// the forward transoform with conjugated twiddles, which is exactly
-// conj(transform(conj(x))), scaled by 1/n
-func inverse(x []complex128) (y []complex128) {
-	y = conjugated(transform(conjugated(x)))
-	scale := 1 / float64(len(x)) // multiplied not divided as pocketfft does
-	for i := range y {
-		y[i] *= complex(scale, 0)
-	}
-	return
-}
-
-// complexified returns x as complex values with zero imaginary parts
+// complexified returns x as complex values with zero imaginary parts.
 func complexified(x []float64) (c []complex128) {
 	c = make([]complex128, len(x))
 	for i, v := range x {

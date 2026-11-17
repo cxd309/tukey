@@ -21,6 +21,7 @@
   "Lambda":       { "prefix": ";Lambda",       "body": "Λ" },
   "langle":       { "prefix": ";langle",       "body": "⟨" },
   "leq":          { "prefix": ";leq",          "body": "≤" },
+  "minusplus":    { "prefix": ";minusplus",    "body": "∓" },
   "mu":           { "prefix": ";mu",           "body": "μ" },
   "norm":         { "prefix": ";norm",         "body": "‖" },
   "notequal":     { "prefix": ";notequal",     "body": "≠" },

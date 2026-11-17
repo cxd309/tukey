@@ -2,18 +2,18 @@ package fft
 
 import "math/bits"
 
-// radix 2 is the iterative Cooley-Tukey FFT for a power of two length
-// the input is put in bit-reversed order
-// then log2(n) stages each combine pairs of transforms of size half
-// into transforms of size 2*half with n/2 butterflies
+// radix2 is the iterative Cooley-Tukey FFT, for a length that's a power of two.
+// The input is put in bit-reversed order,
+// then each of log2(n) stages combines pairs of transforms of size half into ones of size 2·half,
+// with n/2 butterflies:
 //
-// X[k] 		= E[k] + w^k·O[k]
-// X[k+half] 	= E[k] - w^k·O[k]
+//	X[k] = E[k] + w^k·O[k]
+//	X[k + half] = E[k] - w^k·O[k]
 func radix2(x []complex128) (y []complex128) {
 	n := len(x)
 	y = bitReversed(x)
 
-	// every stage's twiddles are a subset of e^(-2 pi i j/n) for j < n/2
+	// every stage's twiddles are among e^(-2πi·j/n) for j < n/2
 	table := make([]complex128, n/2)
 	for j := range table {
 		table[j] = twiddle(j, n)
@@ -33,8 +33,8 @@ func radix2(x []complex128) (y []complex128) {
 	return
 }
 
-// bitReversed returns a copy of x with element i moved to the index whose binary digits are i's reversed
-// the order the butterfly stages need
+// bitReversed returns a copy of x with element i moved to the index whose binary digits are i's reversed,
+// the order the butterfly stages need.
 func bitReversed(x []complex128) (y []complex128) {
 	logN := bits.Len(uint(len(x))) - 1
 	y = make([]complex128, len(x))
@@ -44,7 +44,7 @@ func bitReversed(x []complex128) (y []complex128) {
 	return
 }
 
-// isPowerOfTwo reports whether n is a positive power of two
+// isPowerOfTwo reports whether n is a positive power of two.
 func isPowerOfTwo(n int) (ok bool) {
 	ok = n > 0 && n&(n-1) == 0
 	return

@@ -2,28 +2,28 @@ package fft
 
 import "math/cmplx"
 
-// bluestein computes the DFT of any length n as a convolution
-// which power of two FFTs of length L>= 2n-1 compute fast
-// From jk = (j^2 + k^2 - (k-j)^2) / 2
+// bluestein computes the DFT of any length n as a convolution,
+// which fast transforms of a length of at least 2n - 1 compute.
+// Writing jk = (j² + k² - (k - j)²)/2 turns the DFT into:
 //
-//	X[k] = c[k] sum_j (x[j] c[j]) conj(c[k-j]), c[j] = e^(-pi i j^2 /n)
+//	X[k] = c[k]·Σ (x[j]·c[j])·conj(c[k - j]), where c[j] = e^(-πi·j²/n)
 //
-// the sum is the convolution of xc with conj(c) done by multiplying spectra
+// The sum is the convolution of x·c with conj(c), done by multiplying spectra.
 func bluestein(x []complex128) (y []complex128) {
 	n := len(x)
 	chirp := make([]complex128, n)
 	for j := range chirp {
-		chirp[j] = twiddle(j*j%(2*n), 2*n) // e^(-pi i j^2 /n) reduced exactly
+		chirp[j] = twiddle(j*j%(2*n), 2*n) // e^(-πi·j²/n), reduced exactly
 	}
 
 	size := paddedSize(n)
 
-	// xc zero-padded
+	// x·c, zero-padded
 	a := make([]complex128, size)
 	for j := range n {
 		a[j] = x[j] * chirp[j]
 	}
-	// conj(c) laid out circularly c is even in j so index -j wraps to size-j
+	// conj(c) laid out circularly: c is even in j, so index -j wraps to size - j
 	b := make([]complex128, size)
 	b[0] = cmplx.Conj(chirp[0])
 	for j := 1; j < n; j++ {
@@ -47,9 +47,9 @@ func bluestein(x []complex128) (y []complex128) {
 }
 
 // paddedSize is the convolution length Bluestein uses for an n-point transform:
-// at least 2n-1, and either the next power of two, or the next length with no
-// prime factors beyond 5 when that's short enough to make up for mixed radix
-// costing about 1.5x radix-2 per element (2.0-2.5 against 1.5 ns/(nlog2 n))
+// at least 2n - 1, and either the next power of two,
+// or the next length with no prime factors above 5 when that's short enough to make up for its cost.
+// Mixed radix costs about 1.5 times radix-2 per element, 2.0 to 2.5 against 1.5 ns per n·log2(n).
 func paddedSize(n int) (size int) {
 	target := 2*n - 1
 	powerOfTwo := 1
@@ -63,9 +63,9 @@ func paddedSize(n int) (size int) {
 	return powerOfTwo
 }
 
-// smoothSize returns the smallest length >= target whose only prime factors are
-// 2, 3 and 5, the factors with dedicated butterflies
-// it tries every product of powers of 3 and 5 below the best so far, doubling each up to target
+// smoothSize returns the smallest length of at least target whose only prime factors are 2, 3 and 5,
+// the factors with dedicated butterflies.
+// It tries every product of powers of 3 and 5 below the best so far, doubling each up to target.
 func smoothSize(target int) (size int) {
 	size = 1
 	for size < target {

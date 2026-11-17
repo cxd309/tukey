@@ -5,17 +5,24 @@ import (
 	"math"
 )
 
-// Freq returns the frequency of each of Forward's n bins for samples d apart
-// 0, 1/(n d), 2/(n d), ... up to the highest positive frequency
-// then the negative frequencies from the most negative frequency up
-// With d = 1/fs the frequencies are all in Hz
-// For even n, Nyquist bin is listed as negative
+// Freq returns the frequency of each of Forward's n bins, for samples d apart:
+// 0, 1/(n·d), 2/(n·d), ... up to the highest positive frequency,
+// then the negative frequencies, from the most negative up.
+// For even n the Nyquist bin is listed as negative.
+//
+//	f, err := fft.Freq(8, 1.0/8) // [0 1 2 3 -4 -3 -2 -1]
+//
+// Units:
+//   - d is the time between samples, e.g. 1/fs in seconds
+//   - f is in cycles per unit of d, so Hz for d in seconds, and cycles per sample for d = 1
 //
 // Returns:
 //   - ErrInvalidLength for a negative n.
 //   - ErrInvalidParameter for a d that isn't positive and finite.
 //
-// equivalent to scipy.fft.fftfreq(n, d)
+// Equivalent to:
+//   - scipy.fft.fftfreq(n, d)
+//   - MATLAB ((0:n-1) - n*((0:n-1) >= ceil(n/2)))/(n*d), as it has no fftfreq
 func Freq(n int, d float64) (f []float64, err error) {
 	if err = checkFreq(n, d); err != nil {
 		return nil, err
@@ -33,14 +40,22 @@ func Freq(n int, d float64) (f []float64, err error) {
 	return
 }
 
-// Realfreq returns the frequency of each of ForwardReal's n/2 + 1 bins for samples d apart
-// 0, 1/(n d), 2/(n d)... up to Nyquist when n is even
+// RealFreq returns the frequency of each of ForwardReal's n/2 + 1 bins, for samples d apart:
+// 0, 1/(n·d), 2/(n·d), ... up to Nyquist when n is even.
+//
+//	f, err := fft.RealFreq(len(x), 1/fs) // in Hz
+//
+// Units:
+//   - d is the time between samples, e.g. 1/fs in seconds
+//   - f is in cycles per unit of d, so Hz for d in seconds, and cycles per sample for d = 1
 //
 // Returns:
 //   - ErrInvalidLength for a negative n.
 //   - ErrInvalidParameter for a d that isn't positive and finite.
 //
-// equivalent to scipy.fft.rfftfreq(n, d)
+// Equivalent to:
+//   - scipy.fft.rfftfreq(n, d)
+//   - MATLAB (0:floor(n/2))/(n*d)
 func RealFreq(n int, d float64) (f []float64, err error) {
 	if err = checkFreq(n, d); err != nil {
 		return nil, err
@@ -56,27 +71,46 @@ func RealFreq(n int, d float64) (f []float64, err error) {
 	return
 }
 
-// Shift reorders a spectrum (or its frequencies, from Freq) so zero frequency is in the centre
-// the negative freqencies first, the non-negative
-// undone by InverseShift
+// Shift reorders a spectrum, or its frequencies from Freq, so zero frequency is in the centre:
+// the negative frequencies first, then the non-negative.
+// InverseShift undoes it.
 //
-// equivalent to scipy.fft.fftshift and MATLAB fftshift
+//	fft.Shift([]float64{0, 1, 2, 3, -4, -3, -2, -1}) // [-4 -3 -2 -1 0 1 2 3]
+//
+// Units: same as x
+//
+// Equivalent to:
+//   - scipy.fft.fftshift(x)
+//   - MATLAB fftshift(x)
 func Shift[T any](x []T) (y []T) {
 	y = rotated(x, len(x)-len(x)/2)
 	return
 }
 
-// InverseShift undoes Shift, putting zero frequencies back first, for odd lengths it differs from Shift
+// InverseShift undoes Shift, putting zero frequency back first.
+// For an even length it's the same as Shift, and for an odd length it isn't.
 //
-// equivalent to scipy.fft.ifftshift and MATLAB ifftshift
+// Units: same as x
+//
+// Equivalent to:
+//   - scipy.fft.ifftshift(x)
+//   - MATLAB ifftshift(x)
 func InverseShift[T any](x []T) (y []T) {
 	y = rotated(x, len(x)/2)
 	return
 }
 
-// FastLength returns the smallest length of at least n whose only prime
-// factors are 2, 3, 5, the lengths tukey's FFTs transform fastest.
-// Zero-pad to it when any length of at least n will do, as for a correlation.
+// FastLength returns the smallest length of at least n whose only prime factors are 2, 3 and 5,
+// the lengths tukey's transforms are fastest at.
+// Zero-pad to it when any length of at least n will do, e.g. for a correlation:
+//
+//	y, err := fft.Forward(x, fft.N(fft.FastLength(len(x))))
+//
+// Units: n and length are numbers of samples
+//
+// Equivalent to:
+//   - scipy.fft.next_fast_len(n, real=True), whose default also allows factors of 7 and 11
+//   - MATLAB has none
 func FastLength(n int) (length int) {
 	length = smoothSize(n)
 	return
@@ -92,7 +126,7 @@ func rotated[T any](x []T, cut int) (y []T) {
 }
 
 // checkFreq returns ErrInvalidLength for a negative n,
-// and ErrInvalidParameter for a sample spacing d that isn't positive and finite
+// and ErrInvalidParameter for a sample spacing d that isn't positive and finite.
 func checkFreq(n int, d float64) (err error) {
 	switch {
 	case n < 0:
