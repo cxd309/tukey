@@ -17,9 +17,11 @@ import (
 // Between UnitHz, UnitNyquist and UnitCyclesPerSample the result is correctly rounded.
 // To or from UnitRadPerSample it's within an ULP or two, as π isn't exact.
 //
-// Returns:
-//   - ErrInvalidParameter for a unit that isn't one of the four,
-//     or for an fs that isn't positive and finite when either unit is UnitHz.
+// Units:
+//   - f is in the unit from, and g in the unit to
+//   - fs is in Hz
+//
+// Returns: ErrInvalidParameter for a unit that isn't one of the four, or an fs that isn't positive and finite when either unit is UnitHz.
 //
 // Equivalent to:
 //   - scipy.signal.freqz(b, a, fs=fs), which returns w in Hz
@@ -47,6 +49,7 @@ func ConvertFrequency[T float64 | []float64](f T, from, to FrequencyUnit, fs flo
 }
 
 // FrequencyUnit is a unit of frequency, for ConvertFrequency.
+// Its zero value is UnitNyquist.
 type FrequencyUnit int
 
 const (
@@ -64,14 +67,17 @@ const (
 	UnitHz
 )
 
-// HzToNyquist returns f in Hz as a fraction of Nyquist, f/(fs/2),
-// the unit of a Band's edges:
+// HzToNyquist returns f in Hz as a fraction of Nyquist, f/(fs/2), the unit of a Band's edges.
+// f may be a float64 or a []float64:
 //
 //	wn, err := dsp.HzToNyquist(50.0, 1000) // 0.1
 //	f, err := dsp.Butter(4, dsp.Lowpass(wn))
 //
-// Returns:
-//   - ErrInvalidParameter for an fs that isn't positive and finite.
+// Returns: ErrInvalidParameter for an fs that isn't positive and finite.
+//
+// Units:
+//   - f and fs are in Hz
+//   - wn is a fraction of Nyquist
 //
 // Equivalent to:
 //   - the fs argument of scipy.signal.butter and the other designs
@@ -82,37 +88,46 @@ func HzToNyquist[T float64 | []float64](f T, fs float64) (wn T, err error) {
 }
 
 // NyquistToHz returns wn, a fraction of Nyquist, in Hz, wn·fs/2.
+// wn may be a float64 or a []float64.
 //
-// Returns:
-//   - ErrInvalidParameter for an fs that isn't positive and finite.
+// Units:
+//   - wn is a fraction of Nyquist
+//   - fs and f are in Hz
 //
-// Equivalent to:
-//   - MATLAB wn*fs/2
+// Returns: ErrInvalidParameter for an fs that isn't positive and finite.
+//
+// Equivalent to: MATLAB wn*fs/2, as SciPy has none
 func NyquistToHz[T float64 | []float64](wn T, fs float64) (f T, err error) {
 	f, err = ConvertFrequency(wn, UnitNyquist, UnitHz, fs)
 	return
 }
 
 // HzToRadPerSample returns f in Hz in radians per sample, 2π·f/fs.
+// f may be a float64 or a []float64.
 //
-// Returns:
-//   - ErrInvalidParameter for an fs that isn't positive and finite.
+// Units:
+//   - f and fs are in Hz
+//   - w is in rad/sample
 //
-// Equivalent to:
-//   - MATLAB 2*pi*f/fs
+// Returns: ErrInvalidParameter for an fs that isn't positive and finite.
+//
+// Equivalent to: MATLAB 2*pi*f/fs, as SciPy has none
 func HzToRadPerSample[T float64 | []float64](f T, fs float64) (w T, err error) {
 	w, err = ConvertFrequency(f, UnitHz, UnitRadPerSample, fs)
 	return
 }
 
-// RadPerSampleToHz returns w in radians per sample in Hz, w·fs/(2π),
-// e.g. to label Freqz's response in Hz:
+// RadPerSampleToHz returns w in radians per sample in Hz, w·fs/(2π), e.g. to label Freqz's response in Hz.
+// w may be a float64 or a []float64:
 //
 //	w, h, err := dsp.Freqz(b, a, 512)
 //	f, err := dsp.RadPerSampleToHz(w, fs)
 //
-// Returns:
-//   - ErrInvalidParameter for an fs that isn't positive and finite.
+// Units:
+//   - w is in rad/sample
+//   - fs and f are in Hz
+//
+// Returns: ErrInvalidParameter for an fs that isn't positive and finite.
 //
 // Equivalent to:
 //   - scipy.signal.freqz(b, a, fs=fs)'s w
@@ -123,9 +138,13 @@ func RadPerSampleToHz[T float64 | []float64](w T, fs float64) (f T, err error) {
 }
 
 // NyquistToRadPerSample returns wn, a fraction of Nyquist, in radians per sample, wn·π.
+// wn may be a float64 or a []float64, and it can't fail.
 //
-// Equivalent to:
-//   - MATLAB wn*pi
+// Units:
+//   - wn is a fraction of Nyquist
+//   - w is in rad/sample
+//
+// Equivalent to: MATLAB wn*pi, as SciPy has none
 func NyquistToRadPerSample[T float64 | []float64](wn T) (w T) {
 	w, _ = ConvertFrequency(wn, UnitNyquist, UnitRadPerSample, 0) // can't fail without UnitHz
 	return
@@ -133,6 +152,11 @@ func NyquistToRadPerSample[T float64 | []float64](wn T) (w T) {
 
 // RadPerSampleToNyquist returns w in radians per sample as a fraction of Nyquist, w/π,
 // e.g. to compare Freqz's response with a Band's edges.
+// w may be a float64 or a []float64, and it can't fail.
+//
+// Units:
+//   - w is in rad/sample
+//   - wn is a fraction of Nyquist
 //
 // Equivalent to:
 //   - scipy.signal.freqz(b, a, fs=2)'s w
@@ -142,7 +166,8 @@ func RadPerSampleToNyquist[T float64 | []float64](w T) (wn T) {
 	return
 }
 
-// nyquist returns the Nyquist frequency in unit u, at sample rate fs
+// nyquist returns the Nyquist frequency in unit u, at sample rate fs,
+// returning ErrInvalidParameter for an unknown unit, or an invalid fs for UnitHz.
 func (u FrequencyUnit) nyquist(fs float64) (nyquist float64, err error) {
 	switch u {
 	case UnitNyquist:
