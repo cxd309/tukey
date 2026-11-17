@@ -5,14 +5,14 @@ import (
 	"math"
 )
 
-// shape build an n-point window from value, which gives sample k of the
-// symmetric window of length m, and handles what every window shares:
-//   - n = 0 is empty and n=1 is [1], before any formula, same as SciPy
+// shape builds an n-point window from value, which gives sample k of the symmetric window of length m.
+// It handles what every window shares:
+//   - n = 0 is empty and n = 1 is [1], before any formula, same as SciPy
 //   - periodic is the symmetric window of length n+1 without its last point
-//   - symmetric is exact: value is evaluated for the first half only
+//   - symmetric is exactly so, as value is evaluated for the first half only,
 //     including the middle sample when m is odd, and mirrored
 //
-// returns ErrInvalidLength if n < 0
+// It returns ErrInvalidLength for a negative n.
 func shape(n int, periodic bool, value func(k, m int) float64) (w []float64, err error) {
 	if w, short, err := shortWindow(n); short {
 		return w, err
@@ -32,8 +32,8 @@ func shape(n int, periodic bool, value func(k, m int) float64) (w []float64, err
 	return
 }
 
-// sampled builds an n-point window that isn't symmetric, from value,
-// which gives sample i directly, lengths are same as shape
+// sampled builds an n-point window that isn't symmetric, from value, which gives sample i directly.
+// Short lengths are the same as shape's.
 func sampled(n int, value func(i int) float64) (w []float64, err error) {
 	if w, short, err := shortWindow(n); short {
 		return w, err
@@ -45,8 +45,8 @@ func sampled(n int, value func(i int) float64) (w []float64, err error) {
 	return
 }
 
-// newWindow builds the n-point window name from value (see shape)
-// accepting only Periodic
+// newWindow builds the n-point window called name from value, as shape does,
+// accepting only Periodic.
 func newWindow(name string, n int, opts []Option, value func(k, m int) float64) (w []float64, err error) {
 	cfg, err := newConfig(name, opts, optionSet{optionPeriodic: true})
 	if err != nil {
@@ -56,9 +56,9 @@ func newWindow(name string, n int, opts []Option, value func(k, m int) float64) 
 	return
 }
 
-// shortWindow handles the lengths every window shares, before any formula, matching SciPy:
-// n < 0 is ErrInvalidLength, n = 0 is empty and n = 1 is [1]
-// short is true when n is one of these, and w and err are then the window
+// shortWindow handles the lengths every window shares, before any formula, same as SciPy:
+// n < 0 is ErrInvalidLength, n = 0 is empty and n = 1 is [1].
+// short is true when n is one of these, and w and err are then the window.
 func shortWindow(n int) (w []float64, short bool, err error) {
 	switch {
 	case n < 0:
@@ -71,7 +71,7 @@ func shortWindow(n int) (w []float64, short bool, err error) {
 	return nil, false, nil
 }
 
-// positiveFinite returns ErrInvalidParameter unless v > 0 and finite, which also rules out NaN
+// positiveFinite returns ErrInvalidParameter unless v is positive and finite, which also rules out NaN.
 func positiveFinite(window, name string, v float64) (err error) {
 	if !(v > 0) || math.IsInf(v, 1) {
 		err = fmt.Errorf("%w: %s's %s must be positive and finite, got %g", ErrInvalidParameter, window, name, v)

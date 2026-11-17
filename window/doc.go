@@ -1,45 +1,29 @@
-// Package window is window functions for Go, matching scipy.signal.windows .
-// Includes every SciPy window except dpss.
-// Standard library only
+// Package window computes window functions, matching scipy.signal.windows.
+// It has every SciPy window except dpss, and uses only the standard library.
 //
 // # Windows
 //
 // Each window returns n samples:
 // symmetric by default, for filter design,
-// or periodic (DFT-even) with Periodic(), for spectral analysis
+// or periodic, DFT-even, with Periodic(), for spectral analysis.
 //
-// Cosine sums: Hann, Hamming, Blackman, BlackmanHarris, Nuttall, FlatTop,
-// and the general forms GeneralHamming and GeneralCosine
-//
-// Piecewise: Boxcar, Triang, Bartlett, Parzen, Bohman, Barthann, Tukey
-//
-// Sine: Cosine, Lanczos
-//
-// Exponential: Gaussian, GeneralGaussian, Exponential
-//
-// Bessel: Kaiser, KaiserBesselDerived (the MDCT window of AAC and Vorbis)
-//
-// Low sidelobe: Taylor, Chebwin (Dolph–Chebyshev)
+//	Cosine sums:   Hann, Hamming, Blackman, BlackmanHarris, Nuttall, FlatTop,
+//	               and the general forms GeneralHamming and GeneralCosine
+//	Piecewise:     Boxcar, Triang, Bartlett, Parzen, Bohman, Barthann, Tukey
+//	Sine:          Cosine, Lanczos
+//	Exponential:   Gaussian, GeneralGaussian, Exponential
+//	Bessel:        Kaiser, KaiserBesselDerived, the MDCT window of AAC and Vorbis
+//	Low sidelobe:  Taylor, Chebwin, the Dolph-Chebyshev window
 //
 // # Options
 //
-// One Option type serves every window, a window given an option that doesn't apply
-// returns ErrInvalidOption
-//
-//	Periodic()
-//
-// every window except KaiserBesselDerived,
-// the symmetric window of n+1 points without its last point.
-// SciPy's sym=False, MATLAB's "periodic"
-//
-//	Center(c)
-//
-// Exponential, with Periodic only: moves its peak to sample c
-//
-//	Unnormalised()
-//
-// Taylor: leaves its peak where its formula puts it, rather than at 1.
-// MATLAB's taylorwin, SciPy's norm=False
+// One Option type serves every window.
+// A window given an option that doesn't apply to it returns ErrInvalidOption.
+//   - Periodic() gives the symmetric window of n+1 points without its last point, for every window but KaiserBesselDerived.
+//     It's SciPy's sym=False and MATLAB's 'periodic'.
+//   - Center(c) moves Exponential's peak to sample c, with Periodic only.
+//   - Unnormalised() leaves Taylor's peak where its formula puts it, rather than at 1.
+//     It's SciPy's norm=False, and MATLAB's taylorwin.
 //
 // # Compatibility
 //
@@ -73,52 +57,52 @@
 //	Taylor               taylor                 taylorwin       5.6e-16  3.4e-16  1e-14
 //	Chebwin              chebwin                chebwin         1.5e-12  3.7e-13  1e-11
 //
-// Errors are the largest difference,
-// relative to 1 or the window's peak if that's larger.
-// 1e-16 is about 1ULP of a float64.
+// Errors are the largest difference, relative to 1 or to the window's peak if that's larger.
+// 1e-16 is about 1 ULP of a float64.
 // MATLAB's rectwin, triang, bartlett, parzenwin, bohmanwin, barthannwin,
 // tukeywin, gausswin, kaiser, taylorwin and chebwin have no periodic form,
-// so checked symmetric only
+// so they're checked symmetric only.
 //
 // Kaiser's error grows with beta, as I0's sensitivity to its argument does.
-// Chebwin's comes from evaluating a Chebyshev polynomial of degree n-1 near +-1,
+// Chebwin's comes from evaluating a Chebyshev polynomial of degree n-1 near ±1,
 // where an ULP of difference in its argument is magnified.
-// SciPy and MATLAB differ from each other by as much
+// SciPy and MATLAB differ from each other by as much.
 //
 // # Differences from SciPy and MATLAB
 //
-// Symmetric windows are computed for their first half and mirrored, so they're
-// symmetric exactly. SciPy's are symmetric only to within a few ULP
+// Symmetric windows are computed for their first half and mirrored, so they're exactly symmetric.
+// SciPy's are symmetric only to within a few ULP.
 //
-// MATLAB's hanning is Hann without its zero ends, Hann(n+2) less its first and
-// last sample. Hann's doc shows how to build it.
+// MATLAB's hanning is Hann without its zero ends, Hann(n+2) less its first and last sample.
+// Hann's doc shows how to build it.
 //
-// Taylor takes its sidelobe level as positive dB, as SciPy. MATLAB's taylorwin
-// takes it negative and doesn't normalise, so taylorwin(n, nbar, -sll) is
-// Taylor(n, nbar, sll, Unnormalised()) for n > 1.
-// At n = 1, taylorwin evaluates its formula. Taylor returns [1], as every window here and in SciPy does
+// Taylor takes its sidelobe level as positive dB, same as SciPy.
+// MATLAB's taylorwin takes it negative and doesn't normalise,
+// so taylorwin(n, nbar, -sll) is Taylor(n, nbar, sll, Unnormalised()) for n > 1.
+// At n = 1 taylorwin evaluates its formula, where Taylor returns [1], as every window here and in SciPy does.
 //
-// Gaussian takes the standard deviation in samples, as SciPy.
-// MATLAB's gausswin(n, alpha) is Gaussian(n, (n-1)/(2*alpha))
+// Gaussian takes the standard deviation in samples, same as SciPy.
+// MATLAB's gausswin(n, alpha) is Gaussian(n, (n-1)/(2*alpha)).
 //
-// Tukey's alpha is unrestricted, as SciPy and MATLAB:
-// 0 or less is Boxcar, 1 or more is Hann.
-// Parameters with no meaning outside their range are checked where SciPy doesn't:
-// std, p, sig, tau, sll and attenuation must be > 0, nbar >= 1,
-// Kaiser's beta finite, GeneralCosine needs a coefficient, and
-// KaiserBesselDerived needs an even n (n = 1 included, which isn't [1]),
-// symmetric only, as SciPy
+// Tukey's alpha is unrestricted, same as SciPy and MATLAB:
+// at or below 0 is Boxcar, and at or above 1 is Hann.
+// Parameters with no meaning outside their range are checked where SciPy doesn't check them:
+//   - std, p, sig, tau, sll and attenuation must be positive and finite
+//   - nbar must be at least 1
+//   - Kaiser's beta and the cosine sums' coefficients must be finite
+//   - GeneralCosine needs a coefficient
+//   - KaiserBesselDerived needs an even n, so n = 1 is an error rather than [1], and is symmetric only, same as SciPy
 //
 // # Algorithms
 //
-// Kaiser and KaiserBesselDerived use the modified Bessel function I0, ported
-// from Cephes via SciPy's xsf (see THIRD_PARTY_NOTICES). Chebwin is the real part
-// of the FFT of its Chebyshev polynomial, through tukey/fft
+// Kaiser and KaiserBesselDerived use the modified Bessel function I0,
+// ported from Cephes via SciPy's xsf, as THIRD_PARTY_NOTICES records.
+// Chebwin is the real part of the FFT of its Chebyshev polynomial, through tukey/fft.
 //
 // # Conventions
 //
-// Every function is stateless: a new slice comes back, inputs are never
-// modified, and all functions are safe for concurrent use.
+// Every function is stateless:
+// a new slice comes back, inputs are never modified, and all functions are safe for concurrent use.
 // Invalid input returns an error wrapping ErrInvalidLength, ErrInvalidParameter or ErrInvalidOption,
 // so check for one with errors.Is.
 //

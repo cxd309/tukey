@@ -7,16 +7,28 @@ import (
 	"github.com/cxd309/tukey/internal/special"
 )
 
-// Kaiser returns the n-point Kaiser windows with shape beta:
-// I0(beta sqrt(1 - x^2)) / I0(beta), for x from -1 to 1
-// beta 0 is Boxcar, and larger beta traders a wider main love for lower
-// sidelobes: about 5 is like Hamming, 8.6 like Blackman, 14 for very low sidelobes
-// a negative beta is the same window as |beta|, as I0 is even
+// Kaiser returns the n-point Kaiser window with shape beta:
 //
-// returns ErrInvalidLength if n<0, and ErrInvalidParameter if beta is NaN or +=Inf
+//	w(x) = I0(beta·√(1 - x²))/I0(beta), for x from -1 to 1
 //
-// equivalent to scipy.signal.windows.kaiser(n, beta),
-// equivalent to MATLAB kaiser(n, beta)
+// beta 0 is Boxcar, and a larger beta trades a wider main lobe for lower sidelobes:
+// about 5 is like Hamming, 8.6 like Blackman, and 14 gives very low sidelobes.
+// A negative beta is the same window as |beta|, as I0 is even.
+//
+//	w, err := window.Kaiser(64, 8.6)
+//
+// Units:
+//   - n is a number of samples
+//   - beta and w are dimensionless
+//
+// Returns:
+//   - ErrInvalidLength for a negative n.
+//   - ErrInvalidParameter for a NaN or infinite beta.
+//   - ErrInvalidOption for an option other than Periodic.
+//
+// Equivalent to:
+//   - scipy.signal.windows.kaiser(n, beta)
+//   - MATLAB kaiser(n, beta), which has no periodic form
 func Kaiser(n int, beta float64, opts ...Option) (w []float64, err error) {
 	if math.IsNaN(beta) || math.IsInf(beta, 0) {
 		return nil, fmt.Errorf("%w: Kaiser's beta must be finite, got %g", ErrInvalidParameter, beta)
@@ -32,16 +44,25 @@ func Kaiser(n int, beta float64, opts ...Option) (w []float64, err error) {
 
 // KaiserBesselDerived returns the n-point Kaiser-Bessel-derived (KBD) window,
 // the MDCT window of audio codecs such as AAC and Vorbis:
-// the square root of the running sum of a Kaiser window,
-// so that w[k]^2 + w[k+n/2]^2 = 1
-// (the Princeton-Bradley condition, for perfect reconstruction)
-// it's defined only for even n, and only symmetric
+// the square root of the running sum of a Kaiser window, so that:
 //
-// returns ErrInvalidLength if n < 0 or n is odd (including n = 1),
-// returns ErrInvalidParameter if beta is NaN or +=Inf, and ErrInvalidOption if given any option
+//	w[k]² + w[k + n/2]² = 1
 //
-// equivalent to scipy.signal.windows.kaiser_bessel_derived(n, beta),
-// no MATLAB equivalent
+// which is the Princen-Bradley condition, for perfect reconstruction.
+// It's defined only for even n, and only symmetric.
+//
+// Units:
+//   - n is a number of samples
+//   - beta and w are dimensionless
+//
+// Returns:
+//   - ErrInvalidLength for a negative or odd n, including 1.
+//   - ErrInvalidParameter for a NaN or infinite beta.
+//   - ErrInvalidOption for any option.
+//
+// Equivalent to:
+//   - scipy.signal.windows.kaiser_bessel_derived(n, beta)
+//   - MATLAB has none
 func KaiserBesselDerived(n int, beta float64, opts ...Option) (w []float64, err error) {
 	if _, err = newConfig("KaiserBesselDerived", opts, optionSet{}); err != nil {
 		return nil, err

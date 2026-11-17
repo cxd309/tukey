@@ -5,12 +5,23 @@ import (
 	"math"
 )
 
-// Gaussian returns the n-point Gaussian window with standard deviation std, in samples
+// Gaussian returns the n-point Gaussian window with standard deviation std:
 //
-// returns ErrInvalidLength if n < 0, and ErrInvalidParameter unless std > 0
+//	w(x) = e^(-x²/(2·std²)), for x samples from the centre
 //
-// equivalent to scipy.signal.windows.gaussian(n, std),
-// equivalent to MATLAB sgausswin(n, alpha) with alpha = (n-1)/(2*std)
+// Units:
+//   - n is a number of samples
+//   - std is in samples
+//   - w is dimensionless
+//
+// Returns:
+//   - ErrInvalidLength for a negative n.
+//   - ErrInvalidParameter for a std that isn't positive and finite.
+//   - ErrInvalidOption for an option other than Periodic.
+//
+// Equivalent to:
+//   - scipy.signal.windows.gaussian(n, std)
+//   - MATLAB gausswin(n, (n-1)/(2*std)), which has no periodic form
 func Gaussian(n int, std float64, opts ...Option) (w []float64, err error) {
 	if err = positiveFinite("Gaussian", "std", std); err != nil {
 		return nil, err
@@ -19,17 +30,29 @@ func Gaussian(n int, std float64, opts ...Option) (w []float64, err error) {
 		x := float64(k) - float64(m-1)/2
 		return math.Exp(-x * x / (2 * math.Pow(std, 2)))
 	})
-
 	return
 }
 
-// GeneralGaussian returns the n-point generalised Gaussian window,
-// exp(-0.5 |x/sig|^(2p)) for x samples from the centre
-// p = 1 is Gaussian with std sig, larger p flattens the top
+// GeneralGaussian returns the n-point generalised Gaussian window:
 //
-// returns ErrInvalidLength if n < 0, and ErrInvalidParameter unless p and sig are > 0
+//	w(x) = e^(-|x/sig|^(2p)/2), for x samples from the centre
 //
-// equivalent to scipy.signal.windows.general_gaussian(n, p, sig); MATLAB has none
+// p = 1 is Gaussian with std sig, and a larger p flattens the top.
+//
+// Units:
+//   - n is a number of samples
+//   - p is dimensionless
+//   - sig is in samples
+//   - w is dimensionless
+//
+// Returns:
+//   - ErrInvalidLength for a negative n.
+//   - ErrInvalidParameter for a p or sig that isn't positive and finite.
+//   - ErrInvalidOption for an option other than Periodic.
+//
+// Equivalent to:
+//   - scipy.signal.windows.general_gaussian(n, p, sig)
+//   - MATLAB has none
 func GeneralGaussian(n int, p, sig float64, opts ...Option) (w []float64, err error) {
 	if err = positiveFinite("GeneralGaussian", "p", p); err != nil {
 		return nil, err
@@ -44,14 +67,28 @@ func GeneralGaussian(n int, p, sig float64, opts ...Option) (w []float64, err er
 	return
 }
 
-// Exponential returns the n-point exponential (Poisson) window,
-// exp(-|x|/tau) for x samples from its peak, the middle unless Center moves it.
-// The usual force and response window in impact testing
+// Exponential returns the n-point exponential, or Poisson, window:
 //
-// returns ErrInvalidLength if n < 0, and ErrInvalidParameter unless tau > 0,
-// or if Center is given without Periodic or is NaN
+//	w(x) = e^(-|x|/tau), for x samples from its peak
 //
-// equivalent to scipy.signal.windows.exponential(n, center, tau); MATLAB has none
+// The peak is in the middle, unless Center moves it.
+// It's the usual force and response window in impact testing.
+//
+//	w, err := window.Exponential(1024, 200, window.Periodic(), window.Center(0)) // decaying from the first sample
+//
+// Units:
+//   - n is a number of samples
+//   - tau is in samples, the distance over which w falls by a factor of e
+//   - w is dimensionless
+//
+// Returns:
+//   - ErrInvalidLength for a negative n.
+//   - ErrInvalidParameter for a tau that isn't positive and finite, or a NaN or infinite Center.
+//   - ErrInvalidOption for an option other than Periodic and Center, or Center without Periodic.
+//
+// Equivalent to:
+//   - scipy.signal.windows.exponential(n, center, tau)
+//   - MATLAB has none
 func Exponential(n int, tau float64, opts ...Option) (w []float64, err error) {
 	cfg, err := newConfig("Exponential", opts, optionSet{optionPeriodic: true, optionCenter: true})
 	if err != nil {
