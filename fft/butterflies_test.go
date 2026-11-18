@@ -17,7 +17,7 @@ func TestSmoothSize(t *testing.T) {
 	}
 }
 
-// smoothSize must give the smallest smooth length, so check it against a brute-force search
+// smoothSize must give the smallest smooth length, so check it against a brute-force search.
 func TestSmoothSizeIsSmallest(t *testing.T) {
 	isSmooth := func(n int) bool {
 		for _, f := range []int{2, 3, 5} {
@@ -36,7 +36,7 @@ func TestSmoothSizeIsSmallest(t *testing.T) {
 	}
 }
 
-// the padded length is the power of two unless the smooth length is enough shorter
+// The padded length is the power of two unless the smooth length is enough shorter.
 func TestPaddedSize(t *testing.T) {
 	assert.Equal(t, 2048, paddedSize(1009))    // 2025 is barely shorter
 	assert.Equal(t, 131220, paddedSize(65537)) // 131220 is half of 262144

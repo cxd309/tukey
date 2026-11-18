@@ -8,8 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// windows is every window, with any parameters fixed
-// for the tests every window should pass
+// windows is every window, with any parameters fixed for the tests every window should pass.
 var windows = map[string]func(n int, opts ...Option) ([]float64, error){
 	"Hann":           Hann,
 	"Hamming":        Hamming,
@@ -69,7 +68,7 @@ func TestRejectsNegativeLength(t *testing.T) {
 	}
 }
 
-// n = 0 and n = 1 are fixed for every window, before any formula, as SciPy
+// n = 0 and n = 1 are fixed for every window, before any formula, same as SciPy.
 func TestShortLengths(t *testing.T) {
 	for name, window := range windows {
 		for _, opts := range [][]Option{nil, {Periodic()}} {
@@ -86,7 +85,7 @@ func TestShortLengths(t *testing.T) {
 	}
 }
 
-// symmetric windows are mirrored, so symmetric exactly, not just to within rounding
+// Symmetric windows are mirrored, so symmetric exactly, not just to within rounding.
 func TestSymmetricIsExact(t *testing.T) {
 	for name, window := range windows {
 		t.Run(name, func(t *testing.T) {
@@ -101,7 +100,7 @@ func TestSymmetricIsExact(t *testing.T) {
 	}
 }
 
-// periodic is the symmetric window one longer, without its last point
+// Periodic is the symmetric window one longer, without its last point.
 func TestPeriodicIsSymmetricWithoutLastPoint(t *testing.T) {
 	for name, window := range windows {
 		t.Run(name, func(t *testing.T) {
@@ -116,7 +115,7 @@ func TestPeriodicIsSymmetricWithoutLastPoint(t *testing.T) {
 	}
 }
 
-// assertInvalidParameter checks that each call returns ErrInvalidParameter
+// assertInvalidParameter checks that each call returns ErrInvalidParameter.
 func assertInvalidParameter(t *testing.T, calls map[string]func() ([]float64, error)) {
 	t.Helper()
 	for name, call := range calls {

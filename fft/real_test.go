@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// randomReal is a seeded random real signal of length n
+// randomReal is a seeded random real signal of length n.
 func randomReal(n int) (x []float64) {
 	rng := rand.New(rand.NewPCG(uint64(n), 1))
 	x = make([]float64, n)
@@ -21,9 +21,8 @@ func randomReal(n int) (x []float64) {
 	return
 }
 
-// the real transforms undo each other,
-// for even and odd lengths and through each algorithm:
-// radix-2, mixed radix, Bluestein, and Bluestein inside mixed radix
+// The real transforms undo each other, for even and odd lengths and through each algorithm:
+// radix-2, mixed radix, Bluestein, and Bluestein inside mixed radix.
 func TestRealRoundTrip(t *testing.T) {
 	for _, n := range []int{1, 2, 4, 6, 10, 1024, 1000, 1001, 1009, 2018} {
 		t.Run(strconv.Itoa(n), func(t *testing.T) {
@@ -38,7 +37,7 @@ func TestRealRoundTrip(t *testing.T) {
 	}
 }
 
-// ForwardReal is the first half of Forward on the same signal
+// ForwardReal is the first half of Forward on the same signal.
 func TestForwardRealMatchesForward(t *testing.T) {
 	x := randomReal(1000)
 	full, err := Forward(complexified(x))
@@ -48,7 +47,7 @@ func TestForwardRealMatchesForward(t *testing.T) {
 	reference.AssertClose(t, "y", half, full[:501], reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
 }
 
-// DC, and Nyquist for even n, are exactly real, even through Bluestein
+// DC, and Nyquist for even n, are exactly real, even through Bluestein.
 func TestForwardRealDCAndNyquistAreReal(t *testing.T) {
 	for _, n := range []int{1009, 2018} { // Bluestein, and Bluestein inside mixed radix
 		y, err := ForwardReal(randomReal(n))
@@ -60,8 +59,8 @@ func TestForwardRealDCAndNyquistAreReal(t *testing.T) {
 	}
 }
 
-// the imaginary parts of DC and Nyquist can't affect a real signal, so they're ignored,
-// and bins beyond n/2 + 1 are dropped
+// The imaginary parts of DC and Nyquist can't affect a real signal, so they're ignored,
+// and bins beyond n/2 + 1 are dropped.
 func TestInverseRealIgnoresWhatARealSignalCannotHave(t *testing.T) {
 	const n = 8
 	y, err := ForwardReal(randomReal(n))
@@ -85,8 +84,8 @@ func TestRealTransformsRejectInvalidLengths(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidLength)
 }
 
-// the packed path against the complex one, at even lengths whose half is each
-// algorithm: 1 (n=2), odd 3 (6), radix-2, smooth, and Bluestein (2·1009)
+// The packed path against the complex one, at even lengths whose half is each algorithm:
+// 1 (n=2), odd 3 (6), radix-2, smooth, and Bluestein (2·1009).
 func TestForwardRealPackedMatchesComplex(t *testing.T) {
 	for _, n := range []int{2, 4, 6, 10, 1024, 1000, 2018} {
 		t.Run(strconv.Itoa(n), func(t *testing.T) {

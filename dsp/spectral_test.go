@@ -40,8 +40,7 @@ func noise(n int, seed uint64) (x []float64) {
 	return
 }
 
-// assertComplexNear asserts got is within tol of want, element by element,
-// relative to want's largest magnitude.
+// assertComplexNear asserts got is within tol of want, element by element, relative to want's largest magnitude.
 func assertComplexNear(t *testing.T, want, got []complex128, tol float64) {
 	t.Helper()
 	if !assert.Len(t, got, len(want)) {
@@ -56,9 +55,9 @@ func assertComplexNear(t *testing.T, want, got []complex128, tol float64) {
 	}
 }
 
-// Segments are cut by hand here: a 4-sample boxcar over 1 to 10 at 2 Hz.
-// The default overlap is half the window, so segments start every 2 samples,
-// and each one's DC bin is its sum.
+// Segments are cut by hand here:
+// a 4-sample boxcar over 1 to 10 at 2 Hz.
+// The default overlap is half the window, so segments start every 2 samples, and each one's DC bin is its sum.
 func TestSTFTSegments(t *testing.T) {
 	boxcar := []float64{1, 1, 1, 1}
 	cases := []struct {
@@ -146,8 +145,8 @@ func TestSTFTTwoSided(t *testing.T) {
 	}
 }
 
-// With each segment's mean removed, an offset added to the whole signal makes
-// no difference. Without, it lands in the DC bin, scaled by the window's sum.
+// With each segment's mean removed, an offset added to the whole signal makes no difference.
+// Without, it lands in the DC bin, scaled by the window's sum.
 func TestSTFTSegmentDetrend(t *testing.T) {
 	x, win := noise(256, 9), hann(t, 32)
 	offset := make([]float64, len(x))
@@ -225,9 +224,10 @@ func TestSTFTInvalid(t *testing.T) {
 	}
 }
 
-// Parseval: density summed over frequency is the windowed signal's power,
-// sum((w·x)²) / sum(w²), so a boxcar's is x's mean square. One-sided, at even
-// and odd lengths, as doubling every bin but DC and Nyquist keeps the total.
+// Parseval:
+// density summed over frequency is the windowed signal's power, sum((w·x)²) / sum(w²),
+// so a boxcar's is x's mean square.
+// One-sided, at even and odd lengths, as doubling every bin but DC and Nyquist keeps the total.
 func TestPeriodogramParseval(t *testing.T) {
 	const fs = 50.0
 	for _, n := range []int{256, 255} {
@@ -269,8 +269,8 @@ func TestPeriodogramSineSpectrum(t *testing.T) {
 	assert.InDelta(t, amplitude*amplitude/2, spectrum.Power[8], 1e-12)
 }
 
-// One-sided power is two-sided power folded over: each positive frequency plus
-// its negative mirror, with DC, and Nyquist for an even NFFT, left as they are.
+// One-sided power is two-sided power folded over:
+// each positive frequency plus its negative mirror, with DC, and Nyquist for an even NFFT, left as they are.
 func TestSpectrogramOneSidedFoldsTwoSided(t *testing.T) {
 	x, win := noise(400, 12), hann(t, 32)
 	for _, nfft := range []int{32, 33} {
@@ -295,8 +295,8 @@ func TestSpectrogramOneSidedFoldsTwoSided(t *testing.T) {
 	}
 }
 
-// Over a single segment there's nothing to average, so Welch is that segment's
-// periodogram, with either average: the median of one value has no bias.
+// Over a single segment there's nothing to average, so Welch is that segment's periodogram, with either average:
+// the median of one value has no bias.
 func TestWelchOneSegmentIsPeriodogram(t *testing.T) {
 	x, win := noise(64, 13), hann(t, 64)
 	want, err := Periodogram(x, 10, win)
@@ -308,8 +308,8 @@ func TestWelchOneSegmentIsPeriodogram(t *testing.T) {
 	}
 }
 
-// The median of n exponentially distributed values falls below their mean by
-// 1 - 1/2 + 1/3 - … to the 1/n term for odd n, approaching ln 2 as n grows.
+// The median of n exponentially distributed values falls below their mean by 1 - 1/2 + 1/3 - ... to the 1/n term for odd n,
+// approaching ln 2 as n grows.
 func TestMedianBias(t *testing.T) {
 	cases := []struct {
 		n    int

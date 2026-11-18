@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// frequencyUnits are every unit, with Nyquist in it at fs = 1000
+// frequencyUnits are every unit, with Nyquist in it at fs = 1000.
 var frequencyUnits = []struct {
 	name    string
 	unit    FrequencyUnit
@@ -35,8 +35,7 @@ func TestConvertFrequencyNyquist(t *testing.T) {
 	}
 }
 
-// Without π, a conversion is one division by a power of 2 times fs,
-// so it's exactly f/(fs/2) or f/fs.
+// Without π, a conversion is one division by a power of 2 times fs, so it's exactly f/(fs/2) or f/fs.
 func TestConvertFrequencyIsCorrectlyRounded(t *testing.T) {
 	const fs = 44100.0
 	for _, f := range []float64{50, 1000.0 / 3, 12345.678, 22049.9} {

@@ -46,9 +46,9 @@ func TestFiltFiltDoesNotModifyInputs(t *testing.T) {
 	assert.Equal(t, xBefore, x)
 }
 
-// with steady-state initial conditions and odd padding, a constant input has no
-// transient anywhere, so a unity-DC-gain filter returns it unchanged at every
-// sample, ends included, to within rounding (SciPy's own output is 1 ULP off)
+// With steady-state initial conditions and odd padding, a constant input has no transient anywhere,
+// so a unity-DC-gain filter returns it unchanged at every sample, ends included,
+// to within rounding (SciPy's own output is 1 ULP off).
 func TestFiltFiltPreservesConstant(t *testing.T) {
 	f, err := Butter(2, Lowpass(0.3))
 	require.NoError(t, err)
@@ -61,8 +61,8 @@ func TestFiltFiltPreservesConstant(t *testing.T) {
 	reference.AssertClose(t, "y", y, x, reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
 }
 
-// MATLABPadLen is only a padding length, so it must give exactly
-// what the equivalent explicit PadLen does: 3 * (3 taps - 1) = 6
+// MATLABPadLen is only a padding length, so it must give exactly what the equivalent explicit PadLen does:
+// 3 * (3 taps - 1) = 6.
 func TestMATLABPadLenMatchesExplicitPadLen(t *testing.T) {
 	f, err := Butter(2, Lowpass(0.3))
 	require.NoError(t, err)
@@ -77,15 +77,15 @@ func TestMATLABPadLenMatchesExplicitPadLen(t *testing.T) {
 	assert.Equal(t, explicit, matlab)
 }
 
-// same as SciPy, PaddingNone means nothing is added, so PadLen is ignored
-// and x only has to be non-empty
+// PaddingNone means nothing is added, same as SciPy, so PadLen is ignored and x only has to be non-empty.
 func TestFiltFiltPaddingNoneIgnoresPadLen(t *testing.T) {
 	b, a := []float64{0.5, 0.5}, []float64{1, -0.5}
 	_, err := FiltFilt(b, a, []float64{1, 2, 3}, PaddingNone(), PadLen(100))
 	assert.NoError(t, err)
 }
 
-// as for FiltFilt: steady-state starts and odd padding leave a constant untouched
+// As for FiltFilt:
+// steady-state starts and odd padding leave a constant untouched.
 func TestSOSFiltFiltPreservesConstant(t *testing.T) {
 	sos := testSOS(t, 3, Lowpass(0.3))
 	x := slices.Repeat([]float64{3}, 50)
@@ -119,10 +119,10 @@ func TestEffectiveOrder(t *testing.T) {
 	}
 }
 
-// MATLABPadLen is 3 × MATLAB's order, at least 1, so it gives exactly what that
-// explicit PadLen does, for (b, a) with trailing zeros and for sections. An FIR
-// filter or a gain forgets its start within its order, so its output can't show
-// the padding length, but the shortest x it allows, padLen + 1, does.
+// MATLABPadLen is 3 × MATLAB's order, at least 1, so it gives exactly what that explicit PadLen does,
+// for (b, a) with trailing zeros and for sections.
+// An FIR filter or a gain forgets its start within its order, so its output can't show the padding length,
+// but the shortest x it allows, padLen + 1, does.
 func TestMATLABPadLenIsThreeTimesTheOrder(t *testing.T) {
 	x := testSignal(60)
 	filters := []struct {
@@ -159,8 +159,8 @@ func TestMATLABPadLenIsThreeTimesTheOrder(t *testing.T) {
 	})
 }
 
-// BySection is FiltFilt on each section in turn, each with the whole filter's
-// padding length, so it's exactly that.
+// BySection is FiltFilt on each section in turn, each with the whole filter's padding length,
+// so it's exactly that.
 func TestBySectionIsEachSectionInTurn(t *testing.T) {
 	sos := testSOS(t, 2, Bandstop(0.2, 0.5))
 	x := testSignal(100)
@@ -177,8 +177,7 @@ func TestBySectionIsEachSectionInTurn(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// A (b, a) filter, or one section, is a cascade of one, so filtering it by
-// section changes nothing.
+// A (b, a) filter, or one section, is a cascade of one, so filtering it by section changes nothing.
 func TestBySectionOfOneSectionChangesNothing(t *testing.T) {
 	x := testSignal(50)
 	sos := testSOS(t, 2, Lowpass(0.3))
@@ -199,8 +198,8 @@ func TestBySectionOfOneSectionChangesNothing(t *testing.T) {
 	}
 }
 
-// BySection differs from the cascade only by its edge transients: for a fast
-// filter, they agree to rounding away from the ends, and differ at them.
+// BySection differs from the cascade only by its edge transients:
+// for a fast filter, they agree to rounding away from the ends, and differ at them.
 func TestBySectionDiffersFromTheCascadeAtTheEnds(t *testing.T) {
 	sos := testSOS(t, 3, Lowpass(0.3))
 	x := testSignal(400)
@@ -214,7 +213,7 @@ func TestBySectionDiffersFromTheCascadeAtTheEnds(t *testing.T) {
 	assert.Greater(t, maxAbsDifference(bySection[:3], cascade[:3]), 1e-6, "the ends should differ")
 }
 
-// maxAbsDifference is the largest |a[i] - b[i]|
+// maxAbsDifference is the largest |a[i] - b[i]|.
 func maxAbsDifference(a, b []float64) (d float64) {
 	for i := range a {
 		d = max(d, math.Abs(a[i]-b[i]))
@@ -222,8 +221,8 @@ func maxAbsDifference(a, b []float64) (d float64) {
 	return
 }
 
-// Each section starts from its own steady state, so a constant passes a
-// unity-DC-gain filter unchanged, ends included.
+// Each section starts from its own steady state, so a constant passes a unity-DC-gain filter unchanged,
+// ends included.
 func TestBySectionPreservesConstant(t *testing.T) {
 	sos := testSOS(t, 5, Lowpass(0.2))
 	x := slices.Repeat([]float64{3}, 60)
@@ -243,8 +242,8 @@ func TestBySectionOptionOrder(t *testing.T) {
 	assert.Equal(t, first, last)
 }
 
-// The whole filter's padding length decides how short x can be, for every
-// section: butter 3 is order 4 to MATLAB, so x needs 13 samples, not 10.
+// The whole filter's padding length decides how short x can be, for every section:
+// butter 3 is order 4 to MATLAB, so x needs 13 samples, not 10.
 func TestBySectionPaddingLength(t *testing.T) {
 	sos := testSOS(t, 3, Lowpass(0.3))
 	x := testSignal(20)

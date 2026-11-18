@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// the general windows reduce to the named ones exactly: they share one code path
+// The general windows reduce to the named ones exactly:
+// they share one code path.
 func TestSpecialCasesAreExact(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		hann, err := Hann(n)

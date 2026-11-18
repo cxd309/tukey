@@ -23,8 +23,9 @@ func TestSOSNtaps(t *testing.T) {
 }
 
 // SciPy's tap count and MATLAB's order differ for an odd-order Butterworth,
-// whose real pole shares a section with two zeros: first-order to SciPy, order
-// 2 to MATLAB. They agree for an even order.
+// whose real pole shares a section with two zeros:
+// first-order to SciPy, order 2 to MATLAB.
+// They agree for an even order.
 func TestSOSSize(t *testing.T) {
 	cases := []struct {
 		name string

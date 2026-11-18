@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// A tone around an offset has the offset plus and minus its amplitude as its
-// analytic envelopes.
+// A tone around an offset has the offset plus and minus its amplitude as its analytic envelopes.
 func TestEnvelopeAnalyticTone(t *testing.T) {
 	x := make([]float64, 16)
 	for i := range x {
@@ -120,8 +119,8 @@ func TestHilbertRealPartIsX(t *testing.T) {
 	}
 }
 
-// A cosine's Hilbert transform is the sine at the same frequency, so its
-// analytic signal is a complex exponential, at odd and even lengths.
+// A cosine's Hilbert transform is the sine at the same frequency,
+// so its analytic signal is a complex exponential, at odd and even lengths.
 func TestHilbertCosineToSine(t *testing.T) {
 	for _, n := range []int{15, 16} {
 		x := make([]float64, n)
@@ -136,8 +135,8 @@ func TestHilbertCosineToSine(t *testing.T) {
 	}
 }
 
-// DC and Nyquist are their own negative frequencies, so they're kept as they
-// are, not doubled, and have no Hilbert transform.
+// DC and Nyquist are their own negative frequencies, so they're kept as they are, not doubled,
+// and have no Hilbert transform.
 func TestHilbertDCAndNyquist(t *testing.T) {
 	cases := []struct {
 		name string

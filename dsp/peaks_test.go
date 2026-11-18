@@ -89,9 +89,9 @@ func TestFindPeaksTies(t *testing.T) {
 	}
 }
 
-// A tall narrow spike at 2 next to a wide hump at 6. Applying distance first,
-// the spike removes the hump and then fails the width itself, losing both.
-// testdata's distance_vs_width_both is the same signal.
+// A tall narrow spike at 2 next to a wide hump at 6.
+// Applying distance first, the spike removes the hump and then fails the width itself,
+// losing both. testdata's distance_vs_width_both is the same signal.
 func TestFindPeaksDistanceLast(t *testing.T) {
 	x := []float64{0, 0, 5, 0, 1, 2, 3, 2, 1, 0, 0}
 	cases := []struct {
@@ -174,7 +174,8 @@ func TestFindPeaksRejectsNaNLimits(t *testing.T) {
 	}
 }
 
-// An infinite limit is allowed: -Inf is no limit, and +Inf passes no peak.
+// An infinite limit is allowed:
+// -Inf is no limit, and +Inf passes no peak.
 func TestFindPeaksInfiniteLimits(t *testing.T) {
 	x := []float64{0, 1, 0, 2, 0}
 	inf := math.Inf(1)
@@ -194,8 +195,8 @@ func TestFindPeaksInfiniteLimits(t *testing.T) {
 }
 
 // A sample next to a NaN isn't known to be a peak, so it isn't one.
-// A NaN reached while looking for a peak's base leaves its prominence and width unknown,
-// so NaN, and a prominence or width limit drops it.
+// A NaN reached while looking for a peak's base leaves its prominence and width unknown, so NaN,
+// and a prominence or width limit drops it.
 // A NaN beyond a higher sample isn't reached, so changes nothing.
 func TestPeaksAroundNaN(t *testing.T) {
 	nan := math.NaN()
@@ -225,8 +226,7 @@ func TestPeaksAroundNaN(t *testing.T) {
 	assert.Equal(t, []int{1}, peakIndices(kept))
 }
 
-// Beside a -Inf the width's crossing is the next sample, its limit,
-// where interpolating towards -Inf gives NaN.
+// Beside a -Inf the width's crossing is the next sample, its limit, where interpolating towards -Inf gives NaN.
 func TestPeakWidthsBesideMinusInfinity(t *testing.T) {
 	x := []float64{0, math.Inf(-1), 1, 2, 1, 0}
 	widths, err := PeakWidths(x, []int{3}, 0.5)

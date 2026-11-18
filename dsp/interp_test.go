@@ -24,8 +24,8 @@ func TestInterp1Between(t *testing.T) {
 	assert.Equal(t, []float64{2, 3, 1}, yi)
 }
 
-// Outside [x[0], x[len(x)-1]], and for NaN, the result is NaN, as MATLAB's
-// interp1 and SciPy's interp1d with bounds_error=False.
+// Outside [x[0], x[len(x)-1]], and for NaN, the result is NaN,
+// as MATLAB's interp1 and SciPy's interp1d with bounds_error=False.
 func TestInterp1OutsideIsNaN(t *testing.T) {
 	yi, err := Interp1([]float64{0, 1, 2}, []float64{5, 6, 7}, []float64{-0.001, 2.001, math.NaN(), math.Inf(1)})
 	require.NoError(t, err)
@@ -108,8 +108,8 @@ func TestFillZeroIsLinear(t *testing.T) {
 	assertEqualNaN(t, FillMissing(x, FillLinear()), FillMissing(x, Fill{}))
 }
 
-// FillMissing returns a new slice: changing it, even when nothing was missing,
-// doesn't change the input.
+// FillMissing returns a new slice:
+// changing it, even when nothing was missing, doesn't change the input.
 func TestFillMissingDoesNotModifyInput(t *testing.T) {
 	for _, fill := range []Fill{FillLinear(), FillConstant(0)} {
 		x := []float64{nan, 1, nan, 3}
@@ -131,8 +131,8 @@ func TestFillMissingEmptyIsNotNil(t *testing.T) {
 	}
 }
 
-// assertEqualNaN asserts got equals want element by element, with NaN equal to
-// NaN, which assert.Equal treats as different.
+// assertEqualNaN asserts got equals want element by element, with NaN equal to NaN,
+// which assert.Equal treats as different.
 func assertEqualNaN(t *testing.T, want, got []float64) {
 	t.Helper()
 	if !assert.Len(t, got, len(want)) {
@@ -147,8 +147,8 @@ func assertEqualNaN(t *testing.T, want, got []float64) {
 	}
 }
 
-// Between a finite and an infinite sample the line is that infinity,
-// and beyond the finite sample, the opposite one.
+// Between a finite and an infinite sample the line is that infinity, and beyond the finite sample,
+// the opposite one.
 func TestInterp1AndFillMissingNextToInfinity(t *testing.T) {
 	inf := math.Inf(1)
 	yi, err := Interp1([]float64{0, 1, 2}, []float64{1, inf, 3}, []float64{0.5, 1, 1.5})

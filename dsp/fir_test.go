@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// firBands are bands of each type, with where a scaled design has gain 1
+// firBands are bands of each type, with where a scaled design has gain 1.
 var firBands = []struct {
 	band    Band
 	scaleAt float64
@@ -20,7 +20,7 @@ var firBands = []struct {
 	{Bandstop(0.2, 0.5), 0},
 }
 
-// amplitudeAt is the zero-phase amplitude of taps h at f, Σ h·cos(π·m·f)
+// amplitudeAt is the zero-phase amplitude of taps h at f, Σ h·cos(π·m·f).
 func amplitudeAt(h []float64, f float64) (a float64) {
 	centre := float64(len(h)-1) / 2
 	for k, tap := range h {
@@ -29,7 +29,7 @@ func amplitudeAt(h []float64, f float64) (a float64) {
 	return
 }
 
-// symmetricHamming is a Hamming window made exactly symmetric, by mirroring
+// symmetricHamming is a Hamming window made exactly symmetric, by mirroring.
 func symmetricHamming(t *testing.T, n int) (w []float64) {
 	w, err := window.Hamming(n)
 	require.NoError(t, err)
@@ -73,8 +73,8 @@ func TestFIRWinEvenLengthIsZeroAtNyquist(t *testing.T) {
 	}
 }
 
-// With a rectangular window and no scaling, the taps are the ideal response
-// truncated: sin(π·cutoff·m)/(π·m), and the cutoff itself at the centre.
+// With a rectangular window and no scaling, the taps are the ideal response truncated:
+// sin(π·cutoff·m)/(π·m), and the cutoff itself at the centre.
 func TestFIRWinRectangularIsTruncatedIdeal(t *testing.T) {
 	const n, cutoff = 31, 0.3
 	ones := make([]float64, n)

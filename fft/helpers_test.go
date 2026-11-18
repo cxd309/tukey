@@ -80,7 +80,7 @@ func TestShiftEmptyIsNotNil(t *testing.T) {
 	}
 }
 
-// Shift and InverseShift return new slices, never the caller's
+// Shift and InverseShift return new slices, never the caller's.
 func TestShiftDoesNotAlias(t *testing.T) {
 	x := []int{0, 1, 2, 3}
 	Shift(x)[0] = 99

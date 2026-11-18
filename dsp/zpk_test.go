@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// a caller-built ZPK with a conjugate pair expands to real coefficients:
-// zeros +-j and poles 0.5+-0.5j give b= [1, 0, 1], a= [1, -1, 0.5]
+// A caller-built ZPK with a conjugate pair expands to real coefficients:
+// zeros +-j and poles 0.5+-0.5j give b= [1, 0, 1], a= [1, -1, 0.5].
 func TestZPKBAConjugatePairs(t *testing.T) {
 	f := ZPK{
 		Zeros: []complex128{1i, -1i},
@@ -41,8 +41,8 @@ func TestZPKBARejectsUnpairedComplexRoots(t *testing.T) {
 	}
 }
 
-// cascading the sections must give back the same filter as BA:
-// multiplying each section's b (and a) polynomials together should reproduce b (and a)
+// Cascading the sections must give back the same filter as BA:
+// multiplying each section's b (and a) polynomials together should reproduce b (and a).
 func TestSOSCascadesToBA(t *testing.T) {
 	for _, band := range []Band{Lowpass(0.3), Highpass(0.2), Bandpass(0.2, 0.5), Bandstop(0.2, 0.5)} {
 		t.Run(band.String(), func(t *testing.T) {
@@ -58,8 +58,8 @@ func TestSOSCascadesToBA(t *testing.T) {
 				cascadeB = poly.Mul(cascadeB, s[:3])
 				cascadeA = poly.Mul(cascadeA, s[3:])
 			}
-			// padding sections carry a pole and zero at the origin, which appear as
-			// trailing zeros; trim to BA's length before comparing
+			// padding sections carry a pole and zero at the origin, which appear as trailing zeros,
+			// so trim to BA's length before comparing
 			tol := reference.Tolerance{Rel: 1e-13, Scaled: 1e-13}
 			reference.AssertClose(t, "b", cascadeB[:len(b)], b, tol)
 			reference.AssertClose(t, "a", cascadeA[:len(a)], a, tol)

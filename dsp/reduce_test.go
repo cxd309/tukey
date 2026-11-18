@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mixedMagnitudes is 1e8, then 20,000 samples of 0.001, then -1e8: its exact
-// total is 20, but a plain sum loses the small values' low bits against 1e8.
+// mixedMagnitudes is 1e8, then 20,000 samples of 0.001, then -1e8:
+// its exact total is 20, but a plain sum loses the small values' low bits against 1e8.
 func mixedMagnitudes() (x []float64) {
 	x = []float64{1e8}
 	for range 20_000 {
@@ -38,8 +38,7 @@ func TestSum(t *testing.T) {
 	}
 }
 
-// Sum is compensated, so small values among large ones keep their low bits,
-// where a plain sum drifts.
+// Sum is compensated, so small values among large ones keep their low bits, where a plain sum drifts.
 func TestSumKeepsSmallValuesAmongLarge(t *testing.T) {
 	x := mixedMagnitudes()
 	var plain float64
@@ -50,8 +49,8 @@ func TestSumKeepsSmallValuesAmongLarge(t *testing.T) {
 	assert.Equal(t, 20.0, Sum(x))
 }
 
-// 20,000 tenths sum to the double nearest 2000, which is 2000, where a plain
-// sum's error grows with each addition.
+// 20,000 tenths sum to the double nearest 2000, which is 2000,
+// where a plain sum's error grows with each addition.
 func TestSumOfManyTenths(t *testing.T) {
 	x := make([]float64, 20_000)
 	for i := range x {
@@ -64,8 +63,8 @@ func TestSumOfNaNIsNaN(t *testing.T) {
 	assert.True(t, math.IsNaN(Sum([]float64{1, nan, 3})))
 }
 
-// An infinite sample or an overflowing total gives an infinite Sum, as a plain
-// sum does, and opposite infinities give NaN.
+// An infinite sample or an overflowing total gives an infinite Sum, as a plain sum does,
+// and opposite infinities give NaN.
 func TestSumOfInfinity(t *testing.T) {
 	assert.Equal(t, math.Inf(1), Sum([]float64{1, math.Inf(1), 2}))
 	assert.Equal(t, math.Inf(-1), Sum([]float64{math.Inf(-1), 1}))
@@ -198,8 +197,8 @@ func TestPercentileTies(t *testing.T) {
 	assert.Equal(t, 2.0, value)
 }
 
-// As p rises the percentile never falls, and stays within x's range, for both
-// methods: interpolating from the nearer neighbour keeps it monotonic.
+// As p rises the percentile never falls, and stays within x's range, for both methods:
+// interpolating from the nearer neighbour keeps it monotonic.
 func TestPercentileIsMonotonic(t *testing.T) {
 	x := noise(101, 2)
 	lowest, highest := slices.Min(x), slices.Max(x)
@@ -216,8 +215,8 @@ func TestPercentileIsMonotonic(t *testing.T) {
 	}
 }
 
-// Any NaN in x gives NaN, not an error, as a missing sample makes the
-// percentile unknown. MATLAB's prctile ignores NaN instead.
+// Any NaN in x gives NaN, not an error, as a missing sample makes the percentile unknown.
+// MATLAB's prctile ignores NaN instead.
 func TestPercentileOfNaNIsNaN(t *testing.T) {
 	for _, method := range []PercentileOption{PercentileLinear(), PercentileHazen()} {
 		value, err := Percentile([]float64{1, nan, 3, 2}, 50, method)

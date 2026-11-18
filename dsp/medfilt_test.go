@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The cases use x = 5, 1, 4, 2, 8, 3, 9, whose truncated windows near the ends
-// hold an even count for n = 5. MATLAB's medfilt1 gives the same.
+// The cases use x = 5, 1, 4, 2, 8, 3, 9, whose truncated windows near the ends hold an even count for n = 5.
+// MATLAB's medfilt1 gives the same.
 func TestMedFilt(t *testing.T) {
 	x := []float64{5, 1, 4, 2, 8, 3, 9}
 	cases := []struct {
@@ -34,7 +34,7 @@ func TestMedFilt(t *testing.T) {
 	}
 }
 
-// medFiltEdges is both edge options, named, and whether each pads with zeros
+// medFiltEdges is both edge options, named, and whether each pads with zeros.
 var medFiltEdges = []struct {
 	name    string
 	option  MedFiltOption
@@ -54,8 +54,8 @@ func TestMedFiltDefaultIsTruncate(t *testing.T) {
 	assert.Equal(t, truncated, byDefault)
 }
 
-// Against the median of each window sorted afresh, with its even-count
-// midpoint exact, for every n up to past the signal's length, on both edges:
+// Against the median of each window sorted afresh, with its even-count midpoint exact,
+// for every n up to past the signal's length, on both edges:
 // on noise, on noise rounded to a few values, so windows hold ties, and with NaN.
 func TestMedFiltMatchesSortingEachWindow(t *testing.T) {
 	ties := noise(40, 2)
@@ -84,8 +84,8 @@ func TestMedFiltMatchesSortingEachWindow(t *testing.T) {
 	}
 }
 
-// medianBySorting is the median of the window of n samples centred on x[i],
-// sorted afresh, with an even count's midpoint exact
+// medianBySorting is the median of the window of n samples centred on x[i], sorted afresh,
+// with an even count's midpoint exact.
 func medianBySorting(x []float64, i, n int, zeroPad bool) float64 {
 	var window []float64
 	for j := i - n/2; j <= i+n/2; j++ {
@@ -107,8 +107,8 @@ func medianBySorting(x []float64, i, n int, zeroPad bool) float64 {
 	return exactMidpoint(window[middle-1], window[middle])
 }
 
-// exactMidpoint is (a + b)/2 for finite a and b, summed exactly in big.Float,
-// halved exactly, and rounded once to float64, to nearest even
+// exactMidpoint is (a + b)/2 for finite a and b, summed exactly in big.Float, halved exactly,
+// and rounded once to float64, to nearest even.
 func exactMidpoint(a, b float64) float64 {
 	sum := new(big.Float).SetPrec(2200).SetFloat64(a)
 	sum.Add(sum, new(big.Float).SetFloat64(b))
@@ -117,7 +117,8 @@ func exactMidpoint(a, b float64) float64 {
 	return m
 }
 
-// The median filter's purpose: spikes go, and a step stays sharp.
+// The median filter's purpose:
+// spikes go, and a step stays sharp.
 func TestMedFiltRemovesSpikesAndKeepsSteps(t *testing.T) {
 	x := []float64{20, 20, 20, 95, 20, 20, 30, 30, -40, 30, 30, 30}
 	want := []float64{20, 20, 20, 20, 20, 20, 30, 30, 30, 30, 30, 30}
@@ -138,8 +139,8 @@ func TestMedFiltNaN(t *testing.T) {
 	}
 }
 
-// Infinities sort like any value: a spike of +Inf is removed, and an
-// even-count window holding both infinities has no midpoint.
+// Infinities sort like any value:
+// a spike of +Inf is removed, and an even-count window holding both infinities has no midpoint.
 func TestMedFiltInfinity(t *testing.T) {
 	inf := math.Inf(1)
 	y, err := MedFilt([]float64{1, 2, inf, 4, 5}, 3)
@@ -164,10 +165,11 @@ func TestMedFiltOneSampleWindow(t *testing.T) {
 	}
 }
 
-// A window longer than x: truncated, every window is the whole of x;
-// zero-padded, every window holds all of x and n - 3 zeros, which outnumber
-// the samples from n = 7. The padding is counted, not stored, so even the
-// largest n works.
+// A window longer than x:
+//   - truncated, every window is the whole of x
+//   - zero-padded, every window holds all of x and n - 3 zeros, which outnumber the samples from n = 7
+//
+// The padding is counted, not stored, so even the largest n works.
 func TestMedFiltWindowLongerThanX(t *testing.T) {
 	x := []float64{3, 1, 2}
 	cases := []struct {

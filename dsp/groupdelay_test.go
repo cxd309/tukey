@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// constantDelay asserts every point of delay is exactly want
+// constantDelay asserts every point of delay is exactly want.
 func constantDelay(t *testing.T, want float64, delay []float64, what string) {
 	t.Helper()
 	for i, d := range delay {
@@ -16,8 +16,8 @@ func constantDelay(t *testing.T, want float64, delay []float64, what string) {
 	}
 }
 
-// A linear-phase FIR's delay is exactly (N - 1)/2 at every frequency, its
-// stopband zeros on the unit circle included.
+// A linear-phase FIR's delay is exactly (N - 1)/2 at every frequency,
+// its stopband zeros on the unit circle included.
 func TestGroupDelayOfLinearPhaseFIR(t *testing.T) {
 	for _, taps := range []int{31, 32} {
 		h, err := FIRWin(symmetricHamming(t, taps), Lowpass(0.3))
@@ -28,10 +28,9 @@ func TestGroupDelayOfLinearPhaseFIR(t *testing.T) {
 	}
 }
 
-// At a zero on the unit circle the phase jumps by π and the delay is its
-// limit from either side. A difference [1, -1] has its zero at DC, and a
-// 4-tap moving average at π/2, a grid point when n = 512: both are
-// antisymmetric or symmetric, so the limit is their constant delay.
+// At a zero on the unit circle the phase jumps by π and the delay is its limit from either side.
+// A difference [1, -1] has its zero at DC, and a 4-tap moving average at π/2, a grid point when n = 512:
+// both are antisymmetric or symmetric, so the limit is their constant delay.
 func TestGroupDelayLimitAtSymmetricZeros(t *testing.T) {
 	_, delay, err := GroupDelay([]float64{1, -1}, []float64{1}, 512)
 	require.NoError(t, err)
@@ -42,11 +41,10 @@ func TestGroupDelayLimitAtSymmetricZeros(t *testing.T) {
 	constantDelay(t, 1.5, delay, "moving average")
 }
 
-// A zero on the unit circle in a polynomial that isn't symmetric takes the
-// big.Float path's limit, from F's first nonzero derivative. Each zero on the
-// circle adds half a sample, and 1 + x/2 adds Re((x/2)/(1 + x/2)) = 1/3 at
-// DC, so (1 - x)(1 + x/2) is 5/6 there and (1 - x)²(1 + x/2), a double zero,
-// is 4/3.
+// A zero on the unit circle in a polynomial that isn't symmetric takes the big.Float path's limit,
+// from F's first nonzero derivative.
+// Each zero on the circle adds half a sample, and 1 + x/2 adds Re((x/2)/(1 + x/2)) = 1/3 at DC,
+// so (1 - x)(1 + x/2) is 5/6 there and (1 - x)²(1 + x/2), a double zero, is 4/3.
 func TestGroupDelayLimitAtZerosOnTheCircle(t *testing.T) {
 	cases := []struct {
 		b    []float64
@@ -63,8 +61,7 @@ func TestGroupDelayLimitAtZerosOnTheCircle(t *testing.T) {
 	}
 }
 
-// Each leading zero delays by a whole sample, and trailing zeros change
-// nothing.
+// Each leading zero delays by a whole sample, and trailing zeros change nothing.
 func TestGroupDelayLeadingAndTrailingZeros(t *testing.T) {
 	_, plain, err := GroupDelay([]float64{1, 0.5}, []float64{1, -0.3}, 64)
 	require.NoError(t, err)
@@ -75,11 +72,11 @@ func TestGroupDelayLeadingAndTrailingZeros(t *testing.T) {
 	}
 }
 
-// A denominator (1 - r·x)^8 with r = 63/64 is exactly representable, and its
-// delay is 8 times one factor's, -Re(r·x/(1 - r·x)), well conditioned. Near
-// DC its own condition number is about 1e17, past delayConditionLimit, so
-// those points take the big.Float path; float64 there would be noise. The
-// delay crosses 0 near point 29, so it's measured against its largest value.
+// A denominator (1 - r·x)^8 with r = 63/64 is exactly representable, and its delay is 8 times one factor's,
+// -Re(r·x/(1 - r·x)), well conditioned.
+// Near DC its own condition number is about 1e17, past delayConditionLimit,
+// so those points take the big.Float path, where float64 would be noise.
+// The delay crosses 0 near point 29, so it's measured against its largest value.
 func TestGroupDelayBigFloatFallback(t *testing.T) {
 	const r = 63.0 / 64
 	a := []float64{1}
@@ -105,14 +102,14 @@ func TestGroupDelayBigFloatFallback(t *testing.T) {
 	}
 }
 
-// ulp is the gap between x and the next float64 away from 0
+// ulp is the gap between x and the next float64 away from 0.
 func ulp(x float64) float64 {
 	x = math.Abs(x)
 	return math.Nextafter(x, math.Inf(1)) - x
 }
 
-// SOSGroupDelay of a filter's sections is GroupDelay of its (b, a), for a
-// filter whose (b, a) is well conditioned.
+// SOSGroupDelay of a filter's sections is GroupDelay of its (b, a),
+// for a filter whose (b, a) is well conditioned.
 func TestSOSGroupDelayMatchesGroupDelay(t *testing.T) {
 	f, err := Butter(4, Bandpass(0.2, 0.5))
 	require.NoError(t, err)

@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ellipSpecs are (ripple, attenuation) pairs from gentle to sharp. 0.01 dB
-// against 20 dB puts v0 past half its quarter period, through
-// special.JacobiInQuarter's complementary branch, and 6 dB against 10 dB has the
-// smallest 1 - m of the conformance cases.
+// ellipSpecs are (ripple, attenuation) pairs from gentle to sharp.
+// 0.01 dB against 20 dB puts v0 past half its quarter period,
+// through special.JacobiInQuarter's complementary branch,
+// and 6 dB against 10 dB has the smallest 1 - m of the conformance cases.
 var ellipSpecs = []struct{ ripple, attenuation float64 }{
 	{1, 40},
 	{0.5, 80},
@@ -35,8 +35,7 @@ func TestEllipGainAtBandEdges(t *testing.T) {
 	}
 }
 
-// The passband's peak is 0 dB, so an even order's DC gain is -ripple, and an
-// odd order's is 0 dB.
+// The passband's peak is 0 dB, so an even order's DC gain is -ripple, and an odd order's is 0 dB.
 func TestEllipDCGain(t *testing.T) {
 	for _, spec := range ellipSpecs {
 		for order := 1; order <= 6; order++ {
@@ -51,9 +50,9 @@ func TestEllipDCGain(t *testing.T) {
 	}
 }
 
-// The passband ripples between 0 dB and -ripple. Once the gain first reaches
-// -attenuation, the stopband never rises above it, and its ripples' peaks
-// touch it: equal ripple in both bands.
+// The passband ripples between 0 dB and -ripple.
+// Once the gain first reaches -attenuation, the stopband never rises above it, and its ripples' peaks touch it:
+// equal ripple in both bands.
 func TestEllipEqualRippleInBothBands(t *testing.T) {
 	const cutoff, samples = 0.3, 20000
 	for _, spec := range ellipSpecs {
@@ -84,8 +83,9 @@ func TestEllipEqualRippleInBothBands(t *testing.T) {
 	}
 }
 
-// The analog zeros are on the imaginary axis, so the digital ones are on the
-// unit circle: true notches. An odd order's zero at infinity lands at Nyquist.
+// The analog zeros are on the imaginary axis, so the digital ones are on the unit circle:
+// true notches.
+// An odd order's zero at infinity lands at Nyquist.
 func TestEllipZerosAreOnUnitCircle(t *testing.T) {
 	for _, order := range []int{2, 3, 6, 7} {
 		f, err := Ellip(order, 1, 40, Lowpass(0.3))
@@ -100,7 +100,8 @@ func TestEllipZerosAreOnUnitCircle(t *testing.T) {
 	}
 }
 
-// A first-order elliptic filter has no stopband ripple: it's Cheby1's.
+// A first-order elliptic filter has no stopband ripple:
+// it's Cheby1's.
 func TestEllipOrderOneIsCheby1(t *testing.T) {
 	for _, c := range chebyBands {
 		ellip, err := Ellip(1, 1, 40, c.band)

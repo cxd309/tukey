@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// GeneralGaussian at p = 1 is Gaussian, to within rounding: one squares, the other uses Pow
+// GeneralGaussian at p = 1 is Gaussian, to within rounding:
+// one squares, the other uses Pow.
 func TestGeneralGaussianAtP1IsGaussian(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		gaussian, err := Gaussian(n, 2.5)
@@ -20,7 +21,7 @@ func TestGeneralGaussianAtP1IsGaussian(t *testing.T) {
 }
 
 // Center at the periodic window's own middle (n/2) is the default, exactly:
-// |i - n/2| is the same whether computed directly or mirrored
+// |i - n/2| is the same whether computed directly or mirrored.
 func TestExponentialCenterAtMiddleIsDefault(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		centred, err := Exponential(n, 3, Periodic())

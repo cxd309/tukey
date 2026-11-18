@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// benchmarkLengths covers each algorithm path, at a small and large size
+// benchmarkLengths covers each algorithm path, at a small and large size.
 var benchmarkLengths = []struct {
 	path string
 	n    int
@@ -52,9 +52,8 @@ func BenchmarkForwardReal(b *testing.B) {
 	}
 }
 
-// reportPerNLogN adds the time per operation divided by n·log2(n)
-// for an efficient FFT that should be about constant across lengths,
-// so highlight an algorithm that is slow for its size
+// reportPerNLogN adds the time per operation divided by n·log2(n).
+// For an efficient FFT that's about constant across lengths, so it shows up an algorithm that's slow for its size.
 func reportPerNLogN(b *testing.B, n int) {
 	perOp := float64(b.Elapsed().Nanoseconds()) / float64(b.N)
 	b.ReportMetric(perOp/(float64(n)*math.Log2(float64(n))), "ns/nlogn")

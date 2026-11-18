@@ -43,7 +43,7 @@ func ExampleFiltFilt() {
 		log.Fatal(err)
 	}
 
-	// Filter delays the pulse; FiltFilt smooths it but leaves it where it was
+	// Filter delays the pulse, and FiltFilt smooths it but leaves it where it was
 	fmt.Println("Filter peak at sample", peak(causal))
 	fmt.Println("FiltFilt peak at sample", peak(zeroPhase))
 	// Output:
@@ -51,7 +51,7 @@ func ExampleFiltFilt() {
 	// FiltFilt peak at sample 50
 }
 
-// peak is the index of v's largest value
+// peak is the index of v's largest value.
 func peak(v []float64) (index int) {
 	index = slices.Index(v, slices.Max(v))
 	return

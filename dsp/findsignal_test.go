@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// bySearch is the option that sets method, for tests that pick it as a value
+// bySearch is the option that sets method, for tests that pick it as a value.
 func bySearch(method searchMethod) FindSignalOption {
 	return func(c *findSignalConfig) { c.method = method }
 }
@@ -71,9 +71,9 @@ func TestFindSignalDefaultIsHybrid(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// Hybrid gives Direct's answer exactly, start and distance, including on
-// periodic data, where many windows are nearly as close as the best. Fast
-// finds the same start except where its rounding can't tell windows apart,
+// Hybrid gives Direct's answer exactly, start and distance, including on periodic data,
+// where many windows are nearly as close as the best.
+// Fast finds the same start except where its rounding can't tell windows apart,
 // and never gives a negative distance.
 func TestFindSignalMethodsAgree(t *testing.T) {
 	rng := rand.New(rand.NewPCG(5, 6))
@@ -149,8 +149,8 @@ func TestFindSignalInvalid(t *testing.T) {
 	}
 }
 
-// distanceProfile's error in every window is within a quarter of
-// profileErrorBound, so the bound has 4x to spare.
+// distanceProfile's error in every window is within a quarter of profileErrorBound,
+// so the bound has 4x to spare.
 func TestProfileErrorBound(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 	walk := make([]float64, 5000)
@@ -196,8 +196,8 @@ type findSignalBenchmark struct {
 	data, signal []float64
 }
 
-// findSignalBenchmarks are the app's scale, a short template in the same
-// data, and periodic data, where many windows are nearly as close as the best.
+// findSignalBenchmarks are the app's scale, a short template in the same data, and periodic data,
+// where many windows are nearly as close as the best.
 func findSignalBenchmarks() (cases []findSignalBenchmark) {
 	rng := rand.New(rand.NewPCG(3, 4))
 	walk := make([]float64, 400000)

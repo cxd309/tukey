@@ -20,13 +20,13 @@ var convolveMethods = []struct {
 	{"FFT", methodFFT},
 }
 
-// byMethod is the option that sets method, for tests that pick it as a value
+// byMethod is the option that sets method, for tests that pick it as a value.
 func byMethod(method convolveMethod) ConvolveOption {
 	return func(c *convolveConfig) { c.method = method }
 }
 
-// assertConvolved checks got against want: exactly for the direct method,
-// whose small integer sums are exact, and to rounding for the others.
+// assertConvolved checks got against want:
+// exactly for the direct method, whose small integer sums are exact, and to rounding for the others.
 func assertConvolved(t *testing.T, method convolveMethod, want, got []float64, msg string) {
 	t.Helper()
 	if method == methodDirect {
@@ -68,8 +68,8 @@ func TestConvolve(t *testing.T) {
 	}
 }
 
-// Convolution is commutative, so full and valid don't depend on the order of
-// the inputs. Same does, as it keeps the first input's length.
+// Convolution is commutative, so full and valid don't depend on the order of the inputs.
+// Same does, as it keeps the first input's length.
 func TestConvolveIsCommutative(t *testing.T) {
 	a, v := []float64{1, -2, 3, 0.5, 4}, []float64{2, 0.25, -1}
 	for _, opts := range [][]ConvolveOption{nil, {ConvolveValid()}} {
@@ -81,8 +81,8 @@ func TestConvolveIsCommutative(t *testing.T) {
 	}
 }
 
-// The direct method keeps each product exactly and sums with compensation, so
-// a small output between large ones that cancel keeps every digit.
+// The direct method keeps each product exactly and sums with compensation,
+// so a small output between large ones that cancel keeps every digit.
 func TestConvolveDirectKeepsSmallOutputs(t *testing.T) {
 	a := []float64{1e8, 1e-3, -1e8}
 	full, err := Convolve(a, []float64{1, 1, 1}, byMethod(methodDirect))
@@ -90,8 +90,8 @@ func TestConvolveDirectKeepsSmallOutputs(t *testing.T) {
 	assert.Equal(t, 1e-3, full[2])
 }
 
-// An infinite or NaN sample affects only the outputs it's summed into, and an
-// infinite product isn't turned into NaN by its rounding error.
+// An infinite or NaN sample affects only the outputs it's summed into,
+// and an infinite product isn't turned into NaN by its rounding error.
 func TestConvolveDirectNonFinite(t *testing.T) {
 	inf := math.Inf(1)
 	full, err := Convolve([]float64{1, inf, 2}, []float64{1, 1}, byMethod(methodDirect))
@@ -106,8 +106,7 @@ func TestConvolveDirectNonFinite(t *testing.T) {
 	assert.Equal(t, 2.0, full[3])
 }
 
-// Auto picks direct for short inputs and FFT for long ones, and returns
-// exactly what the picked method does.
+// Auto picks direct for short inputs and FFT for long ones, and returns exactly what the picked method does.
 func TestConvolveAuto(t *testing.T) {
 	assert.Equal(t, methodDirect, fasterMethod(5, 4))
 	assert.Equal(t, methodFFT, fasterMethod(4000, 4000))
@@ -121,8 +120,8 @@ func TestConvolveAuto(t *testing.T) {
 	}
 }
 
-// At lengths where Auto would pick FFT, a NaN or infinite sample in either
-// input makes it use direct, so outputs the sample isn't summed into are kept.
+// At lengths where Auto would pick FFT, a NaN or infinite sample in either input makes it use direct,
+// so outputs the sample isn't summed into are kept.
 func TestConvolveAutoFallsBackOnNonFinite(t *testing.T) {
 	const n, bad = 64, 10
 	require.Equal(t, methodFFT, fasterMethod(n, n), "the case tests nothing if Auto would pick direct anyway")
@@ -145,8 +144,8 @@ func TestConvolveAutoFallsBackOnNonFinite(t *testing.T) {
 	}
 }
 
-// Same and valid are parts of the full result, sliced so that appending to
-// one reallocates rather than writing over the outputs after it.
+// Same and valid are parts of the full result,
+// sliced so that appending to one reallocates rather than writing over the outputs after it.
 func TestConvolvePartsHaveNoSpareCapacity(t *testing.T) {
 	a, v := ramp(10), ramp(4)
 	for _, opt := range []ConvolveOption{ConvolveSame(), ConvolveValid()} {
@@ -209,8 +208,8 @@ func TestCorrelate(t *testing.T) {
 	}
 }
 
-// A received copy of a sent signal, delayed by d samples, correlates most
-// strongly with it at lag d, in every mode.
+// A received copy of a sent signal, delayed by d samples, correlates most strongly with it at lag d,
+// in every mode.
 func TestCorrelateFindsDelay(t *testing.T) {
 	sent := []float64{1, -2, 3, 0.5, -1}
 	const delay = 7
@@ -226,8 +225,8 @@ func TestCorrelateFindsDelay(t *testing.T) {
 	}
 }
 
-// convolveBenchmarkLengths are equal lengths, then a long signal with
-// kernels of increasing length, to find where FFT overtakes direct.
+// convolveBenchmarkLengths are equal lengths, then a long signal with kernels of increasing length,
+// to find where FFT overtakes direct.
 var convolveBenchmarkLengths = [][2]int{
 	{8, 8}, {16, 16}, {32, 32}, {64, 64}, {128, 128}, {256, 256}, {512, 512}, {1024, 1024}, {2048, 2048},
 	{4096, 8}, {4096, 16}, {4096, 32}, {4096, 64}, {4096, 128}, {4096, 256}, {4096, 512},

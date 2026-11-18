@@ -6,8 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Band.String formats a band as the constructor call that built it,
-// which is what error messages show
+// Band.String formats a band as the constructor call that built it, which is what error messages show.
 func TestBandString(t *testing.T) {
 	cases := []struct {
 		band Band
@@ -26,8 +25,7 @@ func TestBandString(t *testing.T) {
 	}
 }
 
-// Edges is a copy, so changing it leaves the band as it was,
-// and the zero Band's is empty rather than nil.
+// Edges is a copy, so changing it leaves the band as it was, and the zero Band's is empty rather than nil.
 func TestBandEdges(t *testing.T) {
 	band := Bandpass(0.2, 0.5)
 	edges := band.Edges()

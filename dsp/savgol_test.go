@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// impulseResponse is SavGolFilter's output for a unit impulse in the middle of
-// 13 samples, far enough from the ends that only the centred fit sees it.
+// impulseResponse is SavGolFilter's output for a unit impulse in the middle of 13 samples,
+// far enough from the ends that only the centred fit sees it.
 // Output i is weight 8 - i of the centred window, for n = 5.
 func impulseResponse(t *testing.T, polyOrder int, opts ...SavGolOption) (y []float64) {
 	t.Helper()
@@ -23,8 +23,8 @@ func impulseResponse(t *testing.T, polyOrder int, opts ...SavGolOption) (y []flo
 }
 
 // The textbook coefficients for n = 5, polyOrder 2 (Savitzky and Golay, 1964):
-// smoothing (-3, 12, 17, 12, -3)/35, first derivative (-2, -1, 0, 1, 2)/10, and
-// second derivative (2, -1, -2, -1, 2)/7, read reversed from the impulse response.
+// smoothing (-3, 12, 17, 12, -3)/35, first derivative (-2, -1, 0, 1, 2)/10,
+// and second derivative (2, -1, -2, -1, 2)/7, read reversed from the impulse response.
 func TestSavGolFilterTextbookCoefficients(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -43,7 +43,7 @@ func TestSavGolFilterTextbookCoefficients(t *testing.T) {
 	}
 }
 
-// reversed is a copy of v, back to front
+// reversed is a copy of v, back to front.
 func reversed(v []float64) (r []float64) {
 	r = slices.Clone(v)
 	slices.Reverse(r)
@@ -51,7 +51,7 @@ func reversed(v []float64) (r []float64) {
 }
 
 // weightSize is the largest Σ|w| of any output's weights, for samples 1 apart,
-// which bounds how far the weights' rounding moves an output, relative to x
+// which bounds how far the weights' rounding moves an output, relative to x.
 func weightSize(n, polyOrder, deriv int) (size float64) {
 	f := poly.NewFit(n, polyOrder)
 	for at := range n {
@@ -64,9 +64,9 @@ func weightSize(n, polyOrder, deriv int) (size float64) {
 	return
 }
 
-// A polynomial of degree up to polyOrder is its own fit, at every sample, the
-// ends included, and so are its derivatives: here a cubic in t, sampled at
-// t = 0, 0.5, 1, ..., whose samples and derivatives are exact.
+// A polynomial of degree up to polyOrder is its own fit, at every sample, the ends included,
+// and so are its derivatives:
+// here a cubic in t, sampled at t = 0, 0.5, 1, ..., whose samples and derivatives are exact.
 func TestSavGolFilterReproducesPolynomials(t *testing.T) {
 	const dx = 0.5
 	p := func(t float64) float64 { return 2*t*t*t - 5*t*t + t - 7 }
@@ -102,8 +102,8 @@ func TestSavGolFilterReproducesPolynomials(t *testing.T) {
 	}
 }
 
-// A constant is kept exactly, and its derivatives are exactly 0, as each
-// output is taken relative to its own sample.
+// A constant is kept exactly, and its derivatives are exactly 0,
+// as each output is taken relative to its own sample.
 func TestSavGolFilterConstant(t *testing.T) {
 	x := make([]float64, 40)
 	for k := range x {
@@ -123,9 +123,9 @@ func TestSavGolFilterConstant(t *testing.T) {
 	}
 }
 
-// polyOrder 0 is a moving average, and exact: on 1, 2, 3, ..., each centred
-// window's mean is its middle sample, and the ends' fit is the mean of the
-// first or last n samples.
+// polyOrder 0 is a moving average, and exact:
+// on 1, 2, 3, ..., each centred window's mean is its middle sample,
+// and the ends' fit is the mean of the first or last n samples.
 func TestSavGolFilterMovingAverage(t *testing.T) {
 	x := make([]float64, 20)
 	for k := range x {
@@ -144,9 +144,9 @@ func TestSavGolFilterMovingAverage(t *testing.T) {
 	}
 }
 
-// polyOrder n - 1 fits a polynomial through every sample, so y is x. The
-// Gram polynomials' three-term recurrence is off by 1e24 here at n = 101;
-// Arnoldi keeps it to a few ULP at any degree.
+// polyOrder n - 1 fits a polynomial through every sample, so y is x.
+// The Gram polynomials' three-term recurrence is off by 1e24 here at n = 101,
+// where Arnoldi keeps it to a few ULP at any degree.
 func TestSavGolFilterThroughEverySample(t *testing.T) {
 	x := noise(140, 5)
 	for _, n := range []int{3, 5, 21, 101} {
@@ -156,9 +156,9 @@ func TestSavGolFilterThroughEverySample(t *testing.T) {
 	}
 }
 
-// A small signal on a large offset keeps its digits: the rounding scales with
-// the samples' spread about each one, not with the offset, so filtering
-// 1e6 + s gives 1e6 + the filtered s, rounded once.
+// A small signal on a large offset keeps its digits:
+// the rounding scales with the samples' spread about each one, not with the offset,
+// so filtering 1e6 + s gives 1e6 + the filtered s, rounded once.
 func TestSavGolFilterOffset(t *testing.T) {
 	s := noise(100, 6)
 	for k := range s {
@@ -237,8 +237,8 @@ func TestSavGolFilterDefaultIsSmoothing(t *testing.T) {
 	}
 }
 
-// A NaN gives NaN wherever a window holds it: inside, the n outputs centred
-// within n/2 of it, and in the first n samples, every output fitted there.
+// A NaN gives NaN wherever a window holds it:
+// inside, the n outputs centred within n/2 of it, and in the first n samples, every output fitted there.
 func TestSavGolFilterNaN(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -262,8 +262,8 @@ func TestSavGolFilterNaN(t *testing.T) {
 	}
 }
 
-// Infinity sums as it would in plain arithmetic: a lone +Inf makes every
-// output that weights it infinite.
+// Infinity sums as it would in plain arithmetic:
+// a lone +Inf makes every output that weights it infinite.
 func TestSavGolFilterInfinity(t *testing.T) {
 	x := []float64{1, 2, 3, 4, math.Inf(1), 6, 7, 8, 9}
 	y, err := SavGolFilter(x, 3, 0)
@@ -281,7 +281,8 @@ func TestSavGolFilterOneSampleWindow(t *testing.T) {
 	assert.NotEqual(t, x[0], y[0], "y shares x's storage")
 }
 
-// n = len(x): one window, so every output is the one fit.
+// n = len(x):
+// one window, so every output is the one fit.
 func TestSavGolFilterWindowIsWholeSignal(t *testing.T) {
 	x := []float64{0, 1, 4, 9, 16} // t²: a quadratic fit reproduces it
 	y, err := SavGolFilter(x, 5, 2)

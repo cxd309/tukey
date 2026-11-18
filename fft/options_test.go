@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// whichever normalisation, a forward and inverse pair recovers the signal
+// Whichever normalisation, a forward and inverse pair recovers the signal.
 func TestEveryNormalisationRoundTrips(t *testing.T) {
 	x := randomSignal(100)
 	for _, norm := range []Option{NormBackward(), NormOrtho(), NormForward()} {
@@ -21,8 +21,8 @@ func TestEveryNormalisationRoundTrips(t *testing.T) {
 	}
 }
 
-// NormOrtho makes the transform unitary: energy is identical in both domains,
-// with no 1/n correction (compare TestForwardPreservesEnergy)
+// NormOrtho makes the transform unitary:
+// energy is identical in both domains, with no 1/n correction (compare TestForwardPreservesEnergy).
 func TestOrthoPreservesEnergyDirectly(t *testing.T) {
 	x := randomSignal(256)
 	y, err := Forward(x, NormOrtho())
@@ -35,7 +35,7 @@ func TestOrthoPreservesEnergyDirectly(t *testing.T) {
 	assert.InEpsilon(t, timeEnergy, freqEnergy, 1e-13)
 }
 
-// the default is NormBackward, bit for bit
+// The default is NormBackward, bit for bit.
 func TestDefaultNormalisationIsBackward(t *testing.T) {
 	x := randomSignal(60)
 	plain, err := Forward(x)
@@ -45,7 +45,7 @@ func TestDefaultNormalisationIsBackward(t *testing.T) {
 	assert.Equal(t, plain, explicit)
 }
 
-// N zero-pads exactly as padding by hand would
+// N zero-pads exactly as padding by hand would.
 func TestNPadsWithZeros(t *testing.T) {
 	x := randomSignal(12)
 	viaN, err := Forward(x, N(16))
@@ -55,7 +55,7 @@ func TestNPadsWithZeros(t *testing.T) {
 	assert.Equal(t, byHand, viaN)
 }
 
-// shifting the frequencies puts them in ascending order, and InverseShift undoes Shift
+// Shifting the frequencies puts them in ascending order, and InverseShift undoes Shift.
 func TestShiftOrdersFrequencies(t *testing.T) {
 	for _, n := range []int{8, 9} {
 		f, err := Freq(n, 1)

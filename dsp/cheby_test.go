@@ -52,8 +52,7 @@ func TestCheby1GainAtBandEdges(t *testing.T) {
 	}
 }
 
-// The passband's peak is 0 dB, so an even order's DC gain is -ripple, and an
-// odd order's is 0 dB.
+// The passband's peak is 0 dB, so an even order's DC gain is -ripple, and an odd order's is 0 dB.
 func TestCheby1DCGain(t *testing.T) {
 	const ripple = 2.0
 	for order := 1; order <= 6; order++ {
@@ -87,8 +86,7 @@ func TestCheby1LowpassZerosAreAtNyquist(t *testing.T) {
 	assert.Equal(t, []complex128{-1, -1, -1, -1}, f.Zeros)
 }
 
-// A Cheby2 band edge is the start of the stopband, where the gain first
-// reaches -attenuation.
+// A Cheby2 band edge is the start of the stopband, where the gain first reaches -attenuation.
 func TestCheby2GainAtBandEdges(t *testing.T) {
 	const attenuation = 40.0
 	for _, c := range chebyBands {
@@ -102,8 +100,7 @@ func TestCheby2GainAtBandEdges(t *testing.T) {
 	}
 }
 
-// The stopband stays at least the attenuation down, and DC is at 0 dB,
-// whatever the order's parity.
+// The stopband stays at least the attenuation down, and DC is at 0 dB, whatever the order's parity.
 func TestCheby2Stopband(t *testing.T) {
 	const attenuation, cutoff = 30.0, 0.3
 	for _, order := range []int{4, 5} {

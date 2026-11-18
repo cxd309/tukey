@@ -31,8 +31,8 @@ func TestFilterRejectsInvalidInput(t *testing.T) {
 	}
 }
 
-// test never mutate inputs
-// unnormalised a[0] != 1 case is the one where normalising in place would be tempting
+// Filter never modifies its inputs.
+// An unnormalised a, with a[0] ≠ 1, is the case where normalising in place would be tempting.
 func TestFilterDoesNotModifyInputs(t *testing.T) {
 	b, a, x := []float64{2, 1}, []float64{2, -0.5}, []float64{1, 2, 3}
 	bBefore, aBefore, xBefore := slices.Clone(b), slices.Clone(a), slices.Clone(x)
@@ -45,9 +45,10 @@ func TestFilterDoesNotModifyInputs(t *testing.T) {
 	assert.Equal(t, xBefore, x)
 }
 
-// the point of steadyState: a filter started there treats a constant input as
-// already settled, so the output is the input times the DC gain from the very first
-// sample, with none of the ramp and overshoot seen when starting from rest
+// The point of steadyState:
+// a filter started there treats a constant input as already settled,
+// so the output is the input times the DC gain from the very first sample,
+// with none of the ramp and overshoot seen when starting from rest.
 func TestSteadyStateRemovesStartupTransient(t *testing.T) {
 	fButter, err := Butter(2, Lowpass(0.3)) // unity DC gain
 	require.NoError(t, err)
@@ -75,7 +76,8 @@ func TestSteadyStateRejectsPoleAtDC(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNoSteadyState)
 }
 
-// as for SOSFilterState: two blocks with carried state must match one call exactly
+// As for SOSFilterState:
+// two blocks with carried state must match one call exactly.
 func TestFilterStateBlocksMatchWhole(t *testing.T) {
 	f, err := Butter(4, Bandpass(0.2, 0.5))
 	require.NoError(t, err)
@@ -98,7 +100,7 @@ func TestFilterStateRejectsWrongStateLength(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidState, "two taps need one state value")
 }
 
-// testSOS designs a filter as sections for these tests
+// testSOS designs a filter as sections for these tests.
 func testSOS(t *testing.T, order int, band Band) (sos SOS) {
 	t.Helper()
 	f, err := Butter(order, band)
@@ -108,7 +110,8 @@ func testSOS(t *testing.T, order int, band Band) (sos SOS) {
 	return
 }
 
-// testSignal is a deterministic signal with some structure: two sines and a step
+// testSignal is a deterministic signal with some structure:
+// two sines and a step.
 func testSignal(n int) (x []float64) {
 	x = make([]float64, n)
 	for i := range x {
@@ -121,9 +124,9 @@ func testSignal(n int) (x []float64) {
 	return
 }
 
-// filtering in blocks, carrying each block's final state into the next, must give
-// exactly the same output as filtering in one go: it's the same arithmetic in the
-// same order, so this is bit-for-bit, not approximate
+// Filtering in blocks, carrying each block's final state into the next,
+// must give exactly the same output as filtering in one go:
+// it's the same arithmetic in the same order, so this is bit-for-bit, not approximate.
 func TestSOSFilterStateBlocksMatchWhole(t *testing.T) {
 	sos := testSOS(t, 5, Lowpass(0.2))
 	x := testSignal(200)
@@ -139,8 +142,8 @@ func TestSOSFilterStateBlocksMatchWhole(t *testing.T) {
 	assert.Equal(t, whole, slices.Concat(first, second))
 }
 
-// sections and (b, a) describe the same filter, so at an order where (b, a) is
-// still well conditioned they must agree closely
+// Sections and (b, a) describe the same filter,
+// so at an order where (b, a) is still well conditioned they must agree closely.
 func TestSOSFilterMatchesFilter(t *testing.T) {
 	f, err := Butter(4, Bandpass(0.2, 0.5))
 	require.NoError(t, err)
@@ -243,7 +246,7 @@ func TestFilterZeroCoefficientsDropNonFinite(t *testing.T) {
 	}
 }
 
-// isFinite reports whether v is neither NaN nor infinite
+// isFinite reports whether v is neither NaN nor infinite.
 func isFinite(v float64) bool {
 	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }

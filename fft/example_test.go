@@ -38,8 +38,8 @@ func ExampleForwardReal() {
 }
 
 func ExampleShift() {
-	// Forward's bins run from 0 up, then the negative frequencies;
-	// Shift puts them in ascending order, with 0 in the centre
+	// Forward's bins run from 0 up, then the negative frequencies,
+	// and Shift puts them in ascending order, with 0 in the centre
 	freqs, err := fft.Freq(8, 1.0/8)
 	if err != nil {
 		log.Fatal(err)

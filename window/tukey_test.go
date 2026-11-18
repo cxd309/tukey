@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Tukey's alpha has no domain: at or below 0 it's Boxcar, at or above 1 it's Hann
+// Tukey's alpha has no domain:
+// at or below 0 it's Boxcar, at or above 1 it's Hann.
 func TestTukeyLimitsAreExact(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		boxcar, err := Boxcar(n)

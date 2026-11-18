@@ -8,8 +8,8 @@ import (
 )
 
 // A straight line with exactly representable samples detrends to exactly zero.
-// Every intermediate is exact: the mean is 4, the centred times are whole
-// numbers, and the fitted slope is exactly 0.5.
+// Every intermediate is exact:
+// the mean is 4, the centred times are whole numbers, and the fitted slope is exactly 0.5.
 func TestDetrendLinearRemovesALineExactly(t *testing.T) {
 	x := make([]float64, 9)
 	for i := range x {
@@ -30,7 +30,7 @@ func TestDetrendZeroModeIsLinear(t *testing.T) {
 	assert.Equal(t, DetrendLinear(), mode)
 }
 
-// detrendModes is both modes, named for subtests
+// detrendModes is both modes, named for subtests.
 var detrendModes = []struct {
 	name string
 	mode DetrendMode
