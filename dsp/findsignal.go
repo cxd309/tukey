@@ -10,14 +10,23 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// FindSignal returns the window of data closest to signal, by the sum of
-// squared differences, with ties to the earliest window.
+// FindSignal returns the window of data closest to signal, by the sum of squared differences,
+// with ties to the earliest window.
+// By default it's SearchHybrid, exact at close to the cost of an FFT.
+// A NaN in data makes its windows' distances NaN, and a NaN distance never wins.
 //
-// Returns:
-//   - ErrSignalTooShort for an empty signal, or one longer than data
+//	match, err := dsp.FindSignal(recording, template)
+//	found := recording[match.Start : match.Stop+1]
 //
-// Equivalent to MATLAB [istart, istop, dist] = findsignal(data, signal),
-// with 0-based indices. No SciPy equivalent.
+// Units:
+//   - Start and Stop are sample indices, Stop inclusive
+//   - Distance is in data's unit squared
+//
+// Returns: ErrSignalTooShort for an empty signal, or one longer than data.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB [istart, istop, dist] = findsignal(data, signal), with 0-based indices
 func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalMatch, err error) {
 	if len(signal) == 0 || len(signal) > len(data) {
 		return match, fmt.Errorf("%w: signal of length %d in data of length %d", ErrSignalTooShort, len(signal), len(data))
@@ -39,41 +48,52 @@ func FindSignal(data, signal []float64, opts ...FindSignalOption) (match SignalM
 
 // SignalMatch is the window of data closest to the signal FindSignal looks for.
 type SignalMatch struct {
-	Start    int
-	Stop     int // inclusive, same as MATLAB istop
-	Distance float64
+	Start    int     // a sample index
+	Stop     int     // a sample index, inclusive, same as MATLAB's istop
+	Distance float64 // the sum of squared differences, in data's unit squared
 }
 
-// FindSignalOption configures FindSignal.
+// FindSignalOption configures FindSignal: SearchHybrid, SearchDirect or SearchFast.
 type FindSignalOption func(*findSignalConfig)
 
 // SearchHybrid scores every window by FFT correlation,
 // then rescores exactly each window that, within the correlation's rounding, could be the closest.
 // It gives SearchDirect's answer at close to SearchFast's cost.
-// The default.
+// It's the default.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB findsignal's answer, but exact where findsignal rounds
 func SearchHybrid() FindSignalOption {
 	return func(c *findSignalConfig) { c.method = searchHybrid }
 }
 
 // SearchDirect scores every window exactly,
-// summing its squared differences with compensation, in O(len(data) × len(signal)).
-// It's the simplest, but the slowest at every size measured:
-// 77 s where SearchHybrid takes 29 ms, for a 30,000-sample signal in 400,000 samples.
+// summing its squared differences with compensation, in O(len(data)·len(signal)).
+// It's the simplest, but the slowest at every size measured,
+// e.g. 77 s where SearchHybrid takes 29 ms, for a 30,000-sample signal in 400,000 samples.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB has none
 func SearchDirect() FindSignalOption {
 	return func(c *findSignalConfig) { c.method = searchDirect }
 }
 
-// SearchFast scores every window by FFT correlation alone,
-// which rounds the same way as MATLAB findsignal:
+// SearchFast scores every window by FFT correlation alone, which rounds the same way as MATLAB's findsignal:
 // a perfect match may not score exactly 0,
 // and windows whose distances differ by less than that rounding may be confused.
 // It's 2 to 5% faster than SearchHybrid,
-// and about 2x faster on near-periodic data, where many windows are nearly as close as the best.
+// and about twice as fast on near-periodic data, where many windows are nearly as close as the best.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB findsignal
 func SearchFast() FindSignalOption {
 	return func(c *findSignalConfig) { c.method = searchFast }
 }
 
-// searchMethod is how FindSignal scores each window of data
+// searchMethod is how FindSignal scores each window of data.
 type searchMethod int
 
 const (
@@ -101,8 +121,7 @@ func findSignalDirect(data, signal []float64) (match SignalMatch) {
 	return
 }
 
-// windowDistance is the sum of squared differences between window and
-// signal, summed with compensation.
+// windowDistance is the sum of squared differences between window and signal, summed with compensation.
 func windowDistance(window, signal []float64) (distance float64) {
 	var sum floats.Sum
 	for i, v := range window {
@@ -139,8 +158,11 @@ func findSignalFast(data, signal []float64) (match SignalMatch, err error) {
 	return
 }
 
-// distanceProfile is every window's distance from signal, by the expanded form
-// sum d^2 - 2 sum dt + sum t^2, with the cross term from an FFT correlation.
+// distanceProfile is every window's distance from signal, by the expanded form,
+// with the cross term from an FFT correlation:
+//
+//	Σ d² - 2·Σ d·t + Σ t²
+//
 // It rounds at the scale of the sums of squares rather than of each distance,
 // so a perfect match can come out slightly above or below 0.
 func distanceProfile(data, signal []float64) (profile []float64, err error) {
@@ -167,9 +189,9 @@ func distanceProfile(data, signal []float64) (profile []float64, err error) {
 	return
 }
 
-// crossCorrelation is sum data[i+j]·signal[j] for every window start i, by FFT:
-// data's spectrum times the conjugate of signal's. Padding both to at least
-// len(data) keeps the circular correlation from wrapping into any window.
+// crossCorrelation is Σ data[i+j]·signal[j] for every window start i, by FFT:
+// data's spectrum times the conjugate of signal's.
+// Padding both to at least len(data) keeps the circular correlation from wrapping into any window.
 func crossCorrelation(data, signal []float64) (cross []float64, err error) {
 	size := fft.FastLength(len(data))
 	dataSpectrum, err := fft.ForwardReal(data, fft.N(size))
@@ -191,9 +213,9 @@ func crossCorrelation(data, signal []float64) (cross []float64, err error) {
 	return
 }
 
-// findSignalHybrid scores every window by distanceProfile, then rescores exactly
-// each window that, within the profile's rounding, could be the closest. Its
-// start and distance are then Direct's, at close to Fast's cost.
+// findSignalHybrid scores every window by distanceProfile,
+// then rescores exactly each window that, within the profile's rounding, could be the closest.
+// Its start and distance are then SearchDirect's, at close to SearchFast's cost.
 func findSignalHybrid(data, signal []float64) (match SignalMatch, err error) {
 	profile, err := distanceProfile(data, signal)
 	if err != nil {
@@ -219,7 +241,7 @@ func findSignalHybrid(data, signal []float64) (match SignalMatch, err error) {
 // and grows with the transform's depth.
 // The final additions' error is within the same bound,
 // as each window's sums of squares are within the whole's.
-// The constant is generous: too loose only costs extra windows rescored,
+// The constant is generous, as too loose only costs extra windows rescored,
 // where too tight could miss the closest.
 // Only the bound's size matters, so its sums are plain, not compensated.
 // TestProfileErrorBound checks it holds.

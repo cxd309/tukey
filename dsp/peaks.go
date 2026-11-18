@@ -7,28 +7,27 @@ import (
 	"slices"
 )
 
-// FindPeaks returns the local maxima of x in index order.
-// A local maximum is a sample, of a flat run of samples, higher than the
-// samples either side.
-// The first and last samples are never peaks, so x shorter than 3 has none.
-//
-// Options narrow the peaks down. Each of the following just a peak on its own:
-//   - MinHeight
-//   - Threshold
-//   - MinProminence
-//   - MinWidth
-//
-// MinDistance removes the lower of any two peaks that are too close together.
+// FindPeaks returns the local maxima of x, in index order.
+// A local maximum is a sample, or a flat run of samples, higher than the samples either side.
+// The first and last samples are never peaks, so an x shorter than 3 has none.
+// Options narrow the peaks down:
+//   - MinPeakHeight, PeakThreshold, MinPeakProminence and MinPeakWidth each judge a peak on its own
+//   - MinPeakDistance removes the lower of any two peaks that are too close together
 //
 // A NaN is never a peak, nor is a sample beside one, as it isn't known to be higher.
-// A peak whose prominence or width search reaches a NaN has neither, so fails MinProminence and MinWidth.
+// A peak whose prominence or width search reaches a NaN has neither, so fails MinPeakProminence and MinPeakWidth.
 // An infinite limit is allowed: -Inf is no limit, and +Inf passes no peak.
 //
-// Returns ErrInvalidParameter for a MinDistance below 1, or a NaN limit.
+//	peaks, err := dsp.FindPeaks(x, dsp.MinPeakProminence(0.5), dsp.MinPeakDistance(10))
 //
-// Equivalent to scipy.signal.find_peaks.
-// With MATLABPeaks, equivalent to MATLAB findpeaks,
-// which errors for x shorter than 3 and for a MinPeakDIstance of len(x)-1 or more
+// Units: Peak's Index is a sample index, and its Height is in x's unit
+//
+// Returns: ErrInvalidParameter for a MinPeakDistance below 1, or a NaN limit.
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks(x)
+//   - MATLAB findpeaks(x), with MATLABPeaks, which errors for an x shorter than 3,
+//     and for a 'MinPeakDistance' of len(x)-1 or more
 func FindPeaks(x []float64, opts ...PeakOption) (peaks []Peak, err error) {
 	cfg, err := newPeakConfig(opts)
 	if err != nil {
@@ -52,15 +51,22 @@ func FindPeaks(x []float64, opts ...PeakOption) (peaks []Peak, err error) {
 	return
 }
 
-// PeakProminences returns the prominence of each of peaks in x,
-// and the bases it's measured from.
-// A peak whose search reaches a NaN before a higher sample has a NaN prominence,
-// as the NaN might be higher.
+// PeakProminences returns the prominence of each of peaks in x, and the bases it's measured from:
+// how far the peak stands above the higher of the lowest points either side of it,
+// before the signal rises above the peak again.
+// A peak whose search reaches a NaN before a higher sample has a NaN prominence, as the NaN might be higher.
 //
-// Returns ErrInvalidParameter for a peak outside x.
+//	prominences, err := dsp.PeakProminences(x, []int{12, 40})
 //
-// Equivalent to scipy.signal.peak_prominences
-// Equivalent to the fourth output of MATLAB findpeaks
+// Units:
+//   - peaks are sample indices
+//   - each Prominence is in x's unit, and LeftBase and RightBase are sample indices
+//
+// Returns: ErrInvalidParameter for a peak outside x.
+//
+// Equivalent to:
+//   - scipy.signal.peak_prominences(x, peaks)
+//   - MATLAB findpeaks' fourth output
 func PeakProminences(x []float64, peaks []int) (prominences []PeakProminence, err error) {
 	if err = checkPeaks(x, peaks); err != nil {
 		return
@@ -72,17 +78,23 @@ func PeakProminences(x []float64, peaks []int) (prominences []PeakProminence, er
 	return
 }
 
-// PeakWidths returns the width of each of peaks in x,
-// measured relHeight of the way down its prominence:
-// 0.5 is half the prominence, 1 is at its bases.
+// PeakWidths returns the width of each of peaks in x, measured relHeight of the way down its prominence:
+// 0.5 is half the prominence, and 1 is at its bases.
+// The crossings are interpolated between samples.
+// A peak with a NaN prominence, from PeakProminences, has a NaN width.
 //
-// A peak with a NaN prominence (see PeakProminences) has a NaN width.
+//	widths, err := dsp.PeakWidths(x, []int{12, 40}, 0.5)
 //
-// Returns ErrInvalidParameter for a relHeight that isn't at least 0 and finite,
-// or a peak outside x
+// Units:
+//   - peaks are sample indices
+//   - relHeight is a fraction of the prominence
+//   - each Width is in samples, its Height in x's unit, and Left and Right are fractional sample indices
 //
-// Equivalent to scipy.signal.peak_widths.
-// Equivalent to third output of MATLAB findpeaks at relHeight 0.5
+// Returns: ErrInvalidParameter for a relHeight that isn't at least 0 and finite, or a peak outside x.
+//
+// Equivalent to:
+//   - scipy.signal.peak_widths(x, peaks, rel_height=relHeight)
+//   - MATLAB findpeaks' third output, at relHeight 0.5
 func PeakWidths(x []float64, peaks []int, relHeight float64) (widths []PeakWidth, err error) {
 	if !(relHeight >= 0) || math.IsInf(relHeight, 1) {
 		return nil, fmt.Errorf("%w: relHeight %g, must be at least 0 and finite", ErrInvalidParameter, relHeight)
@@ -97,46 +109,55 @@ func PeakWidths(x []float64, peaks []int, relHeight float64) (widths []PeakWidth
 	return
 }
 
-// Peak is a local maximum of a signal: its index, and the signal's value there
+// Peak is a local maximum of a signal: its index, and the signal's value there.
 type Peak struct {
-	Index  int
-	Height float64
+	Index  int     // a sample index
+	Height float64 // in the signal's unit
 }
 
-// PeakProminence is how far a peak stands above the higher of the lowest points
-// either side of it, before the signal rises above the peak again.
+// PeakProminence is how far a peak stands above the higher of the lowest points either side of it,
+// before the signal rises above the peak again.
 // LeftBase and RightBase are the indices of those lowest points.
 type PeakProminence struct {
-	Prominence float64
-	LeftBase   int
-	RightBase  int
+	Prominence float64 // in the signal's unit
+	LeftBase   int     // a sample index
+	RightBase  int     // a sample index
 }
 
 // PeakWidth is a peak's width at Height,
 // measured between where the signal crosses Height either side of the peak.
-// Left and Right are those crossings, as fractional indicies
-// interpolated between samples.
+// Left and Right are those crossings, as fractional indices interpolated between samples.
 type PeakWidth struct {
-	Width  float64
-	Height float64
-	Left   float64
-	Right  float64
+	Width  float64 // in samples, Right - Left
+	Height float64 // in the signal's unit
+	Left   float64 // a fractional sample index
+	Right  float64 // a fractional sample index
 }
 
 // PeakOption configures FindPeaks.
-// Options are applied in order, so a later option overrides an earlier one
+// Options are applied in order, so a later one overrides an earlier one.
 type PeakOption func(*peakConfig)
 
-// MinPeakHeight keeps peaks at least h high
+// MinPeakHeight keeps peaks at least h high.
+// -Inf is no limit, and +Inf passes no peak.
 //
-// Equivalent to SciPy height=h,  MATLAB "MinPeakHeight"
+// Units: h is in x's unit
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks' height=h
+//   - MATLAB findpeaks' 'MinPeakHeight', h
 func MinPeakHeight(h float64) PeakOption {
 	return func(c *peakConfig) { c.minHeight = h }
 }
 
-// Treshold keeps peaks at least t above both of their neighbouring samples.
+// PeakThreshold keeps peaks at least t above both of their neighbouring samples.
+// -Inf is no limit, and +Inf passes no peak.
 //
-// Equivalent to SciPy threshold=t, MATLAB "PeakThreshold"
+// Units: t is in x's unit
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks' threshold=t
+//   - MATLAB findpeaks' 'Threshold', t
 func PeakThreshold(t float64) PeakOption {
 	return func(c *peakConfig) { c.threshold = t }
 
@@ -145,62 +166,98 @@ func PeakThreshold(t float64) PeakOption {
 // MinPeakDistance keeps peaks at least d samples apart,
 // removing the lower of any two that are closer, highest peak first.
 //
-// Equivalent of SciPy distance=d.
-// MATLAB "MinPeakDistance", d keeps peaks more than d apart, which is MinPeakDistance(d+1)
+// Units: d is a number of samples
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks' distance=d
+//   - MATLAB findpeaks' 'MinPeakDistance', d-1, as MATLAB keeps peaks more than its distance apart
 func MinPeakDistance(d int) PeakOption {
 	return func(c *peakConfig) { c.minDistance = d }
 }
 
-// MinPeakProminence keeps peaks with a prominence of at least p (see PeakProminences)
+// MinPeakProminence keeps peaks with a prominence, from PeakProminences, of at least p.
+// -Inf is no limit, and +Inf passes no peak.
 //
-// Equivalent to SciPy prominence=p, MATLAB "MinPeakProminence"
+// Units: p is in x's unit
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks' prominence=p
+//   - MATLAB findpeaks' 'MinPeakProminence', p
 func MinPeakProminence(p float64) PeakOption {
 	return func(c *peakConfig) { c.minProminence = p }
 }
 
-// MinPeakWidth keeps peaks at least w samples wide at half their prominence (see PeakWidths)
+// MinPeakWidth keeps peaks at least w samples wide at half their prominence, from PeakWidths.
+// -Inf is no limit, and +Inf passes no peak.
 //
-// Equivalent to SciPy width=w, MATLAB "MinPeakWidth"
+// Units: w is in samples
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks' width=w
+//   - MATLAB findpeaks' 'MinPeakWidth', w
 func MinPeakWidth(w float64) PeakOption {
 	return func(c *peakConfig) { c.minWidth = w }
 }
 
-// PlateauMiddle reports a flat-topped peak at its middle sample,
-// rounding down for an even plateau.
-// The default, same as SciPy.
+// PlateauMiddle reports a flat-topped peak at its middle sample, rounding down for an even plateau.
+// It's the default.
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks, which has no other
+//   - MATLAB has none
 func PlateauMiddle() PeakOption {
 	return func(c *peakConfig) { c.plateau = plateauMiddle }
 }
 
-// PlateauFirst reports a flat-topped peak at its first sample, same as MATLAB
+// PlateauFirst reports a flat-topped peak at its first sample.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB findpeaks, which has no other
 func PlateauFirst() PeakOption {
 	return func(c *peakConfig) { c.plateau = plateauFirst }
 }
 
 // TieLater keeps the later of two equal peaks closer than MinPeakDistance.
-// The default, same as SciPy.
+// It's the default.
+//
+// Equivalent to:
+//   - scipy.signal.find_peaks, which has no other
+//   - MATLAB has none
 func TieLater() PeakOption {
 	return func(c *peakConfig) { c.ties = tieLater }
 }
 
-// TieEarlier keeps the earlier of two equal peaks closer than MinPeakDistance, same as MATLAB
+// TieEarlier keeps the earlier of two equal peaks closer than MinPeakDistance.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB findpeaks, which has no other
 func TieEarlier() PeakOption {
 	return func(c *peakConfig) { c.ties = tieEarlier }
 }
 
-// DistanceLast applies MinDistance after MinProminence and MinWidth,
+// DistanceLast applies MinPeakDistance after MinPeakProminence and MinPeakWidth,
 // so a peak that fails those can't remove a neighbour that passes them.
-// By default distance is applied first, as SciPy.
+// Without it, distance is applied first.
+//
+// Equivalent to:
+//   - SciPy has none, as find_peaks applies distance first
+//   - MATLAB findpeaks, which has no other
 func DistanceLast() PeakOption {
 	return func(c *peakConfig) { c.distanceLast = true }
 }
 
-// MATLABPeaks applies MATLAB findpeaks' rules:
-//   - first sample of a plateau
+// MATLABPeaks applies MATLAB findpeaks' rules, same as PlateauFirst, TieEarlier and DistanceLast together:
+//   - a plateau's first sample
 //   - ties to the earlier peak
 //   - distance applied last
 //
-// It doesn't change MinDistance, which is d+1 for MATLAB d
+// It doesn't change MinPeakDistance, which is d+1 for MATLAB's d.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB findpeaks
 func MATLABPeaks() PeakOption {
 	return func(c *peakConfig) {
 		c.plateau = plateauFirst
@@ -209,8 +266,8 @@ func MATLABPeaks() PeakOption {
 	}
 }
 
-// peakConfig is FindPeak' settings, built from PeakOptions.
-// A limit of -Inf, or a distance of 1, means no limit
+// peakConfig is FindPeaks' settings, built from PeakOptions.
+// A limit of -Inf, or a distance of 1, means no limit.
 type peakConfig struct {
 	minHeight     float64
 	threshold     float64
@@ -222,7 +279,7 @@ type peakConfig struct {
 	distanceLast  bool
 }
 
-// plateauPosition is the sample FindPeaks reports for a flat-topped peak
+// plateauPosition is the sample FindPeaks reports for a flat-topped peak.
 type plateauPosition int
 
 const (
@@ -230,7 +287,7 @@ const (
 	plateauFirst
 )
 
-// tieBreak is which of two equal peaks MinPeakDistance keeps
+// tieBreak is which of two equal peaks MinPeakDistance keeps.
 type tieBreak int
 
 const (
@@ -238,7 +295,7 @@ const (
 	tieEarlier
 )
 
-// newPeakConfig builds FindPeaks' settings from opts
+// newPeakConfig builds FindPeaks' settings from opts, returning ErrInvalidParameter for a NaN limit or a distance below 1.
 func newPeakConfig(opts []PeakOption) (cfg peakConfig, err error) {
 	cfg = peakConfig{
 		minHeight:     math.Inf(-1),
@@ -270,8 +327,7 @@ func newPeakConfig(opts []PeakOption) (cfg peakConfig, err error) {
 	return
 }
 
-// localMaxima is the index of every local maximum of x, with a plateau
-// reported at the sample plateau says
+// localMaxima is the index of every local maximum of x, with a plateau reported at the sample plateau says.
 func localMaxima(x []float64, plateau plateauPosition) (indices []int) {
 	n := len(x)
 	for i := 1; i < n-1; i++ {
@@ -290,7 +346,7 @@ func localMaxima(x []float64, plateau plateauPosition) (indices []int) {
 	return
 }
 
-// pick is the sample reported for a plateau from first to last
+// pick is the sample reported for a plateau from first to last.
 func (p plateauPosition) pick(first, last int) (index int) {
 	if p == plateauFirst {
 		return first
@@ -298,8 +354,8 @@ func (p plateauPosition) pick(first, last int) (index int) {
 	return (first + last) / 2
 }
 
-// byDistance removes the lower of any two of indices less than distance
-// apart, working down from the highest peak, with ties broken by ties
+// byDistance removes the lower of any two of indices less than distance apart,
+// working down from the highest peak, with ties broken by ties.
 func byDistance(x []float64, indices []int, distance int, ties tieBreak) (kept []int) {
 	if distance <= 1 {
 		return indices
@@ -337,8 +393,8 @@ func byDistance(x []float64, indices []int, distance int, ties tieBreak) (kept [
 	return
 }
 
-// byShape removes the indices that fail cfg's MinProminence or MinWidth.
-// Each peak is judged on the whole of x, so the order doesn't matter here
+// byShape removes the indices that fail cfg's MinPeakProminence or MinPeakWidth.
+// Each peak is judged on the whole of x, so the order doesn't matter here.
 func byShape(x []float64, indices []int, cfg peakConfig) (kept []int) {
 	byProminence := cfg.minProminence > math.Inf(-1)
 	byWidth := cfg.minWidth > math.Inf(-1)
@@ -382,8 +438,8 @@ func peakProminence(x []float64, peak int) (p PeakProminence) {
 	return
 }
 
-// peakWidth walks out from peak each way, no further than its bases,
-// until x drops to the width height, then interpolates the crossing between samples
+// peakWidth walks out from peak each way, no further than its bases, until x drops to the width's height,
+// then interpolates the crossing between samples.
 func peakWidth(x []float64, peak int, relHeight float64, prominence PeakProminence) (w PeakWidth) {
 	w.Height = x[peak] - prominence.Prominence*relHeight
 	if math.IsNaN(prominence.Prominence) {
@@ -416,7 +472,7 @@ func peakWidth(x []float64, peak int, relHeight float64, prominence PeakProminen
 	return
 }
 
-// checkPeaks returns ErrInvalidParameter for any of peaks outside x
+// checkPeaks returns ErrInvalidParameter for any of peaks outside x.
 func checkPeaks(x []float64, peaks []int) (err error) {
 	for _, p := range peaks {
 		if p < 0 || p >= len(x) {
