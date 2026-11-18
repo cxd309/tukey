@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// notchCases are (w0, q) from narrow to wide: q = 1000 puts the poles hard
-// against the unit circle, and the last three have β ≥ sin(π·w0), where the
-// poles are real: a centre near Nyquist, β = 1, and a bandwidth past half
-// Nyquist
+// notchCases are (w0, q) from narrow to wide:
+// q = 1000 puts the poles hard against the unit circle, and the last three have β ≥ sin(π·w0),
+// where the poles are real:
+// a centre near Nyquist, β = 1, and a bandwidth past half Nyquist.
 var notchCases = []struct{ w0, q float64 }{
 	{0.3, 10},
 	{0.05, 35},
@@ -25,7 +25,7 @@ var notchCases = []struct{ w0, q float64 }{
 	{0.6, 0.8},
 }
 
-// notchDesigns are IIRNotch and IIRPeak, with where each passes and stops
+// notchDesigns are IIRNotch and IIRPeak, with where each passes and stops.
 var notchDesigns = []struct {
 	name   string
 	design func(w0, q float64) (ZPK, error)
@@ -36,8 +36,7 @@ var notchDesigns = []struct {
 	{"IIRPeak", IIRPeak, func(w0 float64) []float64 { return []float64{w0} }, func(float64) []float64 { return []float64{0, 1} }},
 }
 
-// halfPowerEdge is where the gain crosses -3 dB between lo and hi, by
-// bisection, given it's monotonic there
+// halfPowerEdge is where the gain crosses -3 dB between lo and hi, by bisection, given it's monotonic there.
 func halfPowerEdge(f ZPK, lo, hi float64) (edge float64) {
 	above := gainDB(f, lo) > halfPowerDB
 	for range 100 {
@@ -51,8 +50,8 @@ func halfPowerEdge(f ZPK, lo, hi float64) (edge float64) {
 	return (lo + hi) / 2
 }
 
-// A notch passes DC and Nyquist at 0 dB and has a null at w0; a peak passes
-// w0 at 0 dB and has nulls at DC and Nyquist.
+// A notch passes DC and Nyquist at 0 dB and has a null at w0,
+// and a peak passes w0 at 0 dB and has nulls at DC and Nyquist.
 func TestNotchPassesAndStops(t *testing.T) {
 	for _, d := range notchDesigns {
 		for _, c := range notchCases {
@@ -68,8 +67,8 @@ func TestNotchPassesAndStops(t *testing.T) {
 	}
 }
 
-// The -3 dB edges either side of w0 are exactly w0/q apart: Orfanidis's
-// definition of the bandwidth, which SciPy follows.
+// The -3 dB edges either side of w0 are exactly w0/q apart:
+// Orfanidis's definition of the bandwidth, which SciPy follows.
 func TestNotchBandwidth(t *testing.T) {
 	for _, d := range notchDesigns {
 		for _, c := range notchCases {
@@ -81,8 +80,8 @@ func TestNotchBandwidth(t *testing.T) {
 	}
 }
 
-// The poles are inside the unit circle and multiply to (1 − β)/(1 + β): a
-// conjugate pair while β < sin(π·w0), and two real poles from there.
+// The poles are inside the unit circle and multiply to (1 - β)/(1 + β):
+// a conjugate pair while β < sin(π·w0), and two real poles from there.
 func TestNotchPoles(t *testing.T) {
 	for _, d := range notchDesigns {
 		for _, c := range notchCases {
@@ -104,8 +103,8 @@ func TestNotchPoles(t *testing.T) {
 	}
 }
 
-// A narrow notch's poles sit at radius √((1 − β)/(1 + β)), just inside its
-// zeros: at q = 1000, 1 − r is about 5e-4, kept to full precision.
+// A narrow notch's poles sit at radius √((1 - β)/(1 + β)), just inside its zeros:
+// at q = 1000, 1 - r is about 5e-4, kept to full precision.
 func TestNarrowNotchPoleRadius(t *testing.T) {
 	const w0, q = 0.3, 1000.0
 	f, err := IIRNotch(w0, q)
@@ -118,8 +117,7 @@ func TestNarrowNotchPoleRadius(t *testing.T) {
 	}
 }
 
-// The peak's gain is β/(1 + β); SciPy's 1 − 1/(1 + β) cancels for a narrow
-// bandwidth.
+// The peak's gain is β/(1 + β), where SciPy's 1 - 1/(1 + β) cancels for a narrow bandwidth.
 func TestIIRPeakGainKeepsDigits(t *testing.T) {
 	const w0, q = 0.002, 30.0
 	f, err := IIRPeak(w0, q)

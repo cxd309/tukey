@@ -1,13 +1,15 @@
 package window
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// the general windows reduce to the named ones exactly: they share one code path
+// The general windows reduce to the named ones exactly:
+// they share one code path.
 func TestSpecialCasesAreExact(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		hann, err := Hann(n)
@@ -44,19 +46,11 @@ func TestGeneralCosineNeedsCoefficients(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidParameter)
 }
 
-// Hanning is Hann without its zero endpoints; periodic, it's Hann's periodic window
-func TestHanning(t *testing.T) {
-	for n := 0; n <= 20; n++ {
-		hann, err := Hann(n + 2)
-		require.NoError(t, err)
-		w, err := Hanning(n)
-		require.NoError(t, err)
-		assert.Equal(t, hann[1:n+1], w, "Hanning(%d)", n)
-
-		hann, err = Hann(n, Periodic())
-		require.NoError(t, err)
-		w, err = Hanning(n, Periodic())
-		require.NoError(t, err)
-		assert.Equal(t, hann, w, "Hanning(%d, Periodic())", n)
-	}
+func TestCosineSumsRejectNonFinite(t *testing.T) {
+	assertInvalidParameter(t, map[string]func() ([]float64, error){
+		"GeneralCosine NaN":   func() ([]float64, error) { return GeneralCosine(8, []float64{0.5, math.NaN()}) },
+		"GeneralCosine Inf":   func() ([]float64, error) { return GeneralCosine(8, []float64{math.Inf(1)}) },
+		"GeneralHamming NaN":  func() ([]float64, error) { return GeneralHamming(8, math.NaN()) },
+		"GeneralHamming -Inf": func() ([]float64, error) { return GeneralHamming(8, math.Inf(-1)) },
+	})
 }

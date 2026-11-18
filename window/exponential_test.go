@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// GeneralGaussian at p = 1 is Gaussian, to within rounding: one squares, the other uses Pow
+// GeneralGaussian at p = 1 is Gaussian, to within rounding:
+// one squares, the other uses Pow.
 func TestGeneralGaussianAtP1IsGaussian(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		gaussian, err := Gaussian(n, 2.5)
@@ -20,7 +21,7 @@ func TestGeneralGaussianAtP1IsGaussian(t *testing.T) {
 }
 
 // Center at the periodic window's own middle (n/2) is the default, exactly:
-// |i - n/2| is the same whether computed directly or mirrored
+// |i - n/2| is the same whether computed directly or mirrored.
 func TestExponentialCenterAtMiddleIsDefault(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		centred, err := Exponential(n, 3, Periodic())
@@ -38,11 +39,17 @@ func TestExponentialFamilyRejectsInvalidParameters(t *testing.T) {
 		"GeneralGaussian p -1":  func() ([]float64, error) { return GeneralGaussian(8, -1, 2) },
 		"GeneralGaussian sig 0": func() ([]float64, error) { return GeneralGaussian(8, 1, 0) },
 		"Exponential tau 0":     func() ([]float64, error) { return Exponential(8, 0) },
-		"Exponential Center without Periodic": func() ([]float64, error) {
-			return Exponential(8, 3, Center(0))
-		},
 		"Exponential Center NaN": func() ([]float64, error) {
 			return Exponential(8, 3, Periodic(), Center(math.NaN()))
 		},
+		"Gaussian std +Inf":        func() ([]float64, error) { return Gaussian(8, math.Inf(1)) },
+		"GeneralGaussian p +Inf":   func() ([]float64, error) { return GeneralGaussian(8, math.Inf(1), 2) },
+		"GeneralGaussian sig +Inf": func() ([]float64, error) { return GeneralGaussian(8, 1, math.Inf(1)) },
+		"Exponential tau +Inf":     func() ([]float64, error) { return Exponential(8, math.Inf(1)) },
+		"Exponential Center +Inf":  func() ([]float64, error) { return Exponential(8, 3, Periodic(), Center(math.Inf(1))) },
+		"Exponential Center -Inf":  func() ([]float64, error) { return Exponential(8, 3, Periodic(), Center(math.Inf(-1))) },
 	})
+	// Center needs Periodic, as a symmetric window is centred
+	_, err := Exponential(8, 3, Center(0))
+	assert.ErrorIs(t, err, ErrInvalidOption, "Exponential Center without Periodic")
 }

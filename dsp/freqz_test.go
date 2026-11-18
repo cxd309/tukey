@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// the defining property of a Butterworth lowpass: gain 1 at DC, and exactly
-// 1/sqrt(2) (-3 dB) at the cutoff, which prewarping puts precisely where asked;
-// with n = 10, w[3] is 0.3*pi, the cutoff
+// The defining property of a Butterworth lowpass:
+// a gain of 1 at DC, and exactly 1/√2, -3 dB, at the cutoff, which prewarping puts precisely where asked.
+// With n = 10, w[3] is 0.3·π, the cutoff.
 func TestFreqzButterworthIsMinus3dBAtCutoff(t *testing.T) {
 	f, err := Butter(4, Lowpass(0.3))
 	require.NoError(t, err)
@@ -26,8 +26,7 @@ func TestFreqzButterworthIsMinus3dBAtCutoff(t *testing.T) {
 	assert.InDelta(t, 1/math.Sqrt2, cmplx.Abs(h[3]), 1e-12, "gain at the cutoff")
 }
 
-// sections and (b, a) are the same filter, so at a well-conditioned order
-// they must have the same response
+// Sections and (b, a) are the same filter, so at a well-conditioned order they must have the same response.
 func TestSOSFreqzMatchesFreqz(t *testing.T) {
 	f, err := Butter(4, Bandpass(0.2, 0.5))
 	require.NoError(t, err)

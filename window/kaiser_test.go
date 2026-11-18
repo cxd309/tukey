@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// beta 0 is Boxcar exactly: every sample is I0(0) / I0(0)
+// beta 0 is Boxcar exactly:
+// every sample is I0(0) / I0(0).
 func TestKaiserAtBeta0IsBoxcar(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		boxcar, err := Boxcar(n)
@@ -20,7 +21,7 @@ func TestKaiserAtBeta0IsBoxcar(t *testing.T) {
 	}
 }
 
-// I0 is even, so a negative beta is the same window
+// I0 is even, so a negative beta is the same window.
 func TestKaiserNegativeBetaIsSameWindow(t *testing.T) {
 	positive, err := Kaiser(16, 5)
 	require.NoError(t, err)
@@ -29,7 +30,7 @@ func TestKaiserNegativeBetaIsSameWindow(t *testing.T) {
 	assert.Equal(t, positive, negative)
 }
 
-// the ends of a symmetric Kaiser window are I0(0) / I0(beta) = 1 / I0(beta)
+// The ends of a symmetric Kaiser window are I0(0) / I0(beta) = 1 / I0(beta).
 func TestKaiserEnds(t *testing.T) {
 	w, err := Kaiser(9, 8.6)
 	require.NoError(t, err)
@@ -37,8 +38,8 @@ func TestKaiserEnds(t *testing.T) {
 	assert.Equal(t, 1.0, w[4], "the centre is I0(beta) / I0(beta)")
 }
 
-// the Princen–Bradley condition, which is what KBD is for:
-// w[k]² + w[k+n/2]² = 1, so overlapped MDCT frames reconstruct perfectly
+// The Princen-Bradley condition, which is what KBD is for:
+// w[k]² + w[k+n/2]² = 1, so overlapped MDCT frames reconstruct perfectly.
 func TestKaiserBesselDerivedPrincenBradley(t *testing.T) {
 	for _, n := range []int{2, 8, 64, 256} {
 		w, err := KaiserBesselDerived(n, 4)

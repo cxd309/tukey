@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// A tone around an offset has the offset plus and minus its amplitude as its
-// analytic envelopes.
+// A tone around an offset has the offset plus and minus its amplitude as its analytic envelopes.
 func TestEnvelopeAnalyticTone(t *testing.T) {
 	x := make([]float64, 16)
 	for i := range x {
@@ -72,22 +71,97 @@ func TestEnvelopeRMSAroundMean(t *testing.T) {
 }
 
 func TestEnvelopeInvalid(t *testing.T) {
-	_, _, err := Envelope(nil, EnvelopeAnalytic())
-	assert.ErrorIs(t, err, ErrInvalidLength)
 	for _, window := range []int{0, -1} {
-		_, _, err = Envelope([]float64{1, 2, 3}, EnvelopeRMS(window))
+		_, _, err := Envelope([]float64{1, 2, 3}, EnvelopeRMS(window))
 		assert.ErrorIs(t, err, ErrInvalidParameter)
+		_, _, err = Envelope(nil, EnvelopeRMS(window))
+		assert.ErrorIs(t, err, ErrInvalidParameter, "checked before an empty x")
+	}
+}
+
+// An empty x gives empty, non-nil envelopes, with either method.
+func TestEnvelopeEmpty(t *testing.T) {
+	for _, method := range []EnvelopeMethod{EnvelopeAnalytic(), EnvelopeRMS(3)} {
+		for _, x := range [][]float64{nil, {}} {
+			upper, lower, err := Envelope(x, method)
+			require.NoError(t, err)
+			assert.NotNil(t, upper)
+			assert.NotNil(t, lower)
+			assert.Empty(t, upper)
+			assert.Empty(t, lower)
+		}
 	}
 }
 
 // analyticEnvelope is the magnitude of Hilbert's output.
 func TestAnalyticEnvelopeIsMagnitude(t *testing.T) {
 	x := []float64{3, 1, -4, 1, 5, -9, 2, 6}
-	analytic, err := Hilbert(x)
-	require.NoError(t, err)
-	env, err := analyticEnvelope(x)
-	require.NoError(t, err)
+	analytic := Hilbert(x)
+	env := analyticEnvelope(x)
 	for i, a := range analytic {
 		assert.Equal(t, cmplx.Abs(a), env[i], "env[%d]", i)
+	}
+}
+
+// The analytic signal's real part is x itself.
+func TestHilbertRealPartIsX(t *testing.T) {
+	for _, x := range [][]float64{
+		{0.5},
+		{1, -2},
+		{3, 1, -4, 1, 5, -9, 2, 6},
+		{3, 1, -4, 1, 5, -9, 2, 6, -5},
+	} {
+		analytic := Hilbert(x)
+		require.Len(t, analytic, len(x))
+		for i, a := range analytic {
+			assert.InDelta(t, x[i], real(a), 1e-14, "real(analytic[%d]), n=%d", i, len(x))
+		}
+	}
+}
+
+// A cosine's Hilbert transform is the sine at the same frequency,
+// so its analytic signal is a complex exponential, at odd and even lengths.
+func TestHilbertCosineToSine(t *testing.T) {
+	for _, n := range []int{15, 16} {
+		x := make([]float64, n)
+		for i := range x {
+			x[i] = math.Cos(2 * math.Pi * 3 * float64(i) / float64(n))
+		}
+		analytic := Hilbert(x)
+		for i, a := range analytic {
+			want := math.Sin(2 * math.Pi * 3 * float64(i) / float64(n))
+			assert.InDelta(t, want, imag(a), 1e-14, "imag(analytic[%d]), n=%d", i, n)
+		}
+	}
+}
+
+// DC and Nyquist are their own negative frequencies, so they're kept as they are, not doubled,
+// and have no Hilbert transform.
+func TestHilbertDCAndNyquist(t *testing.T) {
+	cases := []struct {
+		name string
+		x    []float64
+	}{
+		{"DC", []float64{2, 2, 2, 2}},
+		{"Nyquist", []float64{1, -1, 1, -1}},
+		{"both, length 2", []float64{3, 1}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			analytic := Hilbert(c.x)
+			for i, a := range analytic {
+				assert.InDelta(t, c.x[i], real(a), 1e-15, "real(analytic[%d])", i)
+				assert.InDelta(t, 0, imag(a), 1e-15, "imag(analytic[%d])", i)
+			}
+		})
+	}
+}
+
+// An empty x gives an empty, non-nil result.
+func TestHilbertEmpty(t *testing.T) {
+	for _, x := range [][]float64{nil, {}} {
+		analytic := Hilbert(x)
+		assert.NotNil(t, analytic)
+		assert.Empty(t, analytic)
 	}
 }

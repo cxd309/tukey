@@ -5,45 +5,68 @@ import (
 	"math"
 	"math/cmplx"
 
+	"github.com/cxd309/tukey/fft"
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// EnvelopeMethod is how Envelope measures a signal's envelope:
-// EnvelopeAnalytic (the zero EnvelopeMethod) or EnvelopeRMS.
-type EnvelopeMethod struct {
-	rms    bool
-	window int
-}
-
-// EnvelopeAnalytic is the magnitude of the analytic signal (see Hilbert).
-// It follows each scillation's peaks closely, so suits a signal with one main frequency
-func EnvelopeAnalytic() (method EnvelopeMethod) {
-	return
-}
-
-// EnvelopeRMS is the moving RMS over a window of n samples centred on each sample.
-// For an even n the extra sample is after, so n = 10 covers k-4 to k+5.
-// The window shrinks where it would pass either end of the signal.
-func EnvelopeRMS(n int) (method EnvelopeMethod) {
-	method = EnvelopeMethod{rms: true, window: n}
-	return
-}
-
-// Envelope returns the upper and lower enveopes of x:
-// its mean plus and minus the envelope of x less its mean, measured according method.
+// Hilbert returns the analytic signal of x, x + i·H(x),
+// where H(x), the Hilbert transform, is x with every frequency's phase shifted by -90°.
+// Its magnitude is x's envelope, and its angle x's instantaneous phase.
+// It works in the frequency domain, doubling the positive frequencies and zeroing the negative ones,
+// so it treats x as one period of a periodic signal.
+// An empty x gives an empty result, and nothing else can fail, so there's no error.
 //
-// Returns:
-//   - ErrInvalidLength for an empty x
-//   - ErrInvalidParameter for an EnvelopeRMS window below1
+//	analytic := dsp.Hilbert(x)
+//	phase := cmplx.Phase(analytic[k])
 //
-// Equivalent to MATLAB [upper, lower] = envelope(x) and envelope(x, n, "rms").
-// scipy.signal.envelope drops the Nyquist bin from the analytic envelope, and has no RMS method.
-func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err error) {
-	if len(x) == 0 {
-		return nil, nil, fmt.Errorf("%w: Envelope of an empty signal", ErrInvalidLength)
+// Units: same as x
+//
+// Equivalent to:
+//   - scipy.signal.hilbert(x)
+//   - MATLAB hilbert(x)
+func Hilbert(x []float64) (analytic []complex128) {
+	n := len(x)
+	if n == 0 {
+		return []complex128{}
 	}
+	half, err := fft.ForwardReal(x) // bins 0 to n/2
+	if err != nil {
+		panic(err) // x has at least 1 sample and there are no options, so ForwardReal can't fail
+	}
+	spectrum := make([]complex128, n) // the negative frequencies stay 0
+	spectrum[0] = half[0]
+	for k := 1; k < (n+1)/2; k++ {
+		spectrum[k] = 2 * half[k]
+	}
+	if n%2 == 0 {
+		spectrum[n/2] = half[n/2]
+	} // Nyquist is its own negative frequency, so it's kept, not doubled
+	analytic, err = fft.Inverse(spectrum)
+	if err != nil {
+		panic(err) // spectrum has n ≥ 1 values and there are no options, so Inverse can't fail
+	}
+	return
+}
+
+// Envelope returns the upper and lower envelopes of x:
+// its mean plus and minus the envelope of x less its mean, measured by method.
+// An empty x gives empty envelopes.
+//
+//	upper, lower, err := dsp.Envelope(x, dsp.EnvelopeAnalytic())
+//
+// Units: same as x
+//
+// Returns: ErrInvalidParameter for an EnvelopeRMS window below 1.
+//
+// Equivalent to:
+//   - scipy.signal.envelope, which drops the Nyquist bin from the analytic envelope, and has no RMS method
+//   - MATLAB [upper, lower] = envelope(x), or envelope(x, n, 'rms')
+func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err error) {
 	if method.rms && method.window < 1 {
 		return nil, nil, fmt.Errorf("%w: EnvelopeRMS window %d, must be at least 1", ErrInvalidParameter, method.window)
+	}
+	if len(x) == 0 {
+		return []float64{}, []float64{}, nil
 	}
 	m := mean(x)
 	centred := make([]float64, len(x))
@@ -53,8 +76,8 @@ func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err e
 	var env []float64
 	if method.rms {
 		env = movingRMS(centred, method.window)
-	} else if env, err = analyticEnvelope(centred); err != nil {
-		return nil, nil, err
+	} else {
+		env = analyticEnvelope(centred)
 	}
 	upper = make([]float64, len(x))
 	lower = make([]float64, len(x))
@@ -64,12 +87,40 @@ func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err e
 	return
 }
 
+// EnvelopeMethod is how Envelope measures a signal's envelope:
+// EnvelopeAnalytic, the zero EnvelopeMethod, or EnvelopeRMS.
+type EnvelopeMethod struct {
+	rms    bool
+	window int
+}
+
+// EnvelopeAnalytic is the magnitude of the analytic signal, from Hilbert.
+// It follows each oscillation's peaks closely, so suits a signal with one main frequency.
+//
+// Equivalent to:
+//   - scipy.signal.envelope, except at Nyquist
+//   - MATLAB envelope(x)
+func EnvelopeAnalytic() (method EnvelopeMethod) {
+	return
+}
+
+// EnvelopeRMS is the moving RMS over a window of n samples centred on each sample.
+// For an even n the extra sample is after, so n = 10 covers k-4 to k+5.
+// The window shrinks where it would pass either end of the signal.
+//
+// Units: n is a number of samples
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB envelope(x, n, 'rms')
+func EnvelopeRMS(n int) (method EnvelopeMethod) {
+	method = EnvelopeMethod{rms: true, window: n}
+	return
+}
+
 // analyticEnvelope is the magnitude of x's analytic signal.
-func analyticEnvelope(x []float64) (env []float64, err error) {
-	analytic, err := Hilbert(x)
-	if err != nil {
-		return nil, err
-	}
+func analyticEnvelope(x []float64) (env []float64) {
+	analytic := Hilbert(x)
 	env = make([]float64, len(x))
 	for i, a := range analytic {
 		env[i] = cmplx.Abs(a)
@@ -79,8 +130,7 @@ func analyticEnvelope(x []float64) (env []float64, err error) {
 
 // movingRMS is the RMS of x over a window of n samples around each one,
 // (n-1)/2 before and n/2 after, shrinking where it passes either end of x.
-// Each window's squares are summed with compensation, so one large square
-// doesn't loose the low bits in small squares
+// Each window's squares are summed with compensation, so one large square doesn't lose the low bits of small ones.
 func movingRMS(x []float64, n int) (rms []float64) {
 	before, after := (n-1)/2, n/2
 	rms = make([]float64, len(x))

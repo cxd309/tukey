@@ -10,8 +10,8 @@ type sosFiltFiltBySectionVector struct {
 	Params struct {
 		SOS          [][6]float64 `json:"sos"`
 		X            []float64    `json:"x"`
-		PadType      *string      `json:"padtype"`       // null: no padding
-		PadLen       *int         `json:"padlen"`        // null: SciPy's default, or MATLAB's
+		PadType      *string      `json:"padtype"`       // or null for no padding
+		PadLen       *int         `json:"padlen"`        // or null for SciPy's default, or MATLAB's
 		MATLABPadLen bool         `json:"matlab_padlen"` // MATLAB's padding length
 	} `json:"params"`
 	Output struct {
@@ -31,22 +31,21 @@ type filtfiltMATLABVector struct {
 	} `json:"output"`
 }
 
-// SOSFiltFilt with BySection, and FiltFilt with MATLABPadLen, measured on both
-// architectures. MATLAB's filtfilt filters each section forward and backward
-// in turn, padded by 3 × the order, which it counts to each polynomial's last
-// nonzero coefficient. SciPy has no equivalent, so its side is that definition
-// built from scipy.signal.filtfilt, one section at a time, with which MATLAB's
-// own vectors agree to rounding.
+// SOSFiltFilt with BySection, and FiltFilt with MATLABPadLen, measured on both architectures.
+// MATLAB's filtfilt filters each section forward and backward in turn, padded by 3 × the order,
+// which it counts to each polynomial's last nonzero coefficient.
+// SciPy has no equivalent, so its side is that definition built from scipy.signal.filtfilt, one section at a time,
+// which MATLAB's own vectors agree with to rounding.
 //
-// By section, against SciPy's side: worst 7.7e-13 on butter8_lp0.01, the
-// difficult filter, as for SOSFilter, over two passes of each of its four
-// sections; the rest, the order-count filters included, within 2.1e-14.
-// Against MATLAB: worst 7.0e-13, on the same filter. Its vectors are the cases
-// with MATLAB's padding, all 25 of testdata/matlab/sosfiltfilt among them,
-// identical, so that category isn't compared again.
+// By section, against SciPy's side, it's worst at 7.7e-13 on butter8_lp0.01, the difficult filter, same as SOSFilter,
+// over two passes of each of its four sections.
+// The rest, the order-count filters included, are within 2.1e-14.
+// Against MATLAB it's worst at 7.0e-13, on the same filter.
+// MATLAB's vectors are the cases with MATLAB's padding, all 25 of testdata/matlab/sosfiltfilt among them, identical,
+// so that category isn't compared again.
 //
-// FiltFilt with MATLABPadLen on (b, a) with trailing zeros and a pure gain,
-// whose edge is MATLAB's minimum of 1: worst 4.3e-16 (2 ULP) against both.
+// FiltFilt with MATLABPadLen, on (b, a) with trailing zeros and a pure gain, whose edge is MATLAB's minimum of 1,
+// is worst at 2 ULP, 4.3e-16, against both.
 var (
 	sosFiltFiltBySectionSciPySuite = newSuite("SOSFiltFilt + BySection", reference.SourceSciPy, "sosfiltfilt_by_section",
 		tolerance(1e-11), sosFiltFiltBySectionOutputs)
@@ -58,8 +57,7 @@ var (
 		tolerance(1e-14), filtfiltMATLABPadLenOutputs)
 )
 
-// sosFiltFiltBySectionOutputs pairs dsp.SOSFiltFilt with BySection and a
-// vector's padding with its output
+// sosFiltFiltBySectionOutputs pairs dsp.SOSFiltFilt, with BySection and a vector's padding, with its output.
 func sosFiltFiltBySectionOutputs(v sosFiltFiltBySectionVector) (outputs []Output, err error) {
 	opts, err := filtfiltOptions(v.Params.PadType, v.Params.PadLen)
 	if err != nil {
@@ -77,7 +75,7 @@ func sosFiltFiltBySectionOutputs(v sosFiltFiltBySectionVector) (outputs []Output
 	return
 }
 
-// filtfiltMATLABPadLenOutputs pairs dsp.FiltFilt with MATLABPadLen with a vector's output
+// filtfiltMATLABPadLenOutputs pairs dsp.FiltFilt, with MATLABPadLen, with a vector's output.
 func filtfiltMATLABPadLenOutputs(v filtfiltMATLABVector) (outputs []Output, err error) {
 	y, err := dsp.FiltFilt(v.Params.B, v.Params.A, v.Params.X, dsp.MATLABPadLen())
 	if err != nil {

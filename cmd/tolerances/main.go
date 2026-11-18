@@ -1,8 +1,6 @@
-// Command tolerances reports the error tukey actually achieves
-// compares against each reference-vector suite, SciPy or MATLAB
-// next to the tolerance its test enforce
-//
-// the measured numbers are what tolerances and the packaging doc are set from
+// Command tolerances reports the error tukey actually achieves against each reference-vector suite,
+// SciPy's or MATLAB's, next to the tolerance its test enforces.
+// The measured numbers are what the tests' tolerances and the tables in docs/accuracy.md are set from.
 //
 //	go run ./cmd/tolerances
 package main
@@ -50,7 +48,7 @@ func main() {
 	}
 }
 
-// summary one suite's measured error across all its reference vectors
+// summary is one suite's measured error across all its reference vectors.
 type summary struct {
 	vectors   int
 	failing   int     // vectors that errored or had an output outside tolerance
@@ -58,7 +56,7 @@ type summary struct {
 	worstCase string  // where worst was measured, e.g. "lowpass_order2_wn0.3.json b"
 }
 
-// summary run suite and reduce its results to one summary
+// summarise runs suite and reduces its results to one summary.
 func summarise(suite conformance.Suite) (s summary, err error) {
 	results, err := suite.Run()
 	if err != nil {
@@ -79,7 +77,7 @@ func summarise(suite conformance.Suite) (s summary, err error) {
 	return
 }
 
-// headroom how many times larger the tolerance is than the measured error
+// headroom is how many times larger the tolerance is than the measured error.
 func headroom(tolerance, worst float64) (ratio string) {
 	if worst == 0 {
 		ratio = "exact"

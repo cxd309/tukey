@@ -1,0 +1,166 @@
+package dsp
+
+import (
+	"fmt"
+	"math"
+	"math/cmplx"
+
+	"github.com/cxd309/tukey/internal/poly"
+)
+
+// designDigital checks order and band,
+// then moves the analog lowpass prototype onto band and maps it to the digital domain.
+// prototype is only called once order is known to be valid.
+func designDigital(order int, band Band, prototype func() analogZPK) (f ZPK, err error) {
+	if order < 1 {
+		return f, fmt.Errorf("%w: order must be >=1, got %d", ErrInvalidOrder, order)
+	}
+	if err = band.validate(); err != nil {
+		return f, err
+	}
+	f = band.transform(prototype()).bilinear()
+	return
+}
+
+// transform prewarps the band edges and moves the lowpass prototype onto them,
+// giving the analog filter that bilinear maps onto this band.
+// The band must already have passed validate.
+func (band Band) transform(proto analogZPK) (analog analogZPK) {
+	switch band.btype {
+	case lowpassType:
+		analog = proto.toLowpass(prewarp(band.edges[0]))
+	case highpassType:
+		analog = proto.toHighpass(prewarp(band.edges[0]))
+	case bandpassType, bandstopType:
+		low, high := prewarp(band.edges[0]), prewarp(band.edges[1])
+		wo := math.Sqrt(low * high) // geometric centre
+		bw := high - low
+		if band.btype == bandpassType {
+			analog = proto.toBandpass(wo, bw)
+		} else {
+			analog = proto.toBandstop(wo, bw)
+		}
+	default:
+		panic(fmt.Sprintf("dsp: transform called on unvalidated band %v", band))
+	}
+	return
+}
+
+// analogZPK is an analog filter described by its zeros, poles and gain in the s-plane.
+type analogZPK ZPK
+
+// fs is the fixed sample rate SciPy and MATLAB use internally for normalised digital filter design,
+// where wn = 1 means Nyquist.
+// It has no meaning outside that convention, and only gives the bilinear transform a concrete fs to warp against.
+const (
+	fs  = 2.0
+	fs2 = 2 * fs // 4.0, used directly in bilinear's (fs2+r)/(fs2-r)
+)
+
+// prewarp maps a digital cutoff wn, a fraction of Nyquist,
+// to the analog frequency the bilinear transform should target, by the fs = 2 convention SciPy and MATLAB share.
+func prewarp(wn float64) (warped float64) {
+	warped = fs2 * math.Tan(math.Pi*wn/fs)
+	return
+}
+
+// toLowpass moves a 1 rad/s lowpass prototype to a cutoff of wo rad/s by substituting s/wo for s,
+// which scales every zero and pole by wo, same as scipy.signal.lp2lp_zpk.
+func (f analogZPK) toLowpass(wo float64) (lowpass analogZPK) {
+	scale := func(r complex128) complex128 { return complex(wo, 0) * r }
+	lowpass.Zeros = poly.MapRoots(f.Zeros, scale)
+	lowpass.Poles = poly.MapRoots(f.Poles, scale)
+	lowpass.Gain = f.Gain * math.Pow(wo, float64(f.relativeDegree()))
+	return
+}
+
+// toHighpass turns a 1 rad/s lowpass prototype into a highpass with cutoff wo rad/s by substituting wo/s for s,
+// which inverts every zero and pole through wo, same as scipy.signal.lp2hp_zpk.
+// Each zero at infinity moves to the origin, DC.
+func (f analogZPK) toHighpass(wo float64) (highpass analogZPK) {
+	invert := func(r complex128) complex128 { return complex(wo, 0) / r }
+
+	highpass.Zeros = poly.AppendRepeated(poly.MapRoots(f.Zeros, invert), 0, f.relativeDegree())
+	highpass.Poles = poly.MapRoots(f.Poles, invert)
+	highpass.Gain = f.Gain * real(poly.Prod(poly.MapRoots(f.Zeros, negate))/poly.Prod(poly.MapRoots(f.Poles, negate)))
+	return
+}
+
+// toBandpass turns a 1 rad/s lowpass prototype into a bandpass centred on wo rad/s, with bandwidth bw rad/s,
+// by substituting (s² + wo²)/(s·bw) for s, same as scipy.signal.lp2bp_zpk.
+// That's quadratic in s, so every zero and pole becomes a pair,
+// and each zero at infinity becomes one zero at the origin and one that stays at infinity.
+func (f analogZPK) toBandpass(wo, bw float64) (bandpass analogZPK) {
+	scale := func(r complex128) complex128 { return complex(bw/2, 0) * r }
+	degree := f.relativeDegree()
+
+	bandpass.Zeros = poly.AppendRepeated(splitRoots(poly.MapRoots(f.Zeros, scale), wo), 0, degree)
+	bandpass.Poles = splitRoots(poly.MapRoots(f.Poles, scale), wo)
+	bandpass.Gain = f.Gain * math.Pow(bw, float64(degree))
+	return
+}
+
+// toBandstop turns a 1 rad/s lowpass prototype into a bandstop centred on wo rad/s, with bandwidth bw rad/s,
+// by substituting (s·bw)/(s² + wo²) for s, same as scipy.signal.lp2bs_zpk.
+// Every zero and pole becomes a pair,
+// and each zero at infinity becomes a pair of zeros at ±j·wo, which is the notch.
+func (f analogZPK) toBandstop(wo, bw float64) (bandstop analogZPK) {
+	invert := func(r complex128) complex128 { return complex(bw/2, 0) / r }
+	degree := f.relativeDegree()
+
+	bandstop.Zeros = splitRoots(poly.MapRoots(f.Zeros, invert), wo)
+	bandstop.Zeros = poly.AppendRepeated(bandstop.Zeros, complex(0, wo), degree)
+	bandstop.Zeros = poly.AppendRepeated(bandstop.Zeros, complex(0, -wo), degree)
+	bandstop.Poles = splitRoots(poly.MapRoots(f.Poles, invert), wo)
+	bandstop.Gain = f.Gain * real(poly.Prod(poly.MapRoots(f.Zeros, negate))/poly.Prod(poly.MapRoots(f.Poles, negate)))
+	return
+}
+
+// splitRoots replaces each root r with the pair r ± √(r² - wo²),
+// the two solutions of x² - 2r·x + wo² = 0 that the bandpass and bandstop substitutions reduce to for each root.
+// All the + roots come first, then all the - roots, in SciPy's order.
+func splitRoots(roots []complex128, wo float64) (split []complex128) {
+	n := len(roots)
+	split = make([]complex128, 2*n)
+	for i, r := range roots {
+		disc := cmplx.Sqrt(r*r - complex(wo*wo, 0))
+		split[i] = r + disc
+		split[n+i] = r - disc
+	}
+	return
+}
+
+// relativeDegree is how many more poles than zeros the filter has.
+// Each surplus pole is balanced by a zero at infinity,
+// which the frequency transforms and bilinear have to place somewhere finite.
+func (f analogZPK) relativeDegree() (degree int) {
+	degree = len(f.Poles) - len(f.Zeros)
+	return
+}
+
+// bilinear maps an analog filter to the digital domain by s = fs2·(z - 1)/(z + 1),
+// same as scipy.signal.bilinear_zpk with fs = 2.
+// Each root r becomes (fs2 + r)/(fs2 - r), and each zero at infinity lands at z = -1, Nyquist.
+func (f analogZPK) bilinear() (digital ZPK) {
+	toZ := func(r complex128) complex128 { return (fs2 + r) / (fs2 - r) }
+	distance := func(r complex128) complex128 { return fs2 - r }
+
+	digital.Zeros = poly.AppendRepeated(poly.MapRoots(f.Zeros, toZ), -1, f.relativeDegree())
+	digital.Poles = poly.MapRoots(f.Poles, toZ)
+	digital.Gain = f.Gain * real(poly.Prod(poly.MapRoots(f.Zeros, distance))/poly.Prod(poly.MapRoots(f.Poles, distance)))
+	return
+}
+
+// negate returns -r, for the Π(-z)/Π(-p) gain corrections.
+func negate(r complex128) (negated complex128) {
+	negated = -r
+	return
+}
+
+// prototypeAngle is the angle π·m/(2·order) of a prototype's k-th pole,
+// with m = -order+1, -order+3, ..., order-1.
+func prototypeAngle(order, k int) (theta float64) {
+	m := float64(-order + 1 + 2*k)
+	theta = math.Pi * m / (2 * float64(order))
+	return
+}

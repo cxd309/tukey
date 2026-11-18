@@ -1,13 +1,15 @@
 package window
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// with nbar = 1 there are no cosine terms: Taylor is Boxcar, exactly
+// With nbar = 1 there are no cosine terms:
+// Taylor is Boxcar, exactly.
 func TestTaylorAtNbar1IsBoxcar(t *testing.T) {
 	for n := 0; n <= 20; n++ {
 		boxcar, err := Boxcar(n)
@@ -18,8 +20,8 @@ func TestTaylorAtNbar1IsBoxcar(t *testing.T) {
 	}
 }
 
-// normalising divides every sample by the centre's value, so for odd n the
-// normalised window is the unnormalised one over its own centre, exactly
+// Normalising divides every sample by the centre's value,
+// so for odd n the normalised window is the unnormalised one over its own centre, exactly.
 func TestTaylorNormalisesToCentre(t *testing.T) {
 	for _, n := range []int{3, 9, 65} {
 		normalised, err := Taylor(n, 4, 30)
@@ -36,7 +38,8 @@ func TestTaylorNormalisesToCentre(t *testing.T) {
 
 func TestTaylorRejectsInvalidParameters(t *testing.T) {
 	assertInvalidParameter(t, map[string]func() ([]float64, error){
-		"nbar 0": func() ([]float64, error) { return Taylor(8, 0, 30) },
-		"sll 0":  func() ([]float64, error) { return Taylor(8, 4, 0) },
+		"nbar 0":  func() ([]float64, error) { return Taylor(8, 0, 30) },
+		"sll 0":   func() ([]float64, error) { return Taylor(8, 4, 0) },
+		"sll Inf": func() ([]float64, error) { return Taylor(8, 4, math.Inf(1)) },
 	})
 }

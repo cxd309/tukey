@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// the property Chebwin is designed for: every sidelobe of its spectrum is at
-// -attenuation dB relative to the main lobe; checked on a finely sampled spectrum
+// The property Chebwin is designed for:
+// every sidelobe of its spectrum is at -attenuation dB relative to the main lobe, checked on a finely sampled spectrum.
 func TestChebwinSidelobesAreAtAttenuation(t *testing.T) {
 	for _, attenuation := range []float64{50, 80} {
 		w, err := Chebwin(31, attenuation)
@@ -19,7 +19,7 @@ func TestChebwinSidelobesAreAtAttenuation(t *testing.T) {
 		spectrum, err := fft.ForwardReal(w, fft.N(8192))
 		require.NoError(t, err)
 
-		// walk down the main lobe to its first null; everything after is sidelobes
+		// walk down the main lobe to its first null, as everything after it is sidelobes
 		k := 1
 		for k < len(spectrum)-1 && cmplx.Abs(spectrum[k+1]) < cmplx.Abs(spectrum[k]) {
 			k++
@@ -37,5 +37,6 @@ func TestChebwinRejectsInvalidParameters(t *testing.T) {
 	assertInvalidParameter(t, map[string]func() ([]float64, error){
 		"attenuation 0":   func() ([]float64, error) { return Chebwin(8, 0) },
 		"attenuation NaN": func() ([]float64, error) { return Chebwin(8, math.NaN()) },
+		"attenuation Inf": func() ([]float64, error) { return Chebwin(8, math.Inf(1)) },
 	})
 }

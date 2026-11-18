@@ -6,16 +6,27 @@ import (
 )
 
 // Taylor returns the n-point Taylor window, for radar and array processing:
-// its first nbar-1 sidelobes are nearly level at sll dB below the main lobe,
+// its first nbar-1 sidelobes are nearly level, at sll dB below the main lobe,
 // and the rest fall away.
-// Normalised to 1 at the centre unless Unnormalised.
-// nbar = 1 is Boxcar
+// It's normalised to 1 at the centre, unless Unnormalised.
+// nbar = 1 is Boxcar.
 //
-// returns ErrInvalidLength if n < 0
-// returns ErrInvalidParameter if nbar < 1 or unless sll > 0
+//	w, err := window.Taylor(64, 4, 30)
 //
-// equivalent to scipy.signal.windows.taylor(n, nbar, sll)
-// equivalent to MATLAB taylorwin(n, nbar, -sll) is Taylor with Unnormalised, for n > 1
+// Units:
+//   - n is a number of samples
+//   - nbar is a number of sidelobes
+//   - sll is in dB, positive
+//   - w is dimensionless
+//
+// Returns:
+//   - ErrInvalidLength for a negative n.
+//   - ErrInvalidParameter for an nbar below 1, or an sll that isn't positive and finite.
+//   - ErrInvalidOption for an option other than Periodic and Unnormalised.
+//
+// Equivalent to:
+//   - scipy.signal.windows.taylor(n, nbar, sll)
+//   - MATLAB taylorwin(n, nbar, -sll), with Unnormalised, for n > 1, which has no periodic form
 func Taylor(n, nbar int, sll float64, opts ...Option) (w []float64, err error) {
 	cfg, err := newConfig("Taylor", opts, optionSet{optionPeriodic: true, optionUnnormalised: true})
 	if err != nil {
@@ -24,7 +35,7 @@ func Taylor(n, nbar int, sll float64, opts ...Option) (w []float64, err error) {
 	if nbar < 1 {
 		return nil, fmt.Errorf("%w: Taylor's nbar must be >= 1, got %d", ErrInvalidParameter, nbar)
 	}
-	if err = positive("Taylor", "sll", sll); err != nil {
+	if err = positiveFinite("Taylor", "sll", sll); err != nil {
 		return nil, err
 	}
 	f := taylorCoefficients(nbar, sll)
@@ -38,9 +49,9 @@ func Taylor(n, nbar int, sll float64, opts ...Option) (w []float64, err error) {
 	return
 }
 
-// taylorCoefficients is F[1..nbar-1], the weights of Taylor's cosine terms,
+// taylorCoefficients is F_1 to F_(nbar-1), the weights of Taylor's cosine terms,
 // which depend only on nbar and the sidelobe level.
-// f[0] is unused, so f[m] is F_m
+// f[0] is unused, so f[m] is F_m.
 func taylorCoefficients(nbar int, sll float64) (f []float64) {
 	a := math.Acosh(math.Pow(10, sll/20)) / math.Pi
 	s2 := float64(nbar*nbar) / (a*a + (float64(nbar)-0.5)*(float64(nbar)-0.5))
@@ -63,8 +74,10 @@ func taylorCoefficients(nbar int, sll float64) (f []float64) {
 }
 
 // taylorSum is the Taylor window of length m at position x:
-// 1 plus twice the sum of F_m cos(2 pi m (x - m/2 + 1/2) / m).
-// at x = (m-1)/2 it's the centre
+//
+//	1 + 2·Σ F_j·cos(2π·j·(x - m/2 + 1/2)/m)
+//
+// At x = (m-1)/2 it's the centre.
 func taylorSum(f []float64, x float64, m int) (v float64) {
 	v = 1
 	for j := 1; j < len(f); j++ {

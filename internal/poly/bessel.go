@@ -9,51 +9,22 @@ import (
 	"slices"
 )
 
-// ReverseBesselScale is how ReverseBesselRoots scales the roots
-type ReverseBesselScale int
-
-const (
-	// UnitDelay leaves the roots as they are:
-	// θ(0)/θ(s) has a group delay of 1 at DC
-	UnitDelay ReverseBesselScale = iota
-	// UnitProduct divides them by θ(0)^(1/N),
-	// so their magnitudes multiply to 1
-	UnitProduct
-	// UnitHalfPower divides them by the frequency where |θ(0)/θ(jω)|² = 1/2,
-	// moving it to 1
-	UnitHalfPower
-)
-
-// besselStepLimit is how small Aberth's and Newton's last steps must be,
-// relative to their root:
-// far below float64's precision, so the result rounds same as the exact root
-const besselStepLimit = 0x1p-80
-
-// besselMaxIterations bounds the iterations.
-// Past it the roots have failed to converge, which is a bug:
-// with too little working precision for the order,
-// rounding stops the steps shrinking below besselStepLimit,
-// so it panics rather than return inaccurate roots.
-const besselMaxIterations = 200
-
-// ReverseBesselRoots returns the roots of the reverse Bessel polynomial θ of
-// order N, scaled by scale, each rounded once from its exact value:
+// ReverseBesselRoots returns the roots of the reverse Bessel polynomial θ of order N, scaled by scale,
+// each rounded once from its exact value:
 //
-//	θ(s) = Σ (2N − k)! / (2^(N − k)·k!·(N − k)!) · s^k, for k = 0...N
+//	θ(s) = Σ (2N - k)!/(2^(N - k)·k!·(N - k)!)·s^k, for k = 0, 1, ..., N
 //
-// They're very sensitive to rounding:
-// about 1.8 bits per order, so 1e13 at order 25, and any float64 evaluation of θ,
-// by its coefficients or a recurrence, misses them by that factor times machine epsilon.
+// They're very sensitive to rounding, by about 1.8 bits per order, so 1e13 at order 25,
+// and any float64 evaluation of θ, by its coefficients or a recurrence, misses them by that factor times machine epsilon.
 // So they're found in big.Float, at 2 bits per order beyond float64's 53 and a margin,
-// by Aberth's method, with θ and θ′ from the recurrence
+// by Aberth's method, with θ and θ′ from the recurrence:
 //
-//	θ_n(s) = (2n − 1)·θ_(n−1)(s) + s²·θ_(n−2)(s),  θ_0 = 1, θ_1 = s + 1
+//	θ_n(s) = (2n - 1)·θ_(n-1)(s) + s²·θ_(n-2)(s),  θ_0 = 1, θ_1 = s + 1
 //
-// The roots come in conjugate pairs, plus one real root for an odd order,
-// sorted by imaginary part. order < 1 panics.
-//
-// Equivalent to the poles of scipy.signal.besselap(N, norm) for norm
-// "delay", "phase" and "mag", which evaluates θ with scipy.special.kve.
+// The roots come in conjugate pairs, plus one real root for an odd order, sorted by imaginary part.
+// An order below 1 panics.
+// They're the poles of scipy.signal.besselap(N, norm) for norm 'delay', 'phase' and 'mag',
+// which evaluates θ with scipy.special.kve.
 func ReverseBesselRoots(order int, scale ReverseBesselScale) (roots []complex128) {
 	if order < 1 {
 		panic(fmt.Sprintf("poly: reverse Bessel polynomial of order %d", order))
@@ -84,12 +55,36 @@ func ReverseBesselRoots(order int, scale ReverseBesselScale) (roots []complex128
 	return
 }
 
-// besselSolver finds a reverse Bessel polynomial's roots at a working
-// precision for its order
+// ReverseBesselScale is how ReverseBesselRoots scales the roots.
+type ReverseBesselScale int
+
+const (
+	// UnitDelay leaves the roots as they are,
+	// so θ(0)/θ(s) has a group delay of 1 at DC.
+	UnitDelay ReverseBesselScale = iota
+	// UnitProduct divides them by θ(0)^(1/N),
+	// so their magnitudes multiply to 1.
+	UnitProduct
+	// UnitHalfPower divides them by the frequency where |θ(0)/θ(jω)|² = 1/2,
+	// moving it to 1.
+	UnitHalfPower
+)
+
+// besselStepLimit is how small Aberth's and Newton's last steps must be, relative to their root:
+// far below float64's precision, so the result rounds the same as the exact root.
+const besselStepLimit = 0x1p-80
+
+// besselMaxIterations bounds the iterations.
+// Past it the roots have failed to converge, which is a bug,
+// as with too little working precision for the order, rounding stops the steps shrinking below besselStepLimit.
+// So it panics rather than return inaccurate roots.
+const besselMaxIterations = 200
+
+// besselSolver finds a reverse Bessel polynomial's roots at a working precision for its order.
 type besselSolver struct {
 	order  int
 	prec   uint
-	theta0 *big.Float // θ(0) = (2N)! / (2^N·N!), exactly
+	theta0 *big.Float // θ(0) = (2N)!/(2^N·N!), exactly
 }
 
 func newBesselSolver(order int) (b besselSolver) {
@@ -104,12 +99,12 @@ func newBesselSolver(order int) (b besselSolver) {
 	return
 }
 
-// one is 1 at the working precision
+// one is 1 at the working precision.
 func (b besselSolver) one() (x *big.Float) {
 	return new(big.Float).SetPrec(b.prec).SetInt64(1)
 }
 
-// theta is θ(s) and θ′(s), by the recurrence
+// theta is θ(s) and θ′(s), by the recurrence.
 func (b besselSolver) theta(s *bigComplex) (p, dp *bigComplex) {
 	one := b.complex(1)
 	prev, prevD := b.complex(1), b.complex(0)
@@ -119,11 +114,11 @@ func (b besselSolver) theta(s *bigComplex) (p, dp *bigComplex) {
 	t := b.complex(0)
 	for n := 2; n <= b.order; n++ {
 		m := new(big.Float).SetInt64(int64(2*n - 1))
-		// θ′_n = m·θ′_(n−1) + 2s·θ_(n−2) + s²·θ′_(n−2)
+		// θ′_n = m·θ′_(n-1) + 2s·θ_(n-2) + s²·θ′_(n-2)
 		nextD := b.complex(0).mulReal(dp, m)
 		nextD.add(nextD, t.mul(twoS, prev))
 		nextD.add(nextD, t.mul(sq, prevD))
-		// θ_n = m·θ_(n−1) + s²·θ_(n−2)
+		// θ_n = m·θ_(n-1) + s²·θ_(n-2)
 		next := b.complex(0).mulReal(p, m)
 		next.add(next, t.mul(sq, prev))
 		prev, prevD, p, dp = p, dp, next, nextD
@@ -131,8 +126,8 @@ func (b besselSolver) theta(s *bigComplex) (p, dp *bigComplex) {
 	return
 }
 
-// roots is θ's roots by Aberth's method, from a circle of radius θ(0)^(1/N),
-// the roots' geometric mean, turned off the real axis
+// roots is θ's roots by Aberth's method, from a circle of radius θ(0)^(1/N), the roots' geometric mean,
+// turned off the real axis.
 func (b besselSolver) roots() (z []*bigComplex) {
 	n := float64(b.order)
 	logTheta0 := lgamma(2*n+1) - n*math.Ln2 - lgamma(n+1)
@@ -149,7 +144,7 @@ func (b besselSolver) roots() (z []*bigComplex) {
 		for k := range z {
 			p, dp := b.theta(z[k])
 			ratio := b.complex(0).quo(p, dp)
-			// step = ratio / (1 − ratio·Σ_(j≠k) 1/(z_k − z_j))
+			// step = ratio/(1 - ratio·Σ_(j≠k) 1/(z_k - z_j))
 			sum.set(b.complex(0))
 			for j := range z {
 				if j != k {
@@ -167,13 +162,13 @@ func (b besselSolver) roots() (z []*bigComplex) {
 	panic(fmt.Sprintf("poly: reverse Bessel roots of order %d didn't converge", b.order))
 }
 
-// nthRoot is x^(1/N), by Newton's method from its float64 estimate
+// nthRoot is x^(1/N), by Newton's method from its float64 estimate.
 func (b besselSolver) nthRoot(x *big.Float) (r *big.Float) {
 	estimate, _ := x.Float64()
 	r = new(big.Float).SetPrec(b.prec).SetFloat64(math.Pow(estimate, 1/float64(b.order)))
 	n := new(big.Float).SetPrec(b.prec).SetInt64(int64(b.order))
 	for range besselMaxIterations {
-		// r −= (r^N − x) / (N·r^(N−1))
+		// r -= (r^N - x)/(N·r^(N-1))
 		power := b.one()
 		for range b.order - 1 {
 			power.Mul(power, r)
@@ -190,8 +185,7 @@ func (b besselSolver) nthRoot(x *big.Float) (r *big.Float) {
 }
 
 // halfPower is the ω where |θ(jω)|² = 2·θ(0)², so |θ(0)/θ(jω)|² = 1/2.
-// |θ(jω)|² is a polynomial in ω² with positive coefficients,
-// increasing and convex for ω > 0,
+// |θ(jω)|² is a polynomial in ω² with positive coefficients, increasing and convex for ω > 0,
 // so Newton's method from above it falls monotonically onto it.
 func (b besselSolver) halfPower() (w *big.Float) {
 	target := new(big.Float).SetPrec(b.prec).Mul(b.theta0, b.theta0)
@@ -201,7 +195,7 @@ func (b besselSolver) halfPower() (w *big.Float) {
 		s := b.complex(0)
 		s.im.Set(w)
 		p, dp := b.theta(s)
-		// f = |θ|² − target, f′ = d/dω |θ(jω)|² = 2·Re(conj(θ)·j·θ′) = 2·(θi·θ′r − θr·θ′i)
+		// f = |θ|² - target, f′ = d/dω |θ(jω)|² = 2·Re(conj(θ)·j·θ′) = 2·(θi·θ′r - θr·θ′i)
 		f := b.absSq(p)
 		f.Sub(f, target)
 		slope := new(big.Float).SetPrec(b.prec).Mul(&p.im, &dp.re)
@@ -216,13 +210,13 @@ func (b besselSolver) halfPower() (w *big.Float) {
 	panic(fmt.Sprintf("poly: reverse Bessel half-power frequency of order %d didn't converge", b.order))
 }
 
-// absSq is |z|²
+// absSq is |z|².
 func (b besselSolver) absSq(z *bigComplex) (x *big.Float) {
 	x = new(big.Float).SetPrec(b.prec).Mul(&z.re, &z.re)
 	return x.Add(x, new(big.Float).SetPrec(b.prec).Mul(&z.im, &z.im))
 }
 
-// complex is c at the working precision
+// complex is c at the working precision.
 func (b besselSolver) complex(c complex128) (z *bigComplex) {
 	z = &bigComplex{}
 	z.re.SetPrec(b.prec).SetFloat64(real(c))
@@ -230,14 +224,14 @@ func (b besselSolver) complex(c complex128) (z *bigComplex) {
 	return
 }
 
-// lgamma is ln Γ(x) for x > 0
+// lgamma is ln Γ(x), for x > 0.
 func lgamma(x float64) (y float64) {
 	y, _ = math.Lgamma(x)
 	return
 }
 
-// bigComplex is a complex number of big.Floats. Each method sets z to its
-// result and returns it; z may be an argument, as for big.Float.
+// bigComplex is a complex number of big.Floats.
+// Each method sets z to its result and returns it, and z may be an argument, same as for big.Float.
 type bigComplex struct {
 	re, im big.Float
 }

@@ -1,8 +1,7 @@
-"""scipy.signal.windows, symetric and period, at lengths covering the edge cases"""
+"""scipy.signal.windows, symmetric and periodic, at lengths covering the edge cases"""
 
 from typing import Final
 
-import numpy as np
 import scipy as sc
 
 from write import write_vector
@@ -31,8 +30,6 @@ WINDOWS: Final = {
     "bohman": {"": {}},
     "parzen": {"": {}},
     "lanczos": {"": {}},
-    # MATLAB's hanning: see hanning below
-    "hanning": {"": {}},
     # alpha 0 is boxcar, 1 is hann
     "tukey": {f"alpha{a}": {"alpha": a} for a in (0.0, 0.25, 0.5, 1.0)},
     # beta 0 is boxcar; 8.6 approximates blackman
@@ -73,8 +70,7 @@ WINDOWS: Final = {
 def generate_windows() -> None:
     """Every window in WINDOWS, at every length, symmetric and periodic, where scipy allows"""
     for name, cases in WINDOWS.items():
-        window = window_function(name)
-        prefix = "" if name == "hanning" else "scipy.signal.windows."
+        window = getattr(sc.signal.windows, name)
         for label, kwargs in cases.items():
             for n in LENGTHS:
                 for sym in (True, False):
@@ -85,7 +81,7 @@ def generate_windows() -> None:
                     write_vector(
                         f"window/{name}",
                         "_".join(filter(None, (label, f"n{n}", shape))),
-                        f"{prefix}{name}({n}, {args}sym={sym})",
+                        f"scipy.signal.windows.{name}({n}, {args}sym={sym})",
                         {"n": n, "sym": sym, **kwargs},
                         {"w": window(n, **kwargs, sym=sym).tolist()},
                     )
@@ -98,23 +94,3 @@ def unsupported(name: str, kwargs: dict, n: int, sym: bool) -> bool:
     if name == "exponential":
         return sym and "center" in kwargs
     return False
-
-
-def window_function(name: str):
-    """The scipy.signal.windows function called name, or hanning, which SciPy lacks"""
-    if name == "hanning":
-        return hanning
-    return getattr(sc.signal.windows, name)
-
-
-def hanning(n: int, sym: bool = True) -> np.ndarray:
-    """
-    MATLAB's hanning, which SciPy doesn't have
-    from MATLAB's documentation:
-    symmetric, it's hann withouts its zero endpoints, hann(n+2)[1:-1]
-    periodic, it's hann's period window, keeping its first zero
-    testdata/matlab/window/hanning checks this definition
-    """
-    if not sym:
-        return sc.signal.windows.hann(n, sym=False)
-    return sc.signal.windows.hann(n + 2)[1:-1]

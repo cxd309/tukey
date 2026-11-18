@@ -11,6 +11,10 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true
   },
+  // show each Go file's tests folded under it in the explorer
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": { "*.go": "${capture}_test.go", "doc.go": "example_test.go" },
   "python.defaultInterpreterPath": "${workspaceFolder}/reference/scipy/.venv/bin/python",
   "python.analysis.extraPaths": ["reference/scipy"],
   "ruff.importStrategy": "fromEnvironment"

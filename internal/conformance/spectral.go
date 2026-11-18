@@ -8,13 +8,13 @@ import (
 	"github.com/cxd309/tukey/internal/reference"
 )
 
-// complexRows is a complex matrix as stored in reference vector JSON: one row per segment
+// complexRows is a complex matrix as stored in reference vector JSON, one row per segment.
 type complexRows struct {
 	Re [][]float64 `json:"re"`
 	Im [][]float64 `json:"im"`
 }
 
-// flattened is the matrix as one slice, row by row, so it's compared at one scale
+// flattened is the matrix as one slice, row by row, so it's compared at one scale.
 func (c complexRows) flattened() (values []complex128) {
 	for i, row := range c.Re {
 		for j, re := range row {
@@ -31,7 +31,7 @@ type stftVector struct {
 		FS       float64   `json:"fs"`
 		Window   []float64 `json:"window"`
 		Overlap  int       `json:"overlap"`
-		NFFT     *int      `json:"nfft"` // null for the window's length
+		NFFT     *int      `json:"nfft"` // or null for the window's length
 		TwoSided bool      `json:"two_sided"`
 	} `json:"params"`
 	Output struct {
@@ -41,14 +41,15 @@ type stftVector struct {
 	} `json:"output"`
 }
 
-// stft measured: worst 4.2e-16 (2 ULP) against both, on tones_hamming255_nfft301,
-// on both architectures. Set ~10x above.
+// The stft suites.
+// Measured: worst 2 ULP, 4.2e-16, against both, on tones_hamming255_nfft301, on both architectures.
+// Tolerance: about 10 times the worst.
 var (
 	stftSciPySuite  = newSuite("STFT", reference.SourceSciPy, "stft", tolerance(1e-14), stftOutputs)
 	stftMATLABSuite = newSuite("STFT", reference.SourceMATLAB, "stft", tolerance(1e-14), stftOutputs)
 )
 
-// stftOutputs pairs dsp.STFT's frequencies, times and values with a vector's
+// stftOutputs pairs dsp.STFT's frequencies, times and values with a vector's.
 func stftOutputs(v stftVector) (outputs []Output, err error) {
 	p := v.Params
 	opts := []dsp.SpectralOption{dsp.Overlap(p.Overlap)}
@@ -97,17 +98,19 @@ type stftFrequenciesVector struct {
 	} `json:"output"`
 }
 
-// stft_frequencies measured: worst 2.2e-16 (1 ULP) against SciPy, on tones_between_bins,
-// and 2.4e-13 against MATLAB, on band_zoom, on both architectures. Set ~10x above.
+// The stft_frequencies suites.
+// Measured: worst 1 ULP, 2.2e-16, against SciPy, on tones_between_bins,
+// and 2.4e-13 against MATLAB, on band_zoom, on both architectures.
+// Tolerance: about 10 times the worst.
 // The SciPy side is summed exactly, with each twiddle's angle reduced exactly.
-// MATLAB's frequency-vector path is that far from the exact sums itself, even at the
-// FFT's own bins, where its FFT path is within 3e-16.
+// MATLAB's frequency-vector path is that far from the exact sums itself, even at the FFT's own bins,
+// where its FFT path is within 3e-16.
 var (
 	stftFrequenciesSciPySuite  = newSuite("STFT (AtFrequencies)", reference.SourceSciPy, "stft_frequencies", tolerance(1e-14), stftFrequenciesOutputs)
 	stftFrequenciesMATLABSuite = newSuite("STFT (AtFrequencies)", reference.SourceMATLAB, "stft_frequencies", tolerance(1e-11), stftFrequenciesOutputs)
 )
 
-// stftFrequenciesOutputs pairs dsp.STFT with AtFrequencies against a vector's.
+// stftFrequenciesOutputs pairs dsp.STFT, with AtFrequencies, with a vector's.
 func stftFrequenciesOutputs(v stftFrequenciesVector) (outputs []Output, err error) {
 	p := v.Params
 	tf, err := dsp.STFT(p.X, p.FS, p.Window, dsp.Overlap(p.Overlap), dsp.AtFrequencies(p.Frequencies))
@@ -147,8 +150,9 @@ type spectrogramVector struct {
 	} `json:"output"`
 }
 
-// spectrogram measured: worst 7.3e-16 (3 ULP) against both, on chirp_hamming255_nfft301,
-// on both architectures. Set ~10x above.
+// The spectrogram suites.
+// Measured: worst 3 ULP, 7.3e-16, against both, on chirp_hamming255_nfft301, on both architectures.
+// Tolerance: about 10 times the worst.
 var (
 	spectrogramSciPySuite  = newSuite("Spectrogram", reference.SourceSciPy, "spectrogram", tolerance(1e-14), spectrogramOutputs)
 	spectrogramMATLABSuite = newSuite("Spectrogram", reference.SourceMATLAB, "spectrogram", tolerance(1e-14), spectrogramOutputs)
@@ -188,9 +192,11 @@ type welchVector struct {
 	} `json:"output"`
 }
 
-// welch measured: worst 1.1e-15 (5 ULP) against SciPy and 1.3e-15 (6 ULP) against MATLAB
-// on arm64, on chirp_hamming255_nfft512, on both architectures. Set ~10x above. The
-// median average, with its bias correction, and per-segment detrending match SciPy too.
+// The welch suites.
+// Measured: worst 5 ULP, 1.1e-15, against SciPy, and 6 ULP, 1.3e-15, against MATLAB on arm64,
+// on chirp_hamming255_nfft512, on both architectures.
+// Tolerance: about 10 times the worst.
+// The median average, with its bias correction, and per-segment detrending match SciPy too.
 // MATLAB's pwelch has neither, so those cases are SciPy only.
 var (
 	welchSciPySuite  = newSuite("Welch", reference.SourceSciPy, "welch", tolerance(1e-13), welchOutputs)
@@ -204,16 +210,16 @@ func welchOutputs(v welchVector) (outputs []Output, err error) {
 	switch p.Average {
 	case "mean":
 	case "median":
-		opts = append(opts, dsp.Average(dsp.AverageMedian))
+		opts = append(opts, dsp.AverageMedian())
 	default:
 		return nil, fmt.Errorf("unknown average %q", p.Average)
 	}
 	switch p.Detrend {
 	case "none":
 	case "constant":
-		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendConstant))
+		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendConstant()))
 	case "linear":
-		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendLinear))
+		opts = append(opts, dsp.SegmentDetrend(dsp.DetrendLinear()))
 	default:
 		return nil, fmt.Errorf("unknown detrend %q", p.Detrend)
 	}
@@ -243,8 +249,10 @@ type periodogramVector struct {
 	} `json:"output"`
 }
 
-// periodogram measured: worst 1.1e-15 (5 ULP) against SciPy, on tones_hann_spectrum, and
-// 5.0e-16 (2 ULP) against MATLAB, on tones_boxcar, on both architectures. Set ~10x above.
+// The periodogram suites.
+// Measured: worst 5 ULP, 1.1e-15, against SciPy, on tones_hann_spectrum,
+// and 2 ULP, 5.0e-16, against MATLAB, on tones_boxcar, on both architectures.
+// Tolerance: about 10 times the worst.
 var (
 	periodogramSciPySuite  = newSuite("Periodogram", reference.SourceSciPy, "periodogram", tolerance(1e-13), periodogramOutputs)
 	periodogramMATLABSuite = newSuite("Periodogram", reference.SourceMATLAB, "periodogram", tolerance(1e-14), periodogramOutputs)
@@ -264,11 +272,11 @@ func periodogramOutputs(v periodogramVector) (outputs []Output, err error) {
 	return
 }
 
-// powerOptions is a vector's scaling and NFFT as SpectralOptions. An unknown
-// scaling is left as the default, density.
+// powerOptions is a vector's scaling and NFFT as SpectralOptions.
+// An unknown scaling is left as the default, density.
 func powerOptions(scaling string, nfft *int) (opts []dsp.SpectralOption) {
 	if scaling == "spectrum" {
-		opts = append(opts, dsp.Scaling(dsp.ScalingSpectrum))
+		opts = append(opts, dsp.ScalingSpectrum())
 	}
 	if nfft != nil {
 		opts = append(opts, dsp.NFFT(*nfft))

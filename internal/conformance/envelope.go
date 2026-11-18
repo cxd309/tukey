@@ -20,16 +20,23 @@ type envelopeVector struct {
 	} `json:"output"`
 }
 
-// envelope measured: worst 1.0e-15 (5 ULP) against SciPy, on sines_analytic on amd64 (7.4e-16 on arm64),
-// and 4.5e-15 (20 ULP) against MATLAB, on impulse_rms250, on both architectures. Set ~10x above.
-// The compensated mean took sines_analytic from 3 to 5 ULP on amd64, although it's the exactly
-// rounded mean (the plain sum's was 4.2e-17 off). That small change in the centred input moves
-// where the FFT's roundings land, so the difference from NumPy is rounding noise, not lost accuracy.
+// The envelope suites.
+// Measured:
+//   - worst 5 ULP, 1.0e-15, against SciPy, on sines_analytic on amd64, and 7.4e-16 on arm64
+//   - worst 20 ULP, 4.5e-15, against MATLAB, on impulse_rms250, on both architectures
+//
+// Tolerance: about 10 times the worst.
+//
+// The compensated mean took sines_analytic from 3 to 5 ULP on amd64, although it's the exactly rounded mean,
+// where the plain sum's was 4.2e-17 off.
+// That small change in the centred input moves where the FFT's roundings land,
+// so the difference from NumPy is rounding noise, not lost accuracy.
 // The SciPy side is MATLAB's definition built from SciPy and NumPy, which MATLAB's own vectors confirm.
-// The gap to MATLAB is MATLAB's own rounding. Where one large square sits among many small ones,
-// its RMS envelope loses the small ones' low bits, as a plain sum does: on impulse_rms250 it's
-// 4.5e-15 from the exactly summed answer (math.fsum), where the SciPy side, summed pairwise by NumPy,
-// is 6.6e-16. dsp.Envelope's compensated sum matches the SciPy side.
+// The gap to MATLAB is MATLAB's own rounding.
+// Where one large square sits among many small ones, MATLAB's RMS envelope loses the small ones' low bits,
+// the same as a plain sum, so on impulse_rms250 it's 4.5e-15 from the exactly summed answer, by math.fsum,
+// where the SciPy side, summed pairwise by NumPy, is 6.6e-16.
+// dsp.Envelope's compensated sum matches the SciPy side.
 var (
 	envelopeSciPySuite  = newSuite("Envelope", reference.SourceSciPy, "envelope", tolerance(1e-14), envelopeOutputs)
 	envelopeMATLABSuite = newSuite("Envelope", reference.SourceMATLAB, "envelope", tolerance(1e-13), envelopeOutputs)

@@ -15,8 +15,9 @@ type hilbertVector struct {
 	} `json:"output"`
 }
 
-// hilbert measured: worst 5.7e-16 (3 ULP) against SciPy and 5.8e-16 (3 ULP)
-// against MATLAB, on the longest signal, on both architectures. Set ~10x above.
+// The hilbert suites.
+// Measured: worst 3 ULP, 5.7e-16 against SciPy and 5.8e-16 against MATLAB, on the longest signal, on both architectures.
+// Tolerance: about 10 times the worst.
 var (
 	hilbertSciPySuite  = newSuite("Hilbert", reference.SourceSciPy, "hilbert", tolerance(1e-14), hilbertOutputs)
 	hilbertMATLABSuite = newSuite("Hilbert", reference.SourceMATLAB, "hilbert", tolerance(1e-14), hilbertOutputs)
@@ -24,10 +25,7 @@ var (
 
 // hilbertOutputs pairs dsp.Hilbert's analytic signal with a vector's.
 func hilbertOutputs(v hilbertVector) (outputs []Output, err error) {
-	analytic, err := dsp.Hilbert(v.Params.X)
-	if err != nil {
-		return nil, err
-	}
+	analytic := dsp.Hilbert(v.Params.X)
 	want, err := v.Output.Analytic.Values()
 	if err != nil {
 		return nil, err

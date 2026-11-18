@@ -16,13 +16,14 @@ func TestDiff(t *testing.T) {
 	assert.Equal(t, []float64{-2}, Diff([]float64{3, 1}))
 }
 
-// Diff of Diff is the second difference: the squares' is constant.
+// Diff of Diff is the second difference:
+// the squares' is constant.
 func TestDiffTwice(t *testing.T) {
 	assert.Equal(t, []float64{2, 2}, Diff(Diff([]float64{1, 4, 9, 16})))
 }
 
-// Fewer than 2 samples have no differences: an empty slice, not nil, so the
-// result can always be ranged over, appended to or passed on.
+// Fewer than 2 samples have no differences:
+// an empty slice, not nil, so the result can always be ranged over, appended to or passed on.
 func TestDiffShortSignals(t *testing.T) {
 	for _, x := range [][]float64{nil, {}, {5}} {
 		d := Diff(x)
@@ -37,8 +38,8 @@ func TestGrad(t *testing.T) {
 	assert.Equal(t, []float64{3, 4, 6, 7}, g, "one-sided at the ends, central inside")
 }
 
-// A line's gradient is its slope everywhere, ends included. Every sample and
-// difference here is exact.
+// A line's gradient is its slope everywhere, ends included.
+// Every sample and difference here is exact.
 func TestGradOfALineIsItsSlope(t *testing.T) {
 	const dx, slope = 0.5, 3.0
 	x := make([]float64, 9)
@@ -62,7 +63,7 @@ func TestGradTwoSamples(t *testing.T) {
 func TestGradRejectsInvalidInput(t *testing.T) {
 	for _, x := range [][]float64{nil, {}, {5}} {
 		_, err := Grad(x, 1)
-		assert.ErrorIs(t, err, ErrInvalidLength, "%d samples", len(x))
+		assert.ErrorIs(t, err, ErrSignalTooShort, "%d samples", len(x))
 	}
 	for _, dx := range invalidSpacings {
 		_, err := Grad([]float64{1, 2, 3}, dx)
@@ -136,9 +137,9 @@ func TestCumTrapz(t *testing.T) {
 	}
 }
 
-// CumTrapz ends at Trapz's integral. The two add different terms, the halves
-// separately against the middle samples whole, so they can differ in the last
-// bit.
+// CumTrapz ends at Trapz's integral.
+// The two add different terms, the halves separately against the middle samples whole,
+// so they can differ in the last bit.
 func TestCumTrapzEndsAtTrapz(t *testing.T) {
 	y, dx := noise(1000, 1), 0.01
 	cumulative, err := CumTrapz(y, dx)
@@ -148,8 +149,7 @@ func TestCumTrapzEndsAtTrapz(t *testing.T) {
 	assert.InDelta(t, integral, cumulative[len(cumulative)-1], 1e-15*dx*sumAbs(y))
 }
 
-// The spacing is checked whatever y's length, so a bad dx is caught even
-// before there's anything to integrate.
+// The spacing is checked whatever y's length, so a bad dx is caught even before there's anything to integrate.
 func TestTrapzRejectsInvalidSpacing(t *testing.T) {
 	for _, y := range [][]float64{nil, {1, 2, 3}} {
 		for _, dx := range invalidSpacings {

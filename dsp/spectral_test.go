@@ -40,8 +40,7 @@ func noise(n int, seed uint64) (x []float64) {
 	return
 }
 
-// assertComplexNear asserts got is within tol of want, element by element,
-// relative to want's largest magnitude.
+// assertComplexNear asserts got is within tol of want, element by element, relative to want's largest magnitude.
 func assertComplexNear(t *testing.T, want, got []complex128, tol float64) {
 	t.Helper()
 	if !assert.Len(t, got, len(want)) {
@@ -56,9 +55,9 @@ func assertComplexNear(t *testing.T, want, got []complex128, tol float64) {
 	}
 }
 
-// Segments are cut by hand here: a 4-sample boxcar over 1 to 10 at 2 Hz.
-// The default overlap is half the window, so segments start every 2 samples,
-// and each one's DC bin is its sum.
+// Segments are cut by hand here:
+// a 4-sample boxcar over 1 to 10 at 2 Hz.
+// The default overlap is half the window, so segments start every 2 samples, and each one's DC bin is its sum.
 func TestSTFTSegments(t *testing.T) {
 	boxcar := []float64{1, 1, 1, 1}
 	cases := []struct {
@@ -130,7 +129,9 @@ func TestSTFTTwoSided(t *testing.T) {
 			require.NoError(t, err)
 			one, err := STFT(x, fs, win, NFFT(c.nfft))
 			require.NoError(t, err)
-			assert.Equal(t, fft.Freq(c.nfft, 1/fs), two.Frequencies)
+			freq, err := fft.Freq(c.nfft, 1/fs)
+			require.NoError(t, err)
+			assert.Equal(t, freq, two.Frequencies)
 			for i, spectrum := range two.Values {
 				require.Len(t, spectrum, c.nfft)
 				mirrored := make([]complex128, c.nfft)
@@ -144,17 +145,17 @@ func TestSTFTTwoSided(t *testing.T) {
 	}
 }
 
-// With each segment's mean removed, an offset added to the whole signal makes
-// no difference. Without, it lands in the DC bin, scaled by the window's sum.
+// With each segment's mean removed, an offset added to the whole signal makes no difference.
+// Without, it lands in the DC bin, scaled by the window's sum.
 func TestSTFTSegmentDetrend(t *testing.T) {
 	x, win := noise(256, 9), hann(t, 32)
 	offset := make([]float64, len(x))
 	for i, v := range x {
 		offset[i] = v + 5
 	}
-	plain, err := STFT(x, 1, win, SegmentDetrend(DetrendConstant))
+	plain, err := STFT(x, 1, win, SegmentDetrend(DetrendConstant()))
 	require.NoError(t, err)
-	shifted, err := STFT(offset, 1, win, SegmentDetrend(DetrendConstant))
+	shifted, err := STFT(offset, 1, win, SegmentDetrend(DetrendConstant()))
 	require.NoError(t, err)
 	for i := range plain.Values {
 		assertComplexNear(t, plain.Values[i], shifted.Values[i], 1e-13)
@@ -203,17 +204,17 @@ func TestSTFTInvalid(t *testing.T) {
 		want   error
 	}{
 		{"empty window", x, 1, nil, nil, ErrInvalidLength},
-		{"window longer than x", x[:3], 1, win, nil, ErrInvalidLength},
+		{"window longer than x", x[:3], 1, win, nil, ErrSignalTooShort},
 		{"NFFT shorter than window", x, 1, win, []SpectralOption{NFFT(3)}, ErrInvalidLength},
 		{"no frequencies", x, 1, win, []SpectralOption{AtFrequencies(nil)}, ErrInvalidLength},
 		{"zero fs", x, 0, win, nil, ErrInvalidParameter},
 		{"negative fs", x, -1, win, nil, ErrInvalidParameter},
 		{"NaN fs", x, math.NaN(), win, nil, ErrInvalidParameter},
+		{"infinite fs", x, math.Inf(1), win, nil, ErrInvalidParameter},
 		{"negative overlap", x, 1, win, []SpectralOption{Overlap(-1)}, ErrInvalidParameter},
 		{"overlap of the whole window", x, 1, win, []SpectralOption{Overlap(4)}, ErrInvalidParameter},
-		{"AtFrequencies with NFFT", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), NFFT(8)}, ErrInvalidParameter},
-		{"AtFrequencies two-sided", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), TwoSided()}, ErrInvalidParameter},
-		{"unknown detrend mode", x, 1, win, []SpectralOption{SegmentDetrend(DetrendMode(99))}, ErrInvalidMode},
+		{"AtFrequencies with NFFT", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), NFFT(8)}, ErrInvalidOption},
+		{"AtFrequencies two-sided", x, 1, win, []SpectralOption{AtFrequencies([]float64{0.1}), TwoSided()}, ErrInvalidOption},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -223,9 +224,10 @@ func TestSTFTInvalid(t *testing.T) {
 	}
 }
 
-// Parseval: density summed over frequency is the windowed signal's power,
-// sum((w·x)²) / sum(w²), so a boxcar's is x's mean square. One-sided, at even
-// and odd lengths, as doubling every bin but DC and Nyquist keeps the total.
+// Parseval:
+// density summed over frequency is the windowed signal's power, sum((w·x)²) / sum(w²),
+// so a boxcar's is x's mean square.
+// One-sided, at even and odd lengths, as doubling every bin but DC and Nyquist keeps the total.
 func TestPeriodogramParseval(t *testing.T) {
 	const fs = 50.0
 	for _, n := range []int{256, 255} {
@@ -261,14 +263,14 @@ func TestPeriodogramSineSpectrum(t *testing.T) {
 		x[i] = amplitude * math.Sin(2*math.Pi*8*float64(i)/fs) // 8 Hz is bin 8
 		boxcar[i] = 1
 	}
-	spectrum, err := Periodogram(x, fs, boxcar, Scaling(ScalingSpectrum))
+	spectrum, err := Periodogram(x, fs, boxcar, ScalingSpectrum())
 	require.NoError(t, err)
 	assert.Equal(t, 8.0, spectrum.Frequencies[8])
 	assert.InDelta(t, amplitude*amplitude/2, spectrum.Power[8], 1e-12)
 }
 
-// One-sided power is two-sided power folded over: each positive frequency plus
-// its negative mirror, with DC, and Nyquist for an even NFFT, left as they are.
+// One-sided power is two-sided power folded over:
+// each positive frequency plus its negative mirror, with DC, and Nyquist for an even NFFT, left as they are.
 func TestSpectrogramOneSidedFoldsTwoSided(t *testing.T) {
 	x, win := noise(400, 12), hann(t, 32)
 	for _, nfft := range []int{32, 33} {
@@ -293,21 +295,21 @@ func TestSpectrogramOneSidedFoldsTwoSided(t *testing.T) {
 	}
 }
 
-// Over a single segment there's nothing to average, so Welch is that segment's
-// periodogram, with either average: the median of one value has no bias.
+// Over a single segment there's nothing to average, so Welch is that segment's periodogram, with either average:
+// the median of one value has no bias.
 func TestWelchOneSegmentIsPeriodogram(t *testing.T) {
 	x, win := noise(64, 13), hann(t, 64)
 	want, err := Periodogram(x, 10, win)
 	require.NoError(t, err)
-	for _, average := range []SpectralAverage{AverageMean, AverageMedian} {
-		got, err := Welch(x, 10, win, Average(average))
+	for _, average := range []SpectralOption{AverageMean(), AverageMedian()} {
+		got, err := Welch(x, 10, win, average)
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
 	}
 }
 
-// The median of n exponentially distributed values falls below their mean by
-// 1 − 1/2 + 1/3 − … to the 1/n term for odd n, approaching ln 2 as n grows.
+// The median of n exponentially distributed values falls below their mean by 1 - 1/2 + 1/3 - ... to the 1/n term for odd n,
+// approaching ln 2 as n grows.
 func TestMedianBias(t *testing.T) {
 	cases := []struct {
 		n    int
@@ -333,17 +335,34 @@ func TestPowerSpectraInvalid(t *testing.T) {
 		want error
 	}{
 		{"Periodogram window shorter than x", func() error { _, err := Periodogram(x, 1, win); return err }, ErrInvalidLength},
-		{"Overlap on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Overlap(1)); return err }, ErrInvalidParameter},
-		{"Average on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
-		{"Average on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
-		{"AtFrequencies on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidParameter},
-		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidParameter},
-		{"Scaling on STFT", func() error { _, err := STFT(x, 1, win, Scaling(ScalingSpectrum)); return err }, ErrInvalidParameter},
-		{"Average on STFT", func() error { _, err := STFT(x, 1, win, Average(AverageMedian)); return err }, ErrInvalidParameter},
+		{"Overlap on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, Overlap(1)); return err }, ErrInvalidOption},
+		{"AverageMedian on Periodogram", func() error { _, err := Periodogram(x[:4], 1, win, AverageMedian()); return err }, ErrInvalidOption},
+		{"AverageMedian on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AverageMedian()); return err }, ErrInvalidOption},
+		{"AtFrequencies on Spectrogram", func() error { _, err := Spectrogram(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
+		{"AtFrequencies on Welch", func() error { _, err := Welch(x, 1, win, AtFrequencies([]float64{0.1})); return err }, ErrInvalidOption},
+		{"ScalingSpectrum on STFT", func() error { _, err := STFT(x, 1, win, ScalingSpectrum()); return err }, ErrInvalidOption},
+		{"AverageMedian on STFT", func() error { _, err := STFT(x, 1, win, AverageMedian()); return err }, ErrInvalidOption},
+		{"NaN in the window", func() error { _, err := Welch(x, 1, []float64{1, math.NaN(), 1, 1}); return err }, ErrInvalidParameter},
+		{"infinite window", func() error { _, err := STFT(x, 1, []float64{1, 1, math.Inf(1), 1}); return err }, ErrInvalidParameter},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			assert.ErrorIs(t, c.call(), c.want)
 		})
+	}
+}
+
+// A NaN segment makes the median unknown, so every bin is NaN, same as SciPy.
+// An infinite sample does the same, as its segment's transform is NaN.
+func TestWelchMedianOfNonFinite(t *testing.T) {
+	win := []float64{1, 1, 1, 1, 1, 1, 1, 1}
+	for _, v := range []float64{math.NaN(), math.Inf(1)} {
+		x := noise(64, 3)
+		x[20] = v
+		median, err := Welch(x, 1, win, AverageMedian())
+		require.NoError(t, err)
+		for k, p := range median.Power {
+			assert.True(t, math.IsNaN(p), "sample %g, bin %d", v, k)
+		}
 	}
 }

@@ -10,30 +10,9 @@ import (
 	"testing"
 )
 
-// Source is the tool a set of reference vectors come from
-// and the testdata/ directory they are in
-type Source string
-
-const (
-	SourceSciPy  Source = "scipy"
-	SourceMATLAB Source = "matlab"
-)
-
-// Meta is the header every reference vector file carries: embed it in each vector type
-type Meta struct {
-	Description string            `json:"description"`
-	Versions    map[string]string `json:"versions"` // e.g. {"scipy": "1.18.1", "numpy": "2.5.3"}
-}
-
-// File is one decoded reference vector file
-type File[T any] struct {
-	Name   string // file name, e.g. "butter2_lp0.3_step.json"
-	Vector T
-}
-
-// Load decodes every testdata/<source>/<category>/*.json into a T, in file-name order
-// unknown JSON fields are an error, so a mistyped struct tag fails loudly
-// instead of silently decoding as an empty field
+// Load decodes every testdata/<source>/<category>/*.json into a T, in file-name order.
+// An unknown JSON field is an error, so a mistyped struct tag fails loudly,
+// rather than silently decoding as an empty field.
 func Load[T any](source Source, category string) (files []File[T], err error) {
 	dir := filepath.Join(testdataDir(), string(source), category)
 	paths, err := filepath.Glob(filepath.Join(dir, "*.json"))
@@ -59,8 +38,7 @@ func Load[T any](source Source, category string) (files []File[T], err error) {
 	return
 }
 
-// Run loads source's reference vectors for category and runs check on each
-// as a subtest named after its file
+// Run loads source's reference vectors for category, and runs check on each as a subtest named after its file.
 func Run[T any](t *testing.T, source Source, category string, check func(t *testing.T, v T)) {
 	t.Helper()
 	files, err := Load[T](source, category)
@@ -72,9 +50,28 @@ func Run[T any](t *testing.T, source Source, category string, check func(t *test
 	}
 }
 
-// testdataDir is the repository's testdata/, located from this source file rather
-// than the working directory, so it's found by both go test (which runs in each
-// package's own directory) and go run (which runs wherever it's invoked)
+// Source is the tool a set of reference vectors comes from, and the testdata directory they're in.
+type Source string
+
+const (
+	SourceSciPy  Source = "scipy"
+	SourceMATLAB Source = "matlab"
+)
+
+// Meta is the header every reference vector file carries, to embed in each vector type.
+type Meta struct {
+	Description string            `json:"description"`
+	Versions    map[string]string `json:"versions"` // e.g. {"scipy": "1.18.1", "numpy": "2.5.3"}
+}
+
+// File is one decoded reference vector file.
+type File[T any] struct {
+	Name   string // file name, e.g. "butter2_lp0.3_step.json"
+	Vector T
+}
+
+// testdataDir is the repository's testdata directory, located from this source file rather than the working directory,
+// so both go test, which runs in each package's own directory, and go run, which runs wherever it's invoked, find it.
 func testdataDir() (dir string) {
 	_, thisFile, _, _ := runtime.Caller(0)
 	dir = filepath.Join(filepath.Dir(thisFile), "..", "..", "testdata")

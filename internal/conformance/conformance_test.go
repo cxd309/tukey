@@ -7,15 +7,15 @@ import (
 )
 
 // TestConformance runs every suite, with one subtest per source, suite and vector file,
-// e.g. TestConformance/scipy/Filter/butter2_lp0.3_step.json
-// run one source alone with -run TestConformance/matlab
+// e.g. TestConformance/scipy/Filter/butter2_lp0.3_step.json.
+// Run one source alone with -run TestConformance/matlab.
 func TestConformance(t *testing.T) {
 	for _, suite := range Suites {
 		t.Run(string(suite.Source)+"/"+suite.Name, func(t *testing.T) { checkSuite(t, suite) })
 	}
 }
 
-// checkSuite runs each of suite's reference vectors as its own subtest
+// checkSuite runs each of suite's reference vectors as its own subtest.
 func checkSuite(t *testing.T, suite Suite) {
 	results, err := suite.Run()
 	require.NoError(t, err)
@@ -24,8 +24,7 @@ func checkSuite(t *testing.T, suite Suite) {
 	}
 }
 
-// checkFile fails if the dsp function errored on this vector,
-// or if any of its outputs fell outside tolerance
+// checkFile fails if the dsp function errored on this vector, or if any of its outputs fell outside tolerance.
 func checkFile(t *testing.T, r FileResult) {
 	require.NoError(t, r.Err)
 	for _, o := range r.Outputs {

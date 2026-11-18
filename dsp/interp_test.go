@@ -24,8 +24,8 @@ func TestInterp1Between(t *testing.T) {
 	assert.Equal(t, []float64{2, 3, 1}, yi)
 }
 
-// Outside [x[0], x[len(x)-1]], and for NaN, the result is NaN, as MATLAB's
-// interp1 and SciPy's interp1d with bounds_error=False.
+// Outside [x[0], x[len(x)-1]], and for NaN, the result is NaN,
+// as MATLAB's interp1 and SciPy's interp1d with bounds_error=False.
 func TestInterp1OutsideIsNaN(t *testing.T) {
 	yi, err := Interp1([]float64{0, 1, 2}, []float64{5, 6, 7}, []float64{-0.001, 2.001, math.NaN(), math.Inf(1)})
 	require.NoError(t, err)
@@ -71,4 +71,90 @@ func TestInterp1DoesNotModifyInputs(t *testing.T) {
 	assert.Equal(t, xBefore, x)
 	assert.Equal(t, yBefore, y)
 	assert.Equal(t, xiBefore, xi)
+}
+
+var nan = math.NaN()
+
+func TestFillLinear(t *testing.T) {
+	cases := []struct {
+		name string
+		x    []float64
+		want []float64
+	}{
+		{"nothing missing", []float64{1, 2, 4}, []float64{1, 2, 4}},
+		{"gap", []float64{1, nan, 3}, []float64{1, 2, 3}},
+		{"long gap", []float64{0, nan, nan, nan, 4}, []float64{0, 1, 2, 3, 4}},
+		{"leading, extrapolated", []float64{nan, nan, 2, 3}, []float64{0, 1, 2, 3}},
+		{"trailing, extrapolated", []float64{1, 2, nan, nan}, []float64{1, 2, 3, 4}},
+		{"one known, unchanged", []float64{nan, 5, nan}, []float64{nan, 5, nan}},
+		{"none known, unchanged", []float64{nan, nan}, []float64{nan, nan}},
+		{"empty", []float64{}, []float64{}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assertEqualNaN(t, c.want, FillMissing(c.x, FillLinear()))
+		})
+	}
+}
+
+func TestFillConstant(t *testing.T) {
+	assertEqualNaN(t, []float64{0, 1, 0, 2}, FillMissing([]float64{nan, 1, nan, 2}, FillConstant(0)))
+	assertEqualNaN(t, []float64{7, 7}, FillMissing([]float64{nan, nan}, FillConstant(7)))
+}
+
+// The zero Fill is FillLinear.
+func TestFillZeroIsLinear(t *testing.T) {
+	x := []float64{nan, 1, nan, 3, nan}
+	assertEqualNaN(t, FillMissing(x, FillLinear()), FillMissing(x, Fill{}))
+}
+
+// FillMissing returns a new slice:
+// changing it, even when nothing was missing, doesn't change the input.
+func TestFillMissingDoesNotModifyInput(t *testing.T) {
+	for _, fill := range []Fill{FillLinear(), FillConstant(0)} {
+		x := []float64{nan, 1, nan, 3}
+		before := slices.Clone(x)
+		y := FillMissing(x, fill)
+		y[1] = 100
+		assertEqualNaN(t, before, x)
+	}
+}
+
+// An empty or nil x gives an empty, non-nil result, with either fill.
+func TestFillMissingEmptyIsNotNil(t *testing.T) {
+	for _, fill := range []Fill{FillLinear(), FillConstant(0)} {
+		for _, x := range [][]float64{nil, {}} {
+			y := FillMissing(x, fill)
+			assert.NotNil(t, y)
+			assert.Empty(t, y)
+		}
+	}
+}
+
+// assertEqualNaN asserts got equals want element by element, with NaN equal to NaN,
+// which assert.Equal treats as different.
+func assertEqualNaN(t *testing.T, want, got []float64) {
+	t.Helper()
+	if !assert.Len(t, got, len(want)) {
+		return
+	}
+	for i := range want {
+		if math.IsNaN(want[i]) {
+			assert.True(t, math.IsNaN(got[i]), "got[%d] = %g, want NaN", i, got[i])
+			continue
+		}
+		assert.Equal(t, want[i], got[i], "got[%d]", i)
+	}
+}
+
+// Between a finite and an infinite sample the line is that infinity, and beyond the finite sample,
+// the opposite one.
+func TestInterp1AndFillMissingNextToInfinity(t *testing.T) {
+	inf := math.Inf(1)
+	yi, err := Interp1([]float64{0, 1, 2}, []float64{1, inf, 3}, []float64{0.5, 1, 1.5})
+	require.NoError(t, err)
+	assert.Equal(t, []float64{inf, inf, inf}, yi)
+
+	assert.Equal(t, []float64{-inf, -inf, 2, 4, 6}, FillMissing([]float64{nan, -inf, 2, nan, 6}, FillLinear()))
+	assert.Equal(t, []float64{inf, inf, 1, -inf}, FillMissing([]float64{inf, nan, 1, nan}, FillLinear()))
 }

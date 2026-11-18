@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// mpmath.ellipk at 60 digits
+// The reference is mpmath.ellipk at 60 digits.
 func TestEllipK(t *testing.T) {
 	cases := []struct{ m, want float64 }{
 		{0, 1.5707963267948966},
@@ -22,8 +22,8 @@ func TestEllipK(t *testing.T) {
 	}
 }
 
-// mpmath.ellipk(1 - p) at 60 digits (700 for 1e-300), where EllipK(1 - p)
-// would round 1 - p: K(1 - 1e-20) would be K(1), +Inf
+// The reference is mpmath.ellipk(1 - p) at 60 digits, or 700 for 1e-300,
+// where EllipK(1 - p) would round 1 - p, so K(1 - 1e-20) would be K(1), +Inf.
 func TestEllipKM1(t *testing.T) {
 	cases := []struct{ p, want float64 }{
 		{1e-300, 346.77405831022674},
@@ -41,7 +41,7 @@ func TestEllipKM1(t *testing.T) {
 	}
 }
 
-// mpmath.ellipfun at 60 digits, at parameter 1 - mc exactly
+// The reference is mpmath.ellipfun at 60 digits, at the parameter 1 - mc exactly.
 func TestJacobi(t *testing.T) {
 	cases := []struct{ u, m, mc, sn, cn, dn float64 }{
 		{0.3, 0.5, 0.5, 0.2934127331684554, 0.9559858618277871, 0.9782405041743613},
@@ -50,7 +50,7 @@ func TestJacobi(t *testing.T) {
 		{10, 0.7, 0.3, 0.9780732803575124, 0.20826103392304346, 0.5747702678248819},
 		{0.5, 9.999778782798785e-13, 0.999999999999, 0.47942553860418563, 0.8775825618903822, 0.9999999999998851},
 		{0.4, 0.9999, 1e-4, 0.3799499045918845, 0.9250070648382195, 0.9250148680932744},
-		// u = K/2, where cn = dn·sn = √(√mc / (1 + √mc)) and dn = mc^¼
+		// u = K/2, where cn = dn·sn = √(√mc/(1 + √mc)) and dn = mc^(1/4)
 		{2.995794670253498, 0.9999, 1e-4, 0.9950371902099892, 0.09950371902099893, 0.1},
 	}
 	for _, c := range cases {
@@ -61,7 +61,7 @@ func TestJacobi(t *testing.T) {
 	}
 }
 
-// sn² + cn² = 1 and dn² + m·sn² = 1, needing no reference, up to 3 quarter periods
+// sn² + cn² = 1 and dn² + m·sn² = 1, which need no reference, up to 3 quarter periods.
 func TestJacobiIdentities(t *testing.T) {
 	for _, mc := range []float64{0.9, 0.5, 0.1, 1e-3, 1e-6} {
 		m := 1 - mc
@@ -75,7 +75,7 @@ func TestJacobiIdentities(t *testing.T) {
 	}
 }
 
-// sn(K) = 1, cn(K) = 0 and dn(K) = √mc, at the quarter period
+// sn(K) = 1, cn(K) = 0 and dn(K) = √mc, at the quarter period.
 func TestJacobiAtQuarterPeriod(t *testing.T) {
 	for _, mc := range []float64{0.9, 0.5, 0.1, 1e-3} {
 		sn, cn, dn := Jacobi(EllipKM1(mc), 1-mc, mc)
@@ -85,7 +85,7 @@ func TestJacobiAtQuarterPeriod(t *testing.T) {
 	}
 }
 
-// m = 0 and m = 1 are the circular and hyperbolic functions
+// m = 0 and m = 1 are the circular and hyperbolic functions.
 func TestJacobiLimits(t *testing.T) {
 	for _, u := range []float64{0.3, 1, 4} {
 		sn, cn, dn := Jacobi(u, 0, 1)
@@ -95,7 +95,7 @@ func TestJacobiLimits(t *testing.T) {
 	}
 }
 
-// mpmath.elliprf at 60 digits
+// The reference is mpmath.elliprf at 60 digits.
 func TestCarlsonRF(t *testing.T) {
 	cases := []struct{ x, y, z, want float64 }{
 		{1, 2, 0, 1.3110287771460598},
@@ -108,8 +108,8 @@ func TestCarlsonRF(t *testing.T) {
 	}
 }
 
-// RF is symmetric, RF(x, x, x) = 1/√x, and K(m) = RF(0, 1 − m, 1): an
-// independent check of EllipK by another method
+// RF is symmetric, RF(x, x, x) = 1/√x, and K(m) = RF(0, 1 - m, 1),
+// an independent check of EllipK by another method.
 func TestCarlsonRFIdentities(t *testing.T) {
 	assert.InEpsilon(t, CarlsonRF(1, 2, 3), CarlsonRF(3, 1, 2), 4e-16)
 	assert.InEpsilon(t, 1/math.Sqrt(7.0), CarlsonRF(7, 7, 7), 4e-16)
@@ -118,7 +118,7 @@ func TestCarlsonRFIdentities(t *testing.T) {
 	}
 }
 
-// mpmath.mfrom at 60 digits; e^−π is where m = ½
+// The reference is mpmath.mfrom at 60 digits, and e^-π is where m = ½.
 func TestParameterFromNome(t *testing.T) {
 	cases := []struct{ q, want float64 }{
 		{1e-6, 1.5999872000703995e-05},
@@ -135,11 +135,11 @@ func TestParameterFromNome(t *testing.T) {
 	}
 }
 
-// above e^−π, m is found from the complementary nome; mpmath.mfrom at 60 digits
+// Above e^-π, m is found from the complementary nome, against mpmath.mfrom at 60 digits.
 func TestParameterFromNomeNearOne(t *testing.T) {
 	cases := []struct{ q, want float64 }{
 		{0.5, 0.9999895221373104},
-		{0.9, 1}, // 1 − m is 3e-40
+		{0.9, 1}, // 1 - m is 3e-40
 		{0.999, 1},
 	}
 	for _, c := range cases {
@@ -147,8 +147,56 @@ func TestParameterFromNomeNearOne(t *testing.T) {
 	}
 }
 
-// either side of e^−π, the two branches meet at m = ½
+// Either side of e^-π, the two branches meet at m = ½.
 func TestParameterFromNomeAtHalf(t *testing.T) {
 	assert.InEpsilon(t, 0.5, ParameterFromNome(math.Nextafter(nomeAtHalf, 0)), 1e-15)
 	assert.InEpsilon(t, 0.5000000000000001, ParameterFromNome(math.Nextafter(nomeAtHalf, 1)), 1e-15)
+}
+
+// Either side of K/2, JacobiInQuarter agrees with Jacobi at a parameter where Jacobi is accurate across the whole quarter period.
+func TestJacobiInQuarterMatchesJacobi(t *testing.T) {
+	const mc = 0.3
+	quarter := EllipKM1(mc)
+	for _, fraction := range []float64{0.1, 0.49, 0.51, 0.9} {
+		u := fraction * quarter
+		sn, cn, dn := JacobiInQuarter(u, quarter-u, 1-mc, mc)
+		wantSN, wantCN, wantDN := Jacobi(u, 1-mc, mc)
+		assert.InEpsilon(t, wantSN, sn, 4e-15, "%gK", fraction)
+		assert.InEpsilon(t, wantCN, cn, 4e-15, "%gK", fraction)
+		assert.InEpsilon(t, wantDN, dn, 4e-15, "%gK", fraction)
+	}
+}
+
+// Near K, at a parameter near 1, cn is small, so Jacobi loses its relative digits there, but JacobiInQuarter keeps them.
+// At u = K - δ, cn is √mc·sn(δ)/dn(δ) ≈ √mc·δ.
+func TestJacobiInQuarterKeepsDigitsNearK(t *testing.T) {
+	const mc, delta = 1e-6, 1e-3
+	quarter := EllipKM1(mc)
+	snDelta, _, dnDelta := Jacobi(delta, 1-mc, mc)
+	want := math.Sqrt(mc) * snDelta / dnDelta
+	_, cn, _ := JacobiInQuarter(quarter-delta, delta, 1-mc, mc)
+	assert.InEpsilon(t, want, cn, 1e-15)
+	_, direct, _ := Jacobi(quarter-delta, 1-mc, mc)
+	assert.Greater(t, math.Abs(direct-want)/want, 1e-12, "Jacobi should drift here, or the case tests nothing")
+}
+
+// ellipticSpecs are elliptic filter specifications, ripple and attenuation in dB:
+// typical, a deep stopband, a tiny ripple, and close ripple and attenuation.
+var ellipticSpecs = []struct{ ripple, attenuation float64 }{
+	{1, 40},
+	{0.5, 80},
+	{0.01, 20},
+	{6, 10},
+}
+
+// F(φ) + F(ψ) = K when tan φ·tan ψ = 1/√(1 - m),
+// so the inverse sc and its complement, found separately, sum to the quarter period.
+func TestIncompleteFComplementsSumToK(t *testing.T) {
+	for _, spec := range ellipticSpecs {
+		epsilonSq := math.Expm1(spec.ripple * math.Ln10 / 10)
+		stopSq := math.Expm1(spec.attenuation * math.Ln10 / 10)
+		m1 := epsilonSq / stopSq
+		sum := IncompleteF(1/epsilonSq, m1) + IncompleteF(stopSq, m1)
+		assert.InEpsilon(t, EllipKM1(m1), sum, 1e-15, "%v", spec)
+	}
 }

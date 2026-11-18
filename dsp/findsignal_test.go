@@ -10,14 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// searchMethods is every SearchMethod, named for subtests.
+// bySearch is the option that sets method, for tests that pick it as a value.
+func bySearch(method searchMethod) FindSignalOption {
+	return func(c *findSignalConfig) { c.method = method }
+}
+
+// searchMethods is every search method, named for subtests.
 var searchMethods = []struct {
 	name   string
-	method SearchMethod
+	method searchMethod
 }{
-	{"direct", SearchDirect},
-	{"hybrid", SearchHybrid},
-	{"fast", SearchFast},
+	{"direct", searchDirect},
+	{"hybrid", searchHybrid},
+	{"fast", searchFast},
 }
 
 func TestFindSignal(t *testing.T) {
@@ -40,11 +45,11 @@ func TestFindSignal(t *testing.T) {
 	for _, c := range cases {
 		for _, m := range searchMethods {
 			t.Run(c.name+"/"+m.name, func(t *testing.T) {
-				match, err := FindSignal(c.data, c.signal, SignalSearch(m.method))
+				match, err := FindSignal(c.data, c.signal, bySearch(m.method))
 				require.NoError(t, err)
 				assert.Equal(t, c.want.Start, match.Start, "start")
 				assert.Equal(t, c.want.Stop, match.Stop, "stop")
-				if m.method == SearchFast {
+				if m.method == searchFast {
 					// rounds at the scale of the sums of squares, not of the distance
 					assert.InDelta(t, c.want.Distance, match.Distance, 1e-13, "distance")
 					return
@@ -55,20 +60,20 @@ func TestFindSignal(t *testing.T) {
 	}
 }
 
-// The zero SearchMethod, and so FindSignal with no options, is SearchHybrid.
+// With no option, FindSignal is searchHybrid.
 func TestFindSignalDefaultIsHybrid(t *testing.T) {
 	data := []float64{3, 1, 4, 1, 5, 9, 2, 6, 5, 3}
 	signal := []float64{5, 9, 2}
-	want, err := FindSignal(data, signal, SignalSearch(SearchHybrid))
+	want, err := FindSignal(data, signal, bySearch(searchHybrid))
 	require.NoError(t, err)
 	got, err := FindSignal(data, signal)
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
 }
 
-// Hybrid gives Direct's answer exactly, start and distance, including on
-// periodic data, where many windows are nearly as close as the best. Fast
-// finds the same start except where its rounding can't tell windows apart,
+// Hybrid gives Direct's answer exactly, start and distance, including on periodic data,
+// where many windows are nearly as close as the best.
+// Fast finds the same start except where its rounding can't tell windows apart,
 // and never gives a negative distance.
 func TestFindSignalMethodsAgree(t *testing.T) {
 	rng := rand.New(rand.NewPCG(5, 6))
@@ -96,11 +101,11 @@ func TestFindSignalMethodsAgree(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			direct, err := FindSignal(c.data, c.signal, SignalSearch(SearchDirect))
+			direct, err := FindSignal(c.data, c.signal, bySearch(searchDirect))
 			require.NoError(t, err)
-			hybrid, err := FindSignal(c.data, c.signal, SignalSearch(SearchHybrid))
+			hybrid, err := FindSignal(c.data, c.signal, bySearch(searchHybrid))
 			require.NoError(t, err)
-			fast, err := FindSignal(c.data, c.signal, SignalSearch(SearchFast))
+			fast, err := FindSignal(c.data, c.signal, bySearch(searchFast))
 			require.NoError(t, err)
 			assert.Equal(t, direct, hybrid, "hybrid")
 			assert.GreaterOrEqual(t, fast.Distance, 0.0, "fast distance")
@@ -118,7 +123,7 @@ func TestFindSignalNaN(t *testing.T) {
 	signal := []float64{2, 3, 0}
 	for _, m := range searchMethods[:2] {
 		t.Run(m.name, func(t *testing.T) {
-			match, err := FindSignal(data, signal, SignalSearch(m.method))
+			match, err := FindSignal(data, signal, bySearch(m.method))
 			require.NoError(t, err)
 			assert.Equal(t, SignalMatch{Start: 2, Stop: 4, Distance: 0}, match)
 		})
@@ -132,10 +137,9 @@ func TestFindSignalInvalid(t *testing.T) {
 		opts         []FindSignalOption
 		want         error
 	}{
-		{"empty signal", []float64{1, 2}, nil, nil, ErrInvalidLength},
-		{"empty both", nil, nil, nil, ErrInvalidLength},
-		{"signal longer than data", []float64{1, 2}, []float64{1, 2, 3}, nil, ErrInvalidLength},
-		{"unknown method", []float64{1, 2}, []float64{1}, []FindSignalOption{SignalSearch(SearchMethod(99))}, ErrInvalidMode},
+		{"empty signal", []float64{1, 2}, nil, nil, ErrSignalTooShort},
+		{"empty both", nil, nil, nil, ErrSignalTooShort},
+		{"signal longer than data", []float64{1, 2}, []float64{1, 2, 3}, nil, ErrSignalTooShort},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -145,8 +149,8 @@ func TestFindSignalInvalid(t *testing.T) {
 	}
 }
 
-// distanceProfile's error in every window is within a quarter of
-// profileErrorBound, so the bound has 4x to spare.
+// distanceProfile's error in every window is within a quarter of profileErrorBound,
+// so the bound has 4x to spare.
 func TestProfileErrorBound(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 	walk := make([]float64, 5000)
@@ -192,8 +196,8 @@ type findSignalBenchmark struct {
 	data, signal []float64
 }
 
-// findSignalBenchmarks are the app's scale, a short template in the same
-// data, and periodic data, where many windows are nearly as close as the best.
+// findSignalBenchmarks are the app's scale, a short template in the same data, and periodic data,
+// where many windows are nearly as close as the best.
 func findSignalBenchmarks() (cases []findSignalBenchmark) {
 	rng := rand.New(rand.NewPCG(3, 4))
 	walk := make([]float64, 400000)
@@ -218,11 +222,11 @@ func BenchmarkFindSignal(b *testing.B) {
 			b.Run(c.name+"/"+m.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for range b.N {
-					if _, err := FindSignal(c.data, c.signal, SignalSearch(m.method)); err != nil {
+					if _, err := FindSignal(c.data, c.signal, bySearch(m.method)); err != nil {
 						b.Fatal(err)
 					}
 				}
-				if m.method == SearchHybrid {
+				if m.method == searchHybrid {
 					b.StopTimer() // counting reruns the profile, which mustn't count towards ns/op
 					b.ReportMetric(float64(hybridCandidates(b, c.data, c.signal)), "candidates")
 				}

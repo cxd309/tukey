@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// each window accepts only the options that apply to it
+// Each window accepts only the options that apply to it.
 func TestRejectsOptionThatDoesNotApply(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -20,7 +20,7 @@ func TestRejectsOptionThatDoesNotApply(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := c.call()
-			assert.ErrorIs(t, err, ErrInvalidParameter)
+			assert.ErrorIs(t, err, ErrInvalidOption)
 			assert.ErrorContains(t, err, c.message)
 		})
 	}

@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// orderSelections are the four order selections, each with the design it
-// selects for, given the specification's dB
+// orderSelections are the four order selections, each with the design it selects for,
+// given the specification's dB.
 var orderSelections = []struct {
 	name        string
 	design      orderDesign
@@ -27,11 +27,11 @@ var orderSelections = []struct {
 	{"EllipOrd", orderEllip, EllipOrd, Ellip},
 }
 
-// orderSpecs are specifications of each band type. The asymmetric bandpass
-// has one stopband edge much tighter than the other, and the asymmetric
-// bandstop moves its upper passband edge from 0.8 to about 0.4, where
-// MATLAB's cheb1ord leaves it and misses attenuationDB. 3 dB against 6 dB
-// selects order 1 for every design.
+// orderSpecs are specifications of each band type.
+// The asymmetric bandpass has one stopband edge much tighter than the other,
+// and the asymmetric bandstop moves its upper passband edge from 0.8 to about 0.4,
+// where MATLAB's cheb1ord leaves it and misses attenuationDB.
+// 3 dB against 6 dB selects order 1 for every design.
 var orderSpecs = []struct {
 	name                  string
 	pass, stop            Band
@@ -47,7 +47,12 @@ var orderSpecs = []struct {
 	{"bandstop asymmetric", Bandstop(0.1, 0.8), Bandstop(0.2, 0.3), 1, 40},
 }
 
-// edgeGains is f's gain in dB at each edge, the lowest first
+// byMatch is the option that sets match, for tests that pick it as a value.
+func byMatch(match matchBand) OrderOption {
+	return func(c *orderConfig) { c.match = match }
+}
+
+// edgeGains is f's gain in dB at each edge, the lowest first.
 func edgeGains(f ZPK, edges []float64) (lowest, highest float64) {
 	lowest, highest = math.Inf(1), math.Inf(-1)
 	for _, w := range edges {
@@ -58,21 +63,21 @@ func edgeGains(f ZPK, edges []float64) (lowest, highest float64) {
 }
 
 // The selected order, designed for the selected band, meets the specification:
-// at most rippleDB of loss at every passband edge and at least attenuationDB at
-// every stopband edge, with the matched band's worst edge met exactly.
+// at most rippleDB of loss at every passband edge and at least attenuationDB at every stopband edge,
+// with the matched band's worst edge met exactly.
 func TestOrderMeetsSpecification(t *testing.T) {
 	for _, sel := range orderSelections {
 		for _, spec := range orderSpecs {
-			for _, match := range []MatchBand{MatchPassband, MatchStopband} {
+			for _, match := range []matchBand{matchPassband, matchStopband} {
 				name := fmt.Sprintf("%s, %s, match %d", sel.name, spec.name, match)
-				order, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, Matching(match))
+				order, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, byMatch(match))
 				require.NoError(t, err, name)
 				f, err := sel.filter(order, spec.rippleDB, spec.attenuation, band)
 				require.NoError(t, err, name)
 
 				passLowest, _ := edgeGains(f, spec.pass.edges)
 				_, stopHighest := edgeGains(f, spec.stop.edges)
-				if match == MatchPassband {
+				if match == matchPassband {
 					assert.InDelta(t, -spec.rippleDB, passLowest, gainSlackDB, name)
 					assert.Less(t, stopHighest, -spec.attenuation, name)
 				} else {
@@ -84,8 +89,8 @@ func TestOrderMeetsSpecification(t *testing.T) {
 	}
 }
 
-// One order lower can't meet the specification: designed to meet the
-// passband exactly, it falls short of attenuationDB at a stopband edge.
+// One order lower can't meet the specification:
+// designed to meet the passband exactly, it falls short of attenuationDB at a stopband edge.
 func TestOrderIsTheLowest(t *testing.T) {
 	for _, sel := range orderSelections {
 		for _, spec := range orderSpecs {
@@ -96,7 +101,7 @@ func TestOrderIsTheLowest(t *testing.T) {
 				continue
 			}
 
-			// the passband-matched band for order − 1, as selectOrder finds it
+			// the passband-matched band for order - 1, as selectOrder finds it
 			p, s := warpEdges(spec.pass.edges), warpEdges(spec.stop.edges)
 			if spec.pass.btype == bandstopType {
 				p = symmetricBandstop(p, s)
@@ -106,7 +111,7 @@ func TestOrderIsTheLowest(t *testing.T) {
 				gpass: math.Expm1(spec.rippleDB * math.Ln10 / 10),
 				gstop: math.Expm1(spec.attenuation * math.Ln10 / 10),
 			}
-			rho := lowpass.prototypeWn(sel.design, MatchPassband, order-1)
+			rho := lowpass.prototypeWn(sel.design, matchPassband, order-1)
 			edges := bandEdges(spec.pass.btype, p, rho)
 			for i, x := range edges {
 				edges[i] = 2 * math.Atan(x) / math.Pi
@@ -120,13 +125,13 @@ func TestOrderIsTheLowest(t *testing.T) {
 	}
 }
 
-// Without an option, the passband edge is met, as Matching(MatchPassband).
+// Without an option, the passband edge is met, same as matchPassband.
 func TestOrderMatchesPassbandByDefault(t *testing.T) {
 	for _, sel := range orderSelections {
 		for _, spec := range orderSpecs {
 			order, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation)
 			require.NoError(t, err)
-			wantOrder, wantBand, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, Matching(MatchPassband))
+			wantOrder, wantBand, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, byMatch(matchPassband))
 			require.NoError(t, err)
 			assert.Equal(t, wantOrder, order, "%s, %s", sel.name, spec.name)
 			assert.Equal(t, wantBand, band, "%s, %s", sel.name, spec.name)
@@ -134,24 +139,24 @@ func TestOrderMatchesPassbandByDefault(t *testing.T) {
 	}
 }
 
-// Where a design's band edge is the matched edge itself, the selected band is
-// that edge: Cheby1 and Ellip's passband edges, and Cheby2's stopband edges.
-// A bandpass's looser stopband edge and a bandstop's moved passband edge are
-// the exceptions, so only lowpass and highpass are compared.
+// Where a design's band edge is the matched edge itself, the selected band is that edge:
+// Cheby1 and Ellip's passband edges, and Cheby2's stopband edges.
+// A bandpass's looser stopband edge and a bandstop's moved passband edge are the exceptions,
+// so only lowpass and highpass are compared.
 func TestOrderBandIsTheMatchedEdge(t *testing.T) {
 	cases := []struct {
 		sel   int
-		match MatchBand
+		match matchBand
 		stop  bool
 	}{
-		{1, MatchPassband, false}, // Cheby1Ord
-		{3, MatchPassband, false}, // EllipOrd
-		{2, MatchStopband, true},  // Cheby2Ord
+		{1, matchPassband, false}, // Cheby1Ord
+		{3, matchPassband, false}, // EllipOrd
+		{2, matchStopband, true},  // Cheby2Ord
 	}
 	for _, c := range cases {
 		sel := orderSelections[c.sel]
 		for _, spec := range orderSpecs[:4] {
-			_, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, Matching(c.match))
+			_, band, err := sel.selectOrder(spec.pass, spec.stop, spec.rippleDB, spec.attenuation, byMatch(c.match))
 			require.NoError(t, err)
 			want := spec.pass.edges
 			if c.stop {
@@ -162,8 +167,7 @@ func TestOrderBandIsTheMatchedEdge(t *testing.T) {
 	}
 }
 
-// symmetricBandstop moves one passband edge inward until p1·p2 = s1·s2,
-// leaving the other where it was.
+// symmetricBandstop moves one passband edge inward until p1·p2 = s1·s2, leaving the other where it was.
 func TestSymmetricBandstop(t *testing.T) {
 	cases := []struct{ p, s []float64 }{
 		{[]float64{0.1, 5}, []float64{0.5, 2}},    // p1·p2 < s1·s2: p1 moves up
@@ -180,9 +184,9 @@ func TestSymmetricBandstop(t *testing.T) {
 	}
 }
 
-// bandEdges inverts the lowpass-to-band transform: the equivalent lowpass is
-// at rho at both edges, and they multiply to p1·p2, even for a rho so large
-// or small that the lower edge would cancel if found by a difference.
+// bandEdges inverts the lowpass-to-band transform:
+// the equivalent lowpass is at rho at both edges, and they multiply to p1·p2,
+// even for a rho so large or small that the lower edge would cancel if found by a difference.
 func TestBandEdgesInvertTheTransform(t *testing.T) {
 	p := []float64{0.5, 2}
 	width, centreSq := p[1]-p[0], p[0]*p[1]
@@ -201,17 +205,17 @@ func TestBandEdgesInvertTheTransform(t *testing.T) {
 	}
 }
 
-// The elliptic raw order keeps its digits as nat nears 1: against the same
-// formula with 1 − 1/nat² found exactly, it agrees to 1e-14. 1 − 1/nat²
-// computed directly loses up to 9e-9 of itself near nat − 1 = 1e-9, about
-// 2e-10 of the order, which this would catch.
+// The elliptic raw order keeps its digits as nat nears 1:
+// against the same formula with 1 - 1/nat² found exactly, it agrees to 1e-14.
+// 1 - 1/nat² computed directly loses up to 9e-9 of itself near nat - 1 = 1e-9, about 2e-10 of the order,
+// which this would catch.
 func TestEllipRawOrderNearOne(t *testing.T) {
 	gpass, gstop := math.Expm1(0.1*math.Ln10/10), math.Expm1(40*math.Ln10/10)
 	m1 := gpass / gstop
 	for i := range 400 {
-		nat := 1 + math.Pow(10, -12+8*float64(i)/399) // nat − 1 from 1e-12 to 1e-4
+		nat := 1 + math.Pow(10, -12+8*float64(i)/399) // nat - 1 from 1e-12 to 1e-4
 
-		// 1 − 1/nat² = (nat² − 1)/nat², exactly from nat as passed, then rounded
+		// 1 - 1/nat² = (nat² - 1)/nat², exactly from nat as passed, then rounded
 		exactNat := new(big.Float).SetPrec(200).SetFloat64(nat)
 		natSq := new(big.Float).SetPrec(200).Mul(exactNat, exactNat)
 		excess := new(big.Float).SetPrec(200).Sub(natSq, big.NewFloat(1))
@@ -219,7 +223,7 @@ func TestEllipRawOrderNearOne(t *testing.T) {
 
 		want := special.EllipKM1(mc) * special.EllipKM1(m1) / (special.EllipKM1(1-mc) * special.EllipKM1(1-m1))
 		got := lowpassSpec{nat: nat, gpass: gpass, gstop: gstop}.rawOrder(orderEllip)
-		assert.InEpsilon(t, want, got, 1e-14, "nat − 1 = %g", nat-1)
+		assert.InEpsilon(t, want, got, 1e-14, "nat - 1 = %g", nat-1)
 	}
 }
 
@@ -269,15 +273,12 @@ func TestOrderRejectsInvalidInput(t *testing.T) {
 			check(b.pass, b.stop, 1, 40, nil, ErrInvalidBand, b.what)
 		}
 
-		for _, match := range []MatchBand{-1, 2} {
-			check(lowPass, lowStop, 1, 40, []OrderOption{Matching(match)}, ErrInvalidMode, fmt.Sprintf("MatchBand %d", match))
-		}
 	}
 }
 
-// Edges one ULP apart put nat − 1 near 1e-16. A Butterworth order grows as
-// 1/(nat − 1), past what an int holds; the others grow as 1/√(nat − 1) or
-// ln(1/(nat − 1)), and their true orders are returned.
+// Edges one ULP apart put nat - 1 near 1e-16.
+// A Butterworth order grows as 1/(nat - 1), past what an int holds.
+// The others grow as 1/√(nat - 1) or ln(1/(nat - 1)), and their true orders are returned.
 func TestOrderEdgesTooClose(t *testing.T) {
 	pass, stop := Lowpass(0.3), Lowpass(math.Nextafter(0.3, 1))
 	_, _, err := ButterOrd(pass, stop, 1, 40)

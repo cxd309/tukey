@@ -10,37 +10,37 @@ type sosfiltVector struct {
 	Params struct {
 		SOS [][6]float64 `json:"sos"`
 		X   []float64    `json:"x"`
-		Zi  [][2]float64 `json:"zi"` // null: start from rest
+		Zi  [][2]float64 `json:"zi"` // or null to start from rest
 	} `json:"params"`
 	Output struct {
 		Y  []float64    `json:"y"`
-		Zf [][2]float64 `json:"zf"` // null when zi was
+		Zf [][2]float64 `json:"zf"` // or null when zi was
 	} `json:"output"`
 }
 
-// sosFilterSciPySuite checks dsp.SOSFilter against scipy.signal.sosfilt, and
-// dsp.SOSFilterState against sosfilt with zi, including the final state
-// measured: worst 4.1e-14 (~183 ULP) on arm64 and 1.3e-15 on amd64, both on
-// butter8_lp0.01, whose poles sit very close to z = 1, so its feedback amplifies
-// single-rounding differences. The arm64 gap is fused multiply-add: Go fuses on
-// arm64 and NumPy doesn't. Other filters, including the narrow order-20 bandpass,
-// agree within a few ULP. Set ~10x above the worst.
+// sosFilterSciPySuite checks dsp.SOSFilter against scipy.signal.sosfilt,
+// and dsp.SOSFilterState against sosfilt with zi, including the final state.
+// Measured: worst about 183 ULP, 4.1e-14, on arm64, and 1.3e-15 on amd64, both on butter8_lp0.01,
+// whose poles sit very close to z = 1, so its feedback amplifies single-rounding differences.
+// The arm64 gap is fused multiply-add, as Go fuses on arm64 and NumPy doesn't.
+// Other filters, including the narrow order-20 bandpass, agree within a few ULP.
+// Tolerance: about 10 times the worst.
 var sosFilterSciPySuite = newSuite("SOSFilter", reference.SourceSciPy, "sosfilt",
 	reference.Tolerance{Rel: 1e-12, Scaled: 1e-12},
 	sosFilterOutputs)
 
-// sosFilterMATLABSuite checks dsp.SOSFilter against MATLAB's sosfilt
-// sosfilt takes no initial state, so the with-state cases have no MATLAB vector
-// measured: worst 9.0e-15 (41 ULP) on arm64 and 4.5e-14 on amd64, both on
-// butter8_lp0.01. That's the mirror image of the SciPy suite: tukey agrees best
-// with MATLAB when it fuses multiply-adds, so MATLAB evidently does too.
-// Set ~10x above the worst, the same as the SciPy suite.
+// sosFilterMATLABSuite checks dsp.SOSFilter against MATLAB's sosfilt.
+// sosfilt takes no initial state, so the with-state cases have no MATLAB vector.
+// Measured: worst 41 ULP, 9.0e-15, on arm64, and 4.5e-14 on amd64, both on butter8_lp0.01.
+// That's the mirror image of the SciPy suite, as tukey agrees best with MATLAB when it fuses multiply-adds,
+// so MATLAB evidently does too.
+// Tolerance: about 10 times the worst, the same as against SciPy.
 var sosFilterMATLABSuite = newSuite("SOSFilter", reference.SourceMATLAB, "sosfilt",
 	reference.Tolerance{Rel: 1e-12, Scaled: 1e-12},
 	sosFilterOutputs)
 
 // sosFilterOutputs pairs dsp.SOSFilter's output with a vector's,
-// or dsp.SOSFilterState's output and final state when the vector has a starting state
+// or dsp.SOSFilterState's output and final state when the vector has a starting state.
 func sosFilterOutputs(v sosfiltVector) (outputs []Output, err error) {
 	scale := maxAbs(v.Params.X)
 	if v.Params.Zi == nil {
@@ -72,9 +72,10 @@ type sosfiltZiVector struct {
 	} `json:"output"`
 }
 
-// sosFilterZiSciPySuite checks dsp.SOSFilterZi against scipy.signal.sosfilt_zi
-// MATLAB has no equivalent function
-// measured: exact or under 1 ULP on all 4 filters (worst 9.8e-17); set to match Filter
+// sosFilterZiSciPySuite checks dsp.SOSFilterZi against scipy.signal.sosfilt_zi.
+// MATLAB has no equivalent function.
+// Measured: exact or under 1 ULP on all 4 filters, worst 9.8e-17.
+// Tolerance: the same as Filter's.
 var sosFilterZiSciPySuite = newSuite("SOSFilterZi", reference.SourceSciPy, "sosfilt_zi",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v sosfiltZiVector) (outputs []Output, err error) {
@@ -91,21 +92,22 @@ type sosfiltfiltVector struct {
 	Params struct {
 		SOS     [][6]float64 `json:"sos"`
 		X       []float64    `json:"x"`
-		PadType *string      `json:"padtype"` // null: no padding
-		PadLen  *int         `json:"padlen"`  // null: SciPy's default
+		PadType *string      `json:"padtype"` // or null for no padding
+		PadLen  *int         `json:"padlen"`  // or null for SciPy's default
 	} `json:"params"`
 	Output struct {
 		Y []float64 `json:"y"`
 	} `json:"output"`
 }
 
-// sosFiltFiltSciPySuite checks dsp.SOSFiltFilt against scipy.signal.sosfiltfilt
-// measured: worst 1.7e-13 (~763 ULP) on butter8_lp0.01: SOSFilter's sensitivity on
-// that filter, over two passes of a padded signal; other filters within a few ULP;
-// set ~10x above the worst
+// sosFiltFiltSciPySuite checks dsp.SOSFiltFilt against scipy.signal.sosfiltfilt.
+// Measured: worst about 763 ULP, 1.7e-13, on butter8_lp0.01,
+// which is SOSFilter's sensitivity on that filter over two passes of a padded signal,
+// and other filters within a few ULP.
+// Tolerance: about 10 times the worst.
 //
-// MATLAB's filtfilt(sos, g, x) filters section by section, which is
-// SOSFiltFilt with BySection and MATLABPadLen: see sosFiltFiltBySectionMATLABSuite
+// MATLAB's filtfilt(sos, g, x) filters section by section, which is SOSFiltFilt with BySection and MATLABPadLen,
+// so sosFiltFiltBySectionMATLABSuite checks it.
 var sosFiltFiltSciPySuite = newSuite("SOSFiltFilt", reference.SourceSciPy, "sosfiltfilt",
 	reference.Tolerance{Rel: 1e-11, Scaled: 1e-11},
 	func(v sosfiltfiltVector) (outputs []Output, err error) {
@@ -121,7 +123,7 @@ var sosFiltFiltSciPySuite = newSuite("SOSFiltFilt", reference.SourceSciPy, "sosf
 		return
 	})
 
-// flattenPairs lays per-section state pairs out as one slice, for comparison
+// flattenPairs lays per-section state pairs out as one slice, for comparison.
 func flattenPairs(pairs [][2]float64) (flat []float64) {
 	for _, p := range pairs {
 		flat = append(flat, p[0], p[1])
