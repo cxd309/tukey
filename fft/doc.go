@@ -1,6 +1,6 @@
 // Package fft computes discrete Fourier transforms of any length, in O(n log n),
 // using only the standard library.
-// It's checked against scipy.fft and MATLAB, which the README's compatibility tables measure.
+// It's checked against scipy.fft and MATLAB, which the tables in docs/accuracy.md measure.
 //
 //	y, err := fft.ForwardReal(x)
 //	f, err := fft.RealFreq(len(x), 1/fs) // the frequency of each bin, in Hz

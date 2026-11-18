@@ -1,6 +1,6 @@
 // Command tolerances reports the error tukey actually achieves against each reference-vector suite,
 // SciPy's or MATLAB's, next to the tolerance its test enforces.
-// The measured numbers are what the tests' tolerances and the README's compatibility tables are set from.
+// The measured numbers are what the tests' tolerances and the tables in docs/accuracy.md are set from.
 //
 //	go run ./cmd/tolerances
 package main

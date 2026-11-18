@@ -1,7 +1,7 @@
 // Package window computes window functions, matching scipy.signal.windows,
 // using only the standard library.
 // It has every SciPy window except dpss,
-// and is checked against SciPy and MATLAB, which the README's compatibility tables measure.
+// and is checked against SciPy and MATLAB, which the tables in docs/accuracy.md measure.
 //
 //	w, err := window.Hann(1024, window.Periodic()) // for spectral analysis
 //	h, err := window.Hamming(101)                  // for filter design

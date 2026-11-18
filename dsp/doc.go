@@ -2,7 +2,7 @@
 // filter design, filtering, frequency response, conditioning, smoothing, peaks,
 // alignment, spectral analysis and reductions.
 // It works on whole signals as []float64, uses only the standard library,
-// and is checked against SciPy and MATLAB, which the README's compatibility tables measure.
+// and is checked against SciPy and MATLAB, which the tables in docs/accuracy.md measure.
 //
 //	f, err := dsp.Butter(4, dsp.Lowpass(0.2))
 //	sos, err := f.SOS()
