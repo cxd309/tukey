@@ -1,4 +1,5 @@
-// Command doccomments fails on comments that break the house style, so godoc and editors show them as written:
+// Command doccomments fails on comments and docs that break the house style, so godoc, editors and GitHub show them as written.
+// In Go comments it fails on:
 //   - a top-level comment attached to no declaration, e.g. a doc comment split from its declaration by a blank line,
 //     of which godoc shows only the part next to the declaration
 //   - a character that isn't ASCII or in .vscode/maths.code-snippets, which includes em dashes
@@ -6,7 +7,10 @@
 //   - an unpaired ', " or backtick on an indented line, which godoc shows as code,
 //     and which an editor's hover highlights as an unclosed literal
 //
-// It reads every .go file outside hidden directories, temp and testdata.
+// In markdown it fails on a character that isn't ASCII or in the snippets, anywhere,
+// and on a semicolon in prose, outside code blocks and inline code.
+//
+// It reads every .go and .md file outside hidden directories, temp and testdata.
 //
 //	go run ./cmd/doccomments
 package main
@@ -40,10 +44,17 @@ func main() {
 		if d.IsDir() && path != "." && (strings.HasPrefix(d.Name(), ".") || d.Name() == "temp" || d.Name() == "testdata") {
 			return filepath.SkipDir
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".go") {
+		var issues []string
+		switch {
+		case d.IsDir():
+			return nil
+		case strings.HasSuffix(path, ".go"):
+			issues, err = fileIssues(path, allowed)
+		case strings.HasSuffix(path, ".md"):
+			issues, err = markdownIssues(path, allowed)
+		default:
 			return nil
 		}
-		issues, err := fileIssues(path, allowed)
 		if err != nil {
 			return err
 		}
@@ -58,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 	if found > 0 {
-		fmt.Fprintf(os.Stderr, "%d comment issue(s): see the comment style in the spec\n", found)
+		fmt.Fprintf(os.Stderr, "%d comment or doc issue(s): see the writing rules in docs/development.md\n", found)
 		os.Exit(1)
 	}
 }
@@ -169,6 +180,44 @@ func inside(c *ast.CommentGroup, spans [][2]token.Pos) (ok bool) {
 		if c.Pos() > s[0] && c.End() < s[1] {
 			return true
 		}
+	}
+	return
+}
+
+// markdownIssues lists every issue in the markdown file at path, as "path:line: issue: text".
+// Characters are checked on every line, and semicolons only in prose,
+// outside fenced code blocks and inline code.
+func markdownIssues(path string, allowed map[rune]bool) (issues []string, err error) {
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	fenced := false
+	for i, line := range strings.Split(string(text), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			fenced = !fenced
+			continue
+		}
+		if issue := markdownLineIssue(line, fenced, allowed); issue != "" {
+			issues = append(issues, fmt.Sprintf("%s:%d: %s: %s", path, i+1, issue, strings.TrimSpace(line)))
+		}
+	}
+	return
+}
+
+// inlineCode matches a markdown code span, which may hold a semicolon, as code does.
+var inlineCode = regexp.MustCompile("`[^`]*`")
+
+// markdownLineIssue is what's wrong with one line of markdown, or "" if nothing is.
+// fenced says whether the line is inside a fenced code block.
+func markdownLineIssue(line string, fenced bool, allowed map[rune]bool) (issue string) {
+	for _, r := range line {
+		if r > 127 && !allowed[r] {
+			return fmt.Sprintf("character %q isn't ASCII or in %s", r, snippetsPath)
+		}
+	}
+	if !fenced && strings.Contains(inlineCode.ReplaceAllString(line, ""), ";") {
+		return "semicolon in prose"
 	}
 	return
 }

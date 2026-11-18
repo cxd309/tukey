@@ -75,3 +75,46 @@ func inside() {
 	assert.Contains(t, issues[0], "example.go:3: attached to no declaration: Lost is")
 	assert.Contains(t, issues[1], "example.go:5: semicolon in comment")
 }
+
+func TestMarkdownLineIssue(t *testing.T) {
+	cases := []struct {
+		name, line string
+		fenced     bool
+		want       string
+	}{
+		{"plain prose", "Every function returns an error.", false, ""},
+		{"a curly apostrophe", "the filter’s gain", false, `character '’' isn't`},
+		{"an em dash in a code block", "x := 1 // a — b", true, `character '—' isn't`},
+		{"an allowed character", "Nyquist is π rad/sample.", false, ""},
+		{"a semicolon in prose", "It rounds; it's exact.", false, "semicolon in prose"},
+		{"a semicolon in inline code", "Write `for i := 0; i < n; i++` instead.", false, ""},
+		{"a semicolon in a code block", "for i := 0; i < n; i++ {", true, ""},
+	}
+	for _, c := range cases {
+		got := markdownLineIssue(c.line, c.fenced, allowed)
+		if c.want == "" {
+			assert.Empty(t, got, c.name)
+			continue
+		}
+		assert.True(t, strings.HasPrefix(got, c.want), "%s: got %q", c.name, got)
+	}
+}
+
+// markdownIssues tracks fenced code blocks, and reports each bad line with its line number.
+func TestMarkdownIssues(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "doc.md")
+	require.NoError(t, os.WriteFile(path, []byte("# Title\n"+
+		"\n"+
+		"Prose; with a semicolon.\n"+
+		"\n"+
+		"```go\n"+
+		"for i := 0; i < n; i++ {}\n"+
+		"```\n"+
+		"\n"+
+		"Back in prose; again.\n"), 0o600))
+	issues, err := markdownIssues(path, allowed)
+	require.NoError(t, err)
+	require.Len(t, issues, 2)
+	assert.Contains(t, issues[0], "doc.md:3: semicolon in prose")
+	assert.Contains(t, issues[1], "doc.md:9: semicolon in prose")
+}
