@@ -14,7 +14,7 @@ type DelayGrid struct {
 	n int
 }
 
-// NewDelayGrid is the grid of n points
+// NewDelayGrid is the grid of n points.
 func NewDelayGrid(n int) (g DelayGrid) {
 	return DelayGrid{n}
 }
@@ -82,15 +82,15 @@ func (g DelayGrid) Delay(c []float64, i int) (delay float64) {
 const delayConditionLimit = 1000
 
 // delayPrec is the working precision of the big.Float evaluation, in bits,
-// enough for a condition number of 1e60
+// enough for a condition number of 1e60.
 const delayPrec = 256
 
-// bigPi is π to 365 bits, beyond delayPrec
+// bigPi is π to 365 bits, beyond delayPrec.
 var bigPi, _ = new(big.Float).SetPrec(delayPrec).SetString(
 	"3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651")
 
 // angle is m·ω/π for m = (2k - N)/2 at ω = π·i/n,
-// as an exact fraction of a half turn, num/(2n), with num reduced to [0, 4n)
+// as an exact fraction of a half turn, num/(2n), with num reduced to [0, 4n).
 func (g DelayGrid) angle(k, degree, i int) (num int) {
 	fourN := 4 * g.n
 	num = ((2*k - degree) * i) % fourN
@@ -105,7 +105,7 @@ func (g DelayGrid) angle(k, degree, i int) (num int) {
 // near a zero of F, or at one, where the delay is its limit from either side.
 // There, if F's first nonzero derivative is the m-th, F^(m),
 //
-//	F ≈ F^(m)·h^m/m! + F^(m+1)·h^(m+1)/(m+1)!,  so  Im(F′/F) → Im(F^(m+1)/((m+1)·F^(m)))
+//	F ≈ F^(m)·h^m/m! + F^(m+1)·h^(m+1)/(m+1)!,  so  Im(F′/F) tends to Im(F^(m+1)/((m+1)·F^(m)))
 //
 // with every F^(j) = Σ c_k (-j·m_k)^j e^(-j·m_k·ω).
 func (g DelayGrid) bigDelay(c []float64, i int) (delay float64) {
@@ -142,7 +142,7 @@ func (g DelayGrid) bigDelay(c []float64, i int) (delay float64) {
 		}
 		return
 	}
-	// a coefficient's size, below which F^(j) is zero, rounding apart
+	// a coefficient's size, below which F^(j) is 0, rounding apart
 	var largest float64
 	for _, coeff := range c {
 		largest = max(largest, math.Abs(coeff))
@@ -157,7 +157,7 @@ func (g DelayGrid) bigDelay(c []float64, i int) (delay float64) {
 		fRe, fIm = derivative(order)
 	}
 	nextRe, nextIm := derivative(order + 1)
-	// Im(next/(f·(order+1))) = (f_re·next_im - f_im·next_re) / ((order+1)·|f|²)
+	// Im(next/(f·(order+1))) = (f_re·next_im - f_im·next_re)/((order+1)·|f|²)
 	num := newBig(0).Mul(fRe, nextIm)
 	num.Sub(num, newBig(0).Mul(fIm, nextRe))
 	den := newBig(0).Mul(fRe, fRe)
@@ -172,7 +172,7 @@ func (g DelayGrid) bigDelay(c []float64, i int) (delay float64) {
 // then sin and cos come from their Taylor series.
 func (g DelayGrid) bigSinCosPi(num int) (sin, cos *big.Float) {
 	quadrant := (2*num + g.n) / (2 * g.n) // num/n, rounded
-	y := num - quadrant*g.n               // |y| <= n/2, so |θ| <= π/4
+	y := num - quadrant*g.n               // |y| ≤ n/2, so |θ| ≤ π/4
 	theta := newBig(float64(y))
 	theta.Mul(theta, bigPi)
 	theta.Quo(theta, newBig(float64(2*g.n)))
@@ -209,12 +209,12 @@ func (g DelayGrid) bigSinCosPi(num int) (sin, cos *big.Float) {
 	return
 }
 
-// newBig is x at delayPrec
+// newBig is x at delayPrec.
 func newBig(x float64) *big.Float {
 	return new(big.Float).SetPrec(delayPrec).SetFloat64(x)
 }
 
-// isZero reports whether re + j·im is below zero in both parts
+// isZero reports whether re + j·im is below zero in both parts.
 func isZero(re, im, zero *big.Float) bool {
 	abs := func(x *big.Float) *big.Float { return newBig(0).Abs(x) }
 	return abs(re).Cmp(zero) < 0 && abs(im).Cmp(zero) < 0

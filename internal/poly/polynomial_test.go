@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// the cases use small integer roots, so results should be exact to rounding
+// The cases use small integer roots, so the results are exact to rounding.
 var polyTolerance = reference.Tolerance{Rel: 1e-12, Scaled: 1e-12}
 
 func TestPolyFromRoots(t *testing.T) {

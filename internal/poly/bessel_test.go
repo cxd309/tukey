@@ -12,13 +12,13 @@ import (
 
 var besselScales = []ReverseBesselScale{UnitDelay, UnitProduct, UnitHalfPower}
 
-// besselMaxTestOrder is the highest order the property tests run:
-// higher orders are slow, and order 25 is checked against its exact roots
+// besselMaxTestOrder is the highest order the property tests run,
+// as higher orders are slow, and order 25 is checked against its exact roots.
 const besselMaxTestOrder = 20
 
-// Orders 1 and 2 in closed form. θ_1 = s + 1 and θ_2 = s² + 3s + 3,
-// whose roots are -3/2 ± j√3/2, of magnitude √3.
-// Order 2's |θ(jω)|² = ω⁴ + 3ω² + 9 is 2·θ(0)² = 18 at ω² = 3(√5 - 1)/2.
+// Orders 1 and 2 in closed form.
+// θ_1 = s + 1 and θ_2 = s² + 3s + 3, whose roots are -3/2 ± j√3/2, of magnitude √3.
+// Order 2's |θ(jω)|² = ω^4 + 3ω² + 9 is 2·θ(0)² = 18 at ω² = 3(√5 - 1)/2.
 func TestReverseBesselRootsLowOrders(t *testing.T) {
 	assert.Equal(t, []complex128{-1}, ReverseBesselRoots(1, UnitDelay))
 	assert.Equal(t, []complex128{-1}, ReverseBesselRoots(1, UnitProduct))
@@ -86,9 +86,9 @@ func TestReverseBesselRootsArePairedAndStable(t *testing.T) {
 	}
 }
 
-// The roots' sums by Vieta: θ's s^(N-1) coefficient is N(N + 1)/2 and its
-// s¹ and s⁰ coefficients are equal, so Σ r = -N(N + 1)/2 and Σ 1/r = -1:
-// the group delay at DC is 1.
+// The roots' sums by Vieta:
+// θ's s^(N-1) coefficient is N(N + 1)/2, and its s^1 and s^0 coefficients are equal,
+// so Σ r = -N(N + 1)/2 and Σ 1/r = -1, which is a group delay at DC of 1.
 func TestReverseBesselRootsUnitDelay(t *testing.T) {
 	for order := 1; order <= besselMaxTestOrder; order++ {
 		roots := ReverseBesselRoots(order, UnitDelay)

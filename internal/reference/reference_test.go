@@ -30,8 +30,8 @@ func TestCompare(t *testing.T) {
 	}
 }
 
-// the butter2_bp0.2-0.5_constant case: a bandpass rejecting a constant input of 3
-// leaves only rounding noise, which relative to the ~0 output alone looks enormous
+// The butter2_bp0.2-0.5_constant case, where a bandpass rejecting a constant input of 3 leaves only rounding noise,
+// which relative to the output of about 0 alone looks enormous.
 func TestCompareScaledFloor(t *testing.T) {
 	tol := Tolerance{Rel: 1e-12, Scaled: 1e-12}
 	got, want := []float64{5.8e-17}, []float64{3.85e-33}

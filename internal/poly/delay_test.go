@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ulp is the distance from |x| to the next float64 up
+// ulp is the distance from |x| to the next float64 up.
 func ulp(x float64) float64 {
 	x = math.Abs(x)
 	return math.Nextafter(x, math.Inf(1)) - x
@@ -23,9 +23,8 @@ func TestBigDelayMatchesFloat(t *testing.T) {
 	}
 }
 
-// bigSinCosPi agrees with special.SinCosPi on every quadrant,
-// within SinCosPi's own few ULP:
-// π·y and math.Sincos each round, where bigSinCosPi rounds once.
+// bigSinCosPi agrees with special.SinCosPi on every quadrant, within SinCosPi's own few ULP,
+// as π·y and math.Sincos each round, where bigSinCosPi rounds once.
 func TestBigSinCosPi(t *testing.T) {
 	g := NewDelayGrid(7)
 	for num := range 4 * g.n {

@@ -36,11 +36,11 @@ func TestSum(t *testing.T) {
 	}
 }
 
-// Dot is as if summed exactly and rounded once, where a plain sum
-// loses the small term to the large ones, and sums an infinite product as it is.
+// Dot is as if summed exactly and rounded once, where a plain sum loses the small term to the large ones,
+// and it sums an infinite product as it is.
 func TestDot(t *testing.T) {
 	assert.Equal(t, 1.0, Dot([]float64{1, 1, 1}, []float64{1e16, 1, -1e16}))
-	// (1 + 2⁻³⁰)² - 1 = 2⁻²⁹ + 2⁻⁶⁰: the product's rounding error, 2⁻⁶⁰, recovered
+	// (1 + 2^-30)² - 1 = 2^-29 + 2^-60, so the product's rounding error, 2^-60, is recovered
 	a := 1 + 0x1p-30
 	assert.Equal(t, 0x1p-29+0x1p-60, Dot([]float64{a, -1}, []float64{a, 1}))
 	assert.Equal(t, math.Inf(1), Dot([]float64{1, 2}, []float64{math.Inf(1), 1}))
@@ -48,7 +48,7 @@ func TestDot(t *testing.T) {
 }
 
 // exactMidpoint is (a + b)/2 for finite a and b, summed exactly in big.Float,
-// halved exactly, and rounded once to float64, to nearest even
+// halved exactly, and rounded once to float64, to nearest even.
 func exactMidpoint(a, b float64) float64 {
 	sum := new(big.Float).SetPrec(2200).SetFloat64(a)
 	sum.Add(sum, new(big.Float).SetFloat64(b))
@@ -57,8 +57,8 @@ func exactMidpoint(a, b float64) float64 {
 	return m
 }
 
-// Midpoint is (a + b)/2 rounded once, including where a + b overflows and
-// where the half is subnormal, which a/2 + b/2 rounds twice.
+// Midpoint is (a + b)/2 rounded once, including where a + b overflows,
+// and where the half is subnormal, which a/2 + b/2 rounds twice.
 func TestMidpoint(t *testing.T) {
 	tiny := math.SmallestNonzeroFloat64
 	cases := []struct {
@@ -70,9 +70,9 @@ func TestMidpoint(t *testing.T) {
 		{"overflowing sum", 0x1p1023, 0x1.8p1023, 0x1.4p1023},
 		{"overflowing negative sum", -math.MaxFloat64, -math.MaxFloat64, -math.MaxFloat64},
 		{"opposite extremes", -math.MaxFloat64, math.MaxFloat64, 0},
-		// 1.5 subnormal ULPs, a tie, to even: 2; a/2 + b/2 gives 0 + 1
+		// 1.5 subnormal ULPs, a tie, rounds to even, 2, where a/2 + b/2 gives 0 + 1
 		{"subnormal tie", tiny, 2 * tiny, 2 * tiny},
-		// 0.5 ULPs, a tie, to even: 0
+		// 0.5 ULPs, a tie, rounds to even, 0
 		{"smallest subnormal and 0", 0, tiny, 0},
 		{"infinity", 1, math.Inf(1), math.Inf(1)},
 	}
@@ -95,8 +95,7 @@ func TestMidpoint(t *testing.T) {
 	}
 }
 
-// Next to an infinite end, interpolation takes the limit, where plain
-// arithmetic gives NaN.
+// Next to an infinite end, interpolation takes the limit, where plain arithmetic gives NaN.
 func TestInfiniteEnd(t *testing.T) {
 	inf := math.Inf(1)
 	cases := []struct {

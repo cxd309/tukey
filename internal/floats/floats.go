@@ -26,9 +26,9 @@ func (s *Sum) Add(v float64) {
 	s.sum = total
 }
 
-// Total is the sum of everything added, with the lost bits restored. An
-// infinite or NaN sum is returned as it is, as its lost bits are then
-// Inf - Inf, NaN, and mean nothing beside it.
+// Total is the sum of everything added, with the lost bits restored.
+// An infinite or NaN sum is returned as it is,
+// as its lost bits are then Inf - Inf, which is NaN, and mean nothing beside it.
 func (s Sum) Total() (total float64) {
 	if math.IsInf(s.sum, 0) || math.IsNaN(s.sum) {
 		total = s.sum
@@ -38,7 +38,7 @@ func (s Sum) Total() (total float64) {
 	return
 }
 
-// Scaled returns a new slice holding v multiplied by s
+// Scaled returns a new slice holding v multiplied by s.
 func Scaled(v []float64, s float64) (out []float64) {
 	out = make([]float64, len(v))
 	for i := range v {
@@ -47,7 +47,7 @@ func Scaled(v []float64, s float64) (out []float64) {
 	return
 }
 
-// Reversed returns a new slice holding v in reverse order
+// Reversed returns a new slice holding v in reverse order.
 func Reversed(v []float64) (r []float64) {
 	r = slices.Clone(v)
 	slices.Reverse(r)

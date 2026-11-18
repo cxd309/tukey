@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// SinCosPi reduces exactly, so whole and half turns are exact however far
-// from 0, and quarter turns are √2/2 to an ULP, as math.Sincos(π/4) is.
+// SinCosPi reduces exactly, so whole and half turns are exact however far from 0,
+// and quarter turns are √2/2 to an ULP, same as math.Sincos(π/4).
 func TestSinCosPi(t *testing.T) {
 	cases := []struct{ x, sin, cos float64 }{
 		{0, 0, 1},

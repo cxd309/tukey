@@ -6,9 +6,8 @@ import (
 	"slices"
 )
 
-// FromRoots returns the coefficients [x^n, x^(n-1), ..., x^0]
-// of prod(x - r) for the given roots
-// same convention as numpy.poly
+// FromRoots returns the coefficients of Π(x - r) for the given roots, highest power first,
+// [x^n, x^(n-1), ..., x^0], same as numpy.poly.
 func FromRoots(roots []complex128) (coeffs []complex128) {
 	coeffs = []complex128{1}
 	for _, r := range roots {
@@ -23,9 +22,10 @@ func FromRoots(roots []complex128) (coeffs []complex128) {
 	return
 }
 
-// RealCoeffs drops the imaginary part of polynomial coefficients
-// that should be real because their roots came in conjugate pairs
-// returns ErrUnpairedConjugate if an imaginary part is more than floating-point rounding noise
+// RealCoeffs drops the imaginary part of polynomial coefficients that should be real,
+// as their roots came in conjugate pairs.
+//
+// Returns: ErrUnpairedConjugate for an imaginary part larger than rounding.
 func RealCoeffs(complexCoeffs []complex128) (coeffs []float64, err error) {
 	coeffs = make([]float64, len(complexCoeffs))
 	for i, v := range complexCoeffs {
@@ -37,7 +37,7 @@ func RealCoeffs(complexCoeffs []complex128) (coeffs []float64, err error) {
 	return
 }
 
-// MapRoots applies fn to every root, returning a new slice
+// MapRoots applies fn to every root, returning a new slice.
 func MapRoots(roots []complex128, fn func(complex128) complex128) (mapped []complex128) {
 	mapped = make([]complex128, len(roots))
 	for i, r := range roots {
@@ -46,7 +46,7 @@ func MapRoots(roots []complex128, fn func(complex128) complex128) (mapped []comp
 	return
 }
 
-// Mul multiplies two polynomials given highest power first
+// Mul multiplies two polynomials, given highest power first.
 func Mul(p, q []float64) (product []float64) {
 	product = make([]float64, len(p)+len(q)-1)
 	for i := range p {
@@ -57,7 +57,7 @@ func Mul(p, q []float64) (product []float64) {
 	return
 }
 
-// Prod returns the product of all values, or 1 for an empty slice
+// Prod returns the product of all values, or 1 for an empty slice.
 func Prod(values []complex128) (p complex128) {
 	p = 1
 	for _, v := range values {
@@ -66,8 +66,8 @@ func Prod(values []complex128) (p complex128) {
 	return
 }
 
-// AppendRepeated returns roots followed by n copies of root, leaving roots unmodified
-// n < 0 panics, which flags a filter with more zeros than poles
+// AppendRepeated returns roots followed by n copies of root, leaving roots unmodified.
+// A negative n panics, which flags a filter with more zeros than poles.
 func AppendRepeated(roots []complex128, root complex128, n int) (padded []complex128) {
 	padded = slices.Concat(roots, slices.Repeat([]complex128{root}, n))
 	return

@@ -9,19 +9,18 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// Compare measures got against want element by element,
-// with errors relative to max|want| (see Tolerance)
-// NaN in the same position of both counts as a match, as in numpy.allclose(equal_nan=True)
-// NaN in only one is always a mismatch
+// Compare measures got against want element by element, with errors relative to max|want|, as Tolerance describes.
+// NaN in the same position of both counts as a match, same as numpy.allclose(equal_nan=True),
+// and NaN in only one is always a mismatch.
 func Compare[T Number](got, want []T, tol Tolerance) (c Comparison, err error) {
 	c, err = CompareScaled(got, want, tol, 0)
 	return
 }
 
-// CompareScaled is Compare with errors measured relative to max(max|want|, floor)
-// use it when want can legitimately be ~0 while the computation that produced it
-// handled much larger values, such as a filter rejecting its input: rounding error
-// then scales with those values, and relative to ~0 alone it would look enormous
+// CompareScaled is Compare with errors measured relative to max(max|want|, floor).
+// Use it when want can rightly be about 0 while the computation that produced it handled much larger values,
+// such as a filter rejecting its input.
+// Rounding error then scales with those values, and relative to about 0 alone it would look enormous.
 func CompareScaled[T Number](got, want []T, tol Tolerance, floor float64) (c Comparison, err error) {
 	if len(got) != len(want) {
 		return c, fmt.Errorf("length mismatch: got %d, want %d", len(got), len(want))
@@ -45,7 +44,7 @@ func CompareScaled[T Number](got, want []T, tol Tolerance, floor float64) (c Com
 		}
 		c.Worst = max(c.Worst, relative) // the max builtin propagates NaN, so a NaN diff shows here too
 
-		// written as !(within) so a NaN diff is a mismatch
+		// written as !(within), so a NaN diff is a mismatch
 		if !(diff <= allowed) {
 			c.Mismatches = append(c.Mismatches, Mismatch{Index: i, Diff: diff, Allowed: allowed})
 		}
@@ -53,7 +52,7 @@ func CompareScaled[T Number](got, want []T, tol Tolerance, floor float64) (c Com
 	return
 }
 
-// AssertClose fails t for every element of got outside tol of want
+// AssertClose fails t for every element of got outside tol of want.
 func AssertClose[T Number](t testing.TB, name string, got, want []T, tol Tolerance) {
 	t.Helper()
 	c, err := Compare(got, want, tol)
@@ -68,34 +67,34 @@ func AssertClose[T Number](t testing.TB, name string, got, want []T, tol Toleran
 	}
 }
 
-// Tolerance says how close got must be to want for a slice comparison
-// a value passes if |got-want| <= Scaled*scale + Rel*|want|, where scale is
-// max|want|, or the floor given to CompareScaled if that's larger
+// Tolerance says how close got must be to want for a slice comparison.
+// A value passes if |got - want| ≤ Scaled·scale + Rel·|want|,
+// where scale is max|want|, or the floor given to CompareScaled if that's larger.
 type Tolerance struct {
 	Rel    float64 // relative to each expected value
 	Scaled float64 // relative to the comparison's scale, so small but valid slices are still checked
 }
 
-// Number is the element types Compare can handle
+// Number is the element types Compare can handle.
 type Number interface {
 	float64 | complex128
 }
 
-// Mismatch is one element outside tolerance
+// Mismatch is one element outside tolerance.
 type Mismatch struct {
 	Index         int
 	Diff, Allowed float64
 }
 
-// Comparison is the outcome of comparing got against want
+// Comparison is the outcome of comparing got against want.
 type Comparison struct {
-	// Worst is the largest |got-want| relative to the comparison's scale:
+	// Worst is the largest |got - want| relative to the comparison's scale,
 	// the measured error that tolerances are set from
 	Worst      float64
 	Mismatches []Mismatch
 }
 
-// magnitude is |v| for real values and the modulus for complex ones
+// magnitude is |v| for real values, and the modulus for complex ones.
 func magnitude[T Number](v T) (m float64) {
 	switch x := any(v).(type) {
 	case float64:
@@ -106,7 +105,7 @@ func magnitude[T Number](v T) (m float64) {
 	return
 }
 
-// isNaN reports whether v is NaN, or has a NaN part if complex
+// isNaN reports whether v is NaN, or has a NaN part if complex.
 func isNaN[T Number](v T) (nan bool) {
 	switch x := any(v).(type) {
 	case float64:

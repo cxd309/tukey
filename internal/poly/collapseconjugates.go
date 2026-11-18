@@ -10,12 +10,12 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// CollapseConjugates replaces each conjugate pair with one root:
-// the member with positive imaginary part, averaged with the other's conjugate to cancel rounding
-// pairs come first, sorted by real part then imaginary part,
-// followed by the real roots sorted by value
-// returns ErrUnpairedConjugate if a complex root has no conjugate
-// like SciPy's _cplxreal
+// CollapseConjugates replaces each conjugate pair with one root,
+// the member with a positive imaginary part, averaged with the other's conjugate to cancel rounding,
+// same as SciPy's _cplxreal.
+// Pairs come first, sorted by real part then imaginary part, followed by the real roots, sorted by value.
+//
+// Returns: ErrUnpairedConjugate for a complex root with no conjugate.
 func CollapseConjugates(roots []complex128) (collapsed []complex128, err error) {
 	reals, upper, lower := splitByImag(sortedByRealThenImag(roots))
 	if len(upper) != len(lower) {
@@ -34,11 +34,11 @@ func CollapseConjugates(roots []complex128) (collapsed []complex128, err error) 
 	return
 }
 
-// conjugateTolerance is SciPy's tolerance for treating a root as real, or two roots as conjugates
-// 100 machine epsilons, relative to the root's magnitude
+// conjugateTolerance is SciPy's tolerance for treating a root as real, or two roots as conjugates:
+// 100 machine epsilons, relative to the root's magnitude.
 const conjugateTolerance = 100 * floats.Epsilon
 
-// sortedByRealThenImag returns a copy of roots sorted by real part then by the magnitude of the imaginary part
+// sortedByRealThenImag returns a copy of roots sorted by real part, then by the magnitude of the imaginary part.
 func sortedByRealThenImag(roots []complex128) (sorted []complex128) {
 	sorted = slices.Clone(roots)
 	slices.SortStableFunc(sorted, func(x, y complex128) int {
@@ -47,8 +47,8 @@ func sortedByRealThenImag(roots []complex128) (sorted []complex128) {
 	return
 }
 
-// splitByImag separates roots into real ones (stored with exactly zero imaginary part),
-// those above the real axis, and those below, keeping their order
+// splitByImag separates roots into the real ones, stored with an imaginary part of exactly 0,
+// those above the real axis, and those below, keeping their order.
 func splitByImag(roots []complex128) (reals, upper, lower []complex128) {
 	for _, r := range roots {
 		switch {
@@ -63,9 +63,9 @@ func splitByImag(roots []complex128) (reals, upper, lower []complex128) {
 	return
 }
 
-// alignConjugates reorders both halves by imaginary part within each run of
-// (nearly) equal real part, so upper[i] lines up with the conjugate of lower[i]
-// runs are found in upper and applied to both, as SciPy does
+// alignConjugates reorders both halves by imaginary part within each run of nearly equal real part,
+// so upper[i] lines up with the conjugate of lower[i].
+// Runs are found in upper and applied to both, same as SciPy.
 func alignConjugates(upper, lower []complex128) {
 	start := 0
 	for i := 1; i <= len(upper); i++ {
@@ -80,7 +80,7 @@ func alignConjugates(upper, lower []complex128) {
 	}
 }
 
-// compareImagMagnitude orders roots by the magnitude of their imaginary part
+// compareImagMagnitude orders roots by the magnitude of their imaginary part.
 func compareImagMagnitude(x, y complex128) (order int) {
 	order = cmp.Compare(math.Abs(imag(x)), math.Abs(imag(y)))
 	return

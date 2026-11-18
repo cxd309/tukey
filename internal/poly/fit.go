@@ -12,8 +12,7 @@ import (
 //
 //	Σ q_j·⟨q_j, x⟩/‖q_j‖²
 //
-// They're built by Arnoldi iteration, as in Vandermonde with Arnoldi
-// (Brubeck, Nakatsukasa and Trefethen, 2021).
+// They're built by Arnoldi iteration, same as in Vandermonde with Arnoldi, by Brubeck, Nakatsukasa and Trefethen, 2021.
 // Each u·q_j is orthogonalised against every q_i before it, twice,
 // which stays orthogonal at any degree.
 // The Gram polynomials' three-term recurrence fails beyond a degree of about 2√n.
@@ -25,10 +24,10 @@ type Fit struct {
 	spacing   int         // half the window, or 1 for n = 1
 	q         [][]float64 // q[j][k] is q_j at position k
 	norm      []float64   // ‖q_j‖², summed over the positions: n, then 1s
-	h         [][]float64 // the recurrence, u·q_j = Σ_i<=j+1 h[i][j]·q_i
+	h         [][]float64 // the recurrence, u·q_j = Σ_(i≤j+1) h[i][j]·q_i
 }
 
-// NewFit is the orthogonal polynomials up to degree over n positions.
+// NewFit is the orthogonal polynomials up to degree, over n positions.
 // degree must be less than n.
 func NewFit(n, degree int) (f Fit) {
 	f = Fit{n: n, degree: degree, spacing: max(n/2, 1)}
@@ -86,10 +85,10 @@ func (f Fit) Weights(at, deriv int) (w []float64) {
 	if deriv > f.degree {
 		return
 	}
-	// derivs[m][j] is q_j^(m) at sample at: q_j itself for m = 0,
-	// and for m > 0 the recurrence differentiated m times,
+	// derivs[m][j] is q_j^(m) at sample at, q_j itself for m = 0,
+	// and for m > 0 the recurrence differentiated m times:
 	//
-	//	h[j+1][j]·q_j+1^(m) = u·q_j^(m) + m·q_j^(m-1) - Σ_i<=j h[i][j]·q_i^(m)
+	//	h[j+1][j]·q_(j+1)^(m) = u·q_j^(m) + m·q_j^(m-1) - Σ_(i≤j) h[i][j]·q_i^(m)
 	u := f.position(at)
 	derivs := make([][]float64, deriv+1)
 	derivs[0] = make([]float64, f.degree+1)
@@ -124,7 +123,7 @@ func (f Fit) Weights(at, deriv int) (w []float64) {
 	return
 }
 
-// position is sample k's position in the window, from -1 to 1
+// position is sample k's position in the window, from -1 to 1.
 func (f Fit) position(k int) float64 {
 	return float64(k-f.n/2) / float64(f.spacing)
 }

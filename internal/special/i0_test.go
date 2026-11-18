@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// scipy.special.i0 (SciPy 1.18.1) on each side of the [0, 8] boundary and
-// across the large-x expansion, below where SciPy overflows
+// The reference is scipy.special.i0, from SciPy 1.18.1, on each side of the [0, 8] boundary
+// and across the large-x expansion, below where SciPy overflows.
 func TestI0MatchesSciPy(t *testing.T) {
 	cases := []struct{ x, want float64 }{
 		{0.5, 1.0634833707413236},
@@ -26,18 +26,20 @@ func TestI0MatchesSciPy(t *testing.T) {
 	}
 }
 
-// the defining series, the sum of ((x/2)^k / k!)^2, is an independent check:
-// every term is positive, so summing it loses nothing to cancellation
+// The defining series, Σ ((x/2)^k/k!)², is an independent check,
+// as every term is positive, so summing it loses nothing to cancellation.
 func TestI0MatchesSeries(t *testing.T) {
 	for x := 0.0; x <= 30; x += 0.25 {
 		assert.InEpsilon(t, series(x), I0(x), 1e-14, "I0(%g)", x)
 	}
 }
 
-// near and beyond exp's overflow (~709.44 on amd64, ~709.78 elsewhere), I0 is
-// finite up to ~713.99; checked against the asymptotic expansion
-// e^x / sqrt(2 pi x) (1 + 1/(8x) + 9/(128x^2)), whose next term is ~2e-10 here,
-// compared in logs so neither side overflows
+// Near and beyond exp's overflow, at about 709.44 on amd64 and 709.78 elsewhere, I0 is finite up to about 713.99.
+// It's checked against the asymptotic expansion, compared in logs so neither side overflows:
+//
+//	e^x/√(2π·x)·(1 + 1/(8x) + 9/(128x²))
+//
+// whose next term is about 2e-10 here.
 func TestI0NearExpOverflow(t *testing.T) {
 	for x := 700.0; x <= 713.9; x += 0.1 {
 		want := x - 0.5*math.Log(2*math.Pi*x) + math.Log1p(1/(8*x)+9/(128*x*x))
@@ -53,14 +55,14 @@ func TestI0Special(t *testing.T) {
 	assert.True(t, math.IsNaN(I0(math.NaN())))
 }
 
-// I0 is even: it works on |x|, so exactly
+// I0 is even, exactly, as it works on |x|.
 func TestI0IsEven(t *testing.T) {
 	for _, x := range []float64{0.5, 8, 14, 100, 712} {
 		assert.Equal(t, I0(x), I0(-x), "I0(%g)", x)
 	}
 }
 
-// series is I0 by its definition, for small enough x that the terms stay finite
+// series is I0 by its definition, for an x small enough that the terms stay finite.
 func series(x float64) (sum float64) {
 	q := x * x / 4
 	term := 1.0
