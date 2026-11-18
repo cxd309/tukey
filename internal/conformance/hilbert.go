@@ -24,10 +24,7 @@ var (
 
 // hilbertOutputs pairs dsp.Hilbert's analytic signal with a vector's.
 func hilbertOutputs(v hilbertVector) (outputs []Output, err error) {
-	analytic, err := dsp.Hilbert(v.Params.X)
-	if err != nil {
-		return nil, err
-	}
+	analytic := dsp.Hilbert(v.Params.X)
 	want, err := v.Output.Analytic.Values()
 	if err != nil {
 		return nil, err

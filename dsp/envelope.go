@@ -14,9 +14,9 @@ import (
 // Its magnitude is x's envelope, and its angle x's instantaneous phase.
 // It works in the frequency domain, doubling the positive frequencies and zeroing the negative ones,
 // so it treats x as one period of a periodic signal.
-// An empty x gives an empty result, and the error is always nil.
+// An empty x gives an empty result, and nothing else can fail, so there's no error.
 //
-//	analytic, err := dsp.Hilbert(x)
+//	analytic := dsp.Hilbert(x)
 //	phase := cmplx.Phase(analytic[k])
 //
 // Units: same as x
@@ -24,14 +24,14 @@ import (
 // Equivalent to:
 //   - scipy.signal.hilbert(x)
 //   - MATLAB hilbert(x)
-func Hilbert(x []float64) (analytic []complex128, err error) {
+func Hilbert(x []float64) (analytic []complex128) {
 	n := len(x)
 	if n == 0 {
-		return []complex128{}, nil
+		return []complex128{}
 	}
 	half, err := fft.ForwardReal(x) // bins 0 to n/2
 	if err != nil {
-		return nil, err
+		panic(err) // x has at least 1 sample and there are no options, so ForwardReal can't fail
 	}
 	spectrum := make([]complex128, n) // the negative frequencies stay 0
 	spectrum[0] = half[0]
@@ -42,6 +42,9 @@ func Hilbert(x []float64) (analytic []complex128, err error) {
 		spectrum[n/2] = half[n/2]
 	} // Nyquist is its own negative frequency, so it's kept, not doubled
 	analytic, err = fft.Inverse(spectrum)
+	if err != nil {
+		panic(err) // spectrum has n ≥ 1 values and there are no options, so Inverse can't fail
+	}
 	return
 }
 
@@ -73,8 +76,8 @@ func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err e
 	var env []float64
 	if method.rms {
 		env = movingRMS(centred, method.window)
-	} else if env, err = analyticEnvelope(centred); err != nil {
-		return nil, nil, err
+	} else {
+		env = analyticEnvelope(centred)
 	}
 	upper = make([]float64, len(x))
 	lower = make([]float64, len(x))
@@ -116,11 +119,8 @@ func EnvelopeRMS(n int) (method EnvelopeMethod) {
 }
 
 // analyticEnvelope is the magnitude of x's analytic signal.
-func analyticEnvelope(x []float64) (env []float64, err error) {
-	analytic, err := Hilbert(x)
-	if err != nil {
-		return nil, err
-	}
+func analyticEnvelope(x []float64) (env []float64) {
+	analytic := Hilbert(x)
 	env = make([]float64, len(x))
 	for i, a := range analytic {
 		env[i] = cmplx.Abs(a)

@@ -304,7 +304,7 @@ Function calls map one-to-one. Where MATLAB's behaviour differs from SciPy's, Sc
 | `'MinPeakHeight'`, `'Threshold'`                    | `dsp.MinPeakHeight(h)`, `dsp.PeakThreshold(t)`                                                                             |
 | `'MinPeakProminence'`, `'MinPeakWidth'`             | `dsp.MinPeakProminence(p)`, `dsp.MinPeakWidth(w)`                                                                          |
 | `[~, ~, w, p] = findpeaks(x)`                       | `dsp.PeakWidths(x, indices, 0.5)`, `dsp.PeakProminences(x, indices)`                                                       |
-| `y = hilbert(x)`                                    | `y, err := dsp.Hilbert(x)`                                                                                                 |
+| `y = hilbert(x)`                                    | `y := dsp.Hilbert(x)`                                                                                                      |
 | `[up, lo] = envelope(x)`                            | `up, lo, err := dsp.Envelope(x, dsp.EnvelopeAnalytic())`                                                                   |
 | `[up, lo] = envelope(x, n, 'rms')`                  | `up, lo, err := dsp.Envelope(x, dsp.EnvelopeRMS(n))`                                                                       |
 | `[istart, istop, dist] = findsignal(data, signal)`  | `match, err := dsp.FindSignal(data, signal)`: `match.Start`, `match.Stop`, `match.Distance`                                |

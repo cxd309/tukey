@@ -97,10 +97,8 @@ func TestEnvelopeEmpty(t *testing.T) {
 // analyticEnvelope is the magnitude of Hilbert's output.
 func TestAnalyticEnvelopeIsMagnitude(t *testing.T) {
 	x := []float64{3, 1, -4, 1, 5, -9, 2, 6}
-	analytic, err := Hilbert(x)
-	require.NoError(t, err)
-	env, err := analyticEnvelope(x)
-	require.NoError(t, err)
+	analytic := Hilbert(x)
+	env := analyticEnvelope(x)
 	for i, a := range analytic {
 		assert.Equal(t, cmplx.Abs(a), env[i], "env[%d]", i)
 	}
@@ -114,8 +112,7 @@ func TestHilbertRealPartIsX(t *testing.T) {
 		{3, 1, -4, 1, 5, -9, 2, 6},
 		{3, 1, -4, 1, 5, -9, 2, 6, -5},
 	} {
-		analytic, err := Hilbert(x)
-		require.NoError(t, err)
+		analytic := Hilbert(x)
 		require.Len(t, analytic, len(x))
 		for i, a := range analytic {
 			assert.InDelta(t, x[i], real(a), 1e-14, "real(analytic[%d]), n=%d", i, len(x))
@@ -131,8 +128,7 @@ func TestHilbertCosineToSine(t *testing.T) {
 		for i := range x {
 			x[i] = math.Cos(2 * math.Pi * 3 * float64(i) / float64(n))
 		}
-		analytic, err := Hilbert(x)
-		require.NoError(t, err)
+		analytic := Hilbert(x)
 		for i, a := range analytic {
 			want := math.Sin(2 * math.Pi * 3 * float64(i) / float64(n))
 			assert.InDelta(t, want, imag(a), 1e-14, "imag(analytic[%d]), n=%d", i, n)
@@ -153,8 +149,7 @@ func TestHilbertDCAndNyquist(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			analytic, err := Hilbert(c.x)
-			require.NoError(t, err)
+			analytic := Hilbert(c.x)
 			for i, a := range analytic {
 				assert.InDelta(t, c.x[i], real(a), 1e-15, "real(analytic[%d])", i)
 				assert.InDelta(t, 0, imag(a), 1e-15, "imag(analytic[%d])", i)
@@ -166,8 +161,7 @@ func TestHilbertDCAndNyquist(t *testing.T) {
 // An empty x gives an empty, non-nil result.
 func TestHilbertEmpty(t *testing.T) {
 	for _, x := range [][]float64{nil, {}} {
-		analytic, err := Hilbert(x)
-		require.NoError(t, err)
+		analytic := Hilbert(x)
 		assert.NotNil(t, analytic)
 		assert.Empty(t, analytic)
 	}
