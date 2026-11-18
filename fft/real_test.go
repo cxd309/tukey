@@ -1,6 +1,7 @@
 package fft
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"slices"
 	"strconv"
@@ -92,6 +93,22 @@ func TestForwardRealPackedMatchesComplex(t *testing.T) {
 			x := randomReal(n)
 			want := transform(complexified(x))[:n/2+1]
 			reference.AssertClose(t, "y", forwardRealPacked(x), want, reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
+		})
+	}
+}
+
+func BenchmarkForwardReal(b *testing.B) {
+	for _, c := range benchmarkLengths {
+		b.Run(fmt.Sprintf("%s/n=%d", c.path, c.n), func(b *testing.B) {
+			x := randomReal(c.n)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				if _, err := ForwardReal(x); err != nil {
+					b.Fatal(err)
+				}
+			}
+			reportPerNLogN(b, c.n)
 		})
 	}
 }

@@ -1,4 +1,4 @@
-"""scipy.signal.windows, symetric and period, at lengths covering the edge cases"""
+"""scipy.signal.windows, symmetric and periodic, at lengths covering the edge cases"""
 
 from typing import Final
 

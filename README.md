@@ -48,7 +48,7 @@ Named after [John Tukey](https://en.wikipedia.org/wiki/John_Tukey), who co-inven
 
 ## Why
 
-This library was designed to support the development of appliations reliant on DSP in GO.
+This library was designed to support the development of applications reliant on DSP in Go.
 
 A survey of existing tools found some coverage but was specifically lacking zero-phase filtering which was essential for an application that we needed to develop.
 
@@ -399,7 +399,7 @@ Windows take their shape as an option, `window.Periodic()`, for MATLAB's `'perio
 
 ## Roadmap
 
-tukey is currently in initial development and the interface will signficantly change until v1.0.
+tukey is currently in initial development and the interface will significantly change until v1.0.
 
 The library is three packages, mirroring SciPy:
 
@@ -443,7 +443,7 @@ just vectors    # regenerate reference vectors: SciPy, then MATLAB from SciPy's 
 
 Reference vectors are committed in `testdata/scipy/` and `testdata/matlab/`, so neither Python nor MATLAB is needed to run the tests. Their generators are in `reference/`: `reference/scipy` (uv, pinned SciPy) and `reference/matlab`, which reruns each SciPy vector's inputs through MATLAB so both are checked on identical inputs.
 
-`just bectors-matlab` needs MATLAB with the Signal Processing Toolbox, on the `PATH` or set as `MATLAB=/path/to/matlab`.
+`just vectors-matlab` needs MATLAB with the Signal Processing Toolbox, on the `PATH` or set as `MATLAB=/path/to/matlab`.
 
 ### How tukey was built
 
