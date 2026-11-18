@@ -17,21 +17,24 @@ type filterVector struct {
 	} `json:"output"`
 }
 
-// filterSciPySuite checks dsp.Filter against scipy.signal.lfilter
-// measured: FIR and simple-coefficient cases are bit-identical; Butterworth cases
-// agree within ~3 ULPs (worst 6.6e-16), differing only in the order of additions;
-// set ~10x above the worst for headroom across platforms
+// filterSciPySuite checks dsp.Filter against scipy.signal.lfilter.
+// Measured:
+//   - FIR and simple-coefficient cases are bit-identical
+//   - Butterworth cases agree within about 3 ULP, worst 6.6e-16, differing only in the order of additions
+//
+// Tolerance: about 10 times the worst, for headroom across platforms.
 var filterSciPySuite = newSuiteOf("Filter", reference.SourceSciPy, "filter",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	filterOutputs, isWellConditioned)
 
-// filterMATLABSuite checks dsp.Filter against MATLAB's filter
-// measured: worst 5.3e-16 (2 ULP), as against SciPy; set to match
+// filterMATLABSuite checks dsp.Filter against MATLAB's filter.
+// Measured: worst 2 ULP, 5.3e-16.
+// Tolerance: the same as against SciPy.
 var filterMATLABSuite = newSuiteOf("Filter", reference.SourceMATLAB, "filter",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	filterOutputs, isWellConditioned)
 
-// filterOutputs pairs dsp.Filter's output with a vector's
+// filterOutputs pairs dsp.Filter's output with a vector's.
 func filterOutputs(v filterVector) (outputs []Output, err error) {
 	y, err := dsp.Filter(v.Params.B, v.Params.A, v.Params.X)
 	if err != nil {

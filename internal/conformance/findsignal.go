@@ -15,18 +15,21 @@ type findSignalVector struct {
 		Start   int       `json:"start"`
 		Stop    int       `json:"stop"`
 		Dist    []float64 `json:"dist"`
-		Profile []float64 `json:"profile"` // SciPy only: every window's distance, for checking a whole search
+		Profile []float64 `json:"profile"` // SciPy only, every window's distance, for checking a whole search
 	} `json:"output"`
 }
 
-// findsignal measured, on both architectures, set ~10x above the worst:
-//   - direct and hybrid: exact against SciPy, and 5.9e-16 (3 ULP) against MATLAB, on delayed_walk
-//   - fast: 1.5e-15 (7 ULP) against both, on one_sample on arm64
+// The findsignal suites, measured on both architectures:
+//   - direct and hybrid are exact against SciPy, and worst 3 ULP, 5.9e-16, against MATLAB, on delayed_walk
+//   - fast is worst 7 ULP, 1.5e-15, against both, on one_sample on arm64
 //
-// Direct and hybrid against SciPy are measured relative to the distance itself, as both
-// sum the closest window exactly, so a perfect match must be 0. The rest are relative to
-// the window's and signal's sums of squares, as the expanded form Σd² - 2Σdt + Σt² rounds
-// at that scale: MATLAB's perfect matches are up to 2^-29 rather than 0.
+// Tolerance: about 10 times the worst.
+//
+// Direct and hybrid against SciPy are measured relative to the distance itself,
+// as both sum the closest window exactly, so a perfect match must be 0.
+// The rest are relative to the window's and signal's sums of squares,
+// as the expanded form, Σd² - 2Σdt + Σt², rounds at that scale,
+// so MATLAB's perfect matches are up to 2^-29 rather than 0.
 var (
 	findSignalDirectSciPySuite  = newSuite("FindSignal (direct)", reference.SourceSciPy, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect(), false))
 	findSignalDirectMATLABSuite = newSuite("FindSignal (direct)", reference.SourceMATLAB, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect(), true))

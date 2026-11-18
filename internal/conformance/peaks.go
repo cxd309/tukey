@@ -21,31 +21,29 @@ type findPeaksVector struct {
 	} `json:"output"`
 }
 
-// find_peaks is exact against both. The peaks are indices and the heights are
-// copied from x, so there's no rounding to allow for.
+// The find_peaks suites are exact against both.
+// The peaks are indices and the heights are copied from x, so there's no rounding to allow for.
 var (
 	findPeaksSciPySuite  = newSuite("FindPeaks", reference.SourceSciPy, "find_peaks", reference.Tolerance{}, findPeaksSciPyOutputs)
 	findPeaksMATLABSuite = newSuite("FindPeaks", reference.SourceMATLAB, "find_peaks", reference.Tolerance{}, findPeaksMATLABOutputs)
 )
 
-// findPeaksSciPyOutputs runs dsp.FindPeaks with the vector's options and
-// tukey's defaults, which are SciPy's rules.
+// findPeaksSciPyOutputs runs dsp.FindPeaks with the vector's options and tukey's defaults, which are SciPy's rules.
 func findPeaksSciPyOutputs(v findPeaksVector) (outputs []Output, err error) {
 	outputs, err = findPeaksOutputs(v, peakOptions(v, 0))
 	return
 }
 
-// findPeaksMATLABOutputs runs dsp.FindPeaks with findpeaks' rules. MATLAB's
-// vectors keep SciPy's params, and findpeaks' MinPeakDistance d keeps peaks
-// more than d apart, which is MinPeakDistance(d+1).
+// findPeaksMATLABOutputs runs dsp.FindPeaks with findpeaks' rules.
+// MATLAB's vectors keep SciPy's parameters,
+// and findpeaks' MinPeakDistance d keeps peaks more than d apart, which is MinPeakDistance(d+1).
 func findPeaksMATLABOutputs(v findPeaksVector) (outputs []Output, err error) {
 	opts := append(peakOptions(v, 1), dsp.MATLABPeaks())
 	outputs, err = findPeaksOutputs(v, opts)
 	return
 }
 
-// peakOptions is the vector's params as PeakOptions, with distanceOffset
-// added to its distance.
+// peakOptions is the vector's parameters as PeakOptions, with distanceOffset added to its distance.
 func peakOptions(v findPeaksVector, distanceOffset int) (opts []dsp.PeakOption) {
 	p := v.Params
 	if p.Height != nil {
@@ -97,7 +95,8 @@ type peakProminencesVector struct {
 	} `json:"output"`
 }
 
-// peak_prominences measured: exact against both, on both architectures.
+// The peak_prominences suites.
+// Measured: exact against both, on both architectures.
 // Each prominence is one subtraction of two samples of x, the same in all three,
 // so exact is expected, but the tolerance stays at 1e-14.
 var (
@@ -105,8 +104,7 @@ var (
 	peakProminencesMATLABSuite = newSuite("PeakProminences", reference.SourceMATLAB, "peak_prominences", tolerance(1e-14), peakProminencesOutputs)
 )
 
-// peakProminencesOutputs pairs dsp.PeakProminences' output with a vector's,
-// and its bases too where the vector has them.
+// peakProminencesOutputs pairs dsp.PeakProminences' output with a vector's, and its bases too where the vector has them.
 func peakProminencesOutputs(v peakProminencesVector) (outputs []Output, err error) {
 	got, err := dsp.PeakProminences(v.Params.X, v.Params.Peaks)
 	if err != nil {
@@ -143,15 +141,15 @@ type peakWidthsVector struct {
 	} `json:"output"`
 }
 
-// peak_widths measured: exact against SciPy, and worst 2.7e-15 (12 ULP) against
-// MATLAB, on abs_noise, on both architectures. Set ~10x above.
+// The peak_widths suites.
+// Measured: exact against SciPy, and worst 12 ULP, 2.7e-15, against MATLAB, on abs_noise, on both architectures.
+// Tolerance: about 10 times the worst.
 var (
 	peakWidthsSciPySuite  = newSuite("PeakWidths", reference.SourceSciPy, "peak_widths", tolerance(1e-14), peakWidthsOutputs)
 	peakWidthsMATLABSuite = newSuite("PeakWidths", reference.SourceMATLAB, "peak_widths", tolerance(1e-13), peakWidthsOutputs)
 )
 
-// peakWidthsOutputs pairs dsp.PeakWidths' output with a vector's, and the
-// heights and crossings too where the vector has them.
+// peakWidthsOutputs pairs dsp.PeakWidths' output with a vector's, and the heights and crossings too where the vector has them.
 func peakWidthsOutputs(v peakWidthsVector) (outputs []Output, err error) {
 	got, err := dsp.PeakWidths(v.Params.X, v.Params.Peaks, v.Params.RelHeight)
 	if err != nil {

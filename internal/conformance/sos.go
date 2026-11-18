@@ -20,13 +20,13 @@ type zpk2sosVector struct {
 	} `json:"output"`
 }
 
-// zpk2sosSciPySuite checks ZPK.SOS against scipy.signal.zpk2sos
-// on SciPy's own zeros, poles and gain,
-// isolating the pairing from any difference in designs
-// not checked against MATLAB: zp2sos factorises odd orders and equal-radius pole
-// pairs differently (same filter, different sections), so coefficients can't match
-// measured: section order and pairing match exactly on all 29 vectors, worst
-// coefficient error 1.1e-16 (under 1 ULP); set to 1e-14 to match Filter
+// zpk2sosSciPySuite checks ZPK.SOS against scipy.signal.zpk2sos, on SciPy's own zeros, poles and gain,
+// isolating the pairing from any difference in designs.
+// It isn't checked against MATLAB, as zp2sos factorises odd orders and equal-radius pole pairs differently,
+// giving the same filter in different sections, so the coefficients can't match.
+// Measured: section order and pairing match exactly on all 29 vectors,
+// and the worst coefficient error is under 1 ULP, 1.1e-16.
+// Tolerance: 1e-14, the same as Filter's.
 var zpk2sosSciPySuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	func(v zpk2sosVector) (outputs []Output, err error) {
@@ -46,22 +46,19 @@ var zpk2sosSciPySuite = newSuite("ZPK.SOS", reference.SourceSciPy, "zpk2sos",
 		return
 	})
 
-// butterSOSSciPySuite checks dsp.Butter(...).SOS() against
-// scipy.signal.butter(..., output='sos') end to end,
-// using the sos output recorded in the Butter vectors
+// butterSOSSciPySuite checks dsp.Butter's SOS against scipy.signal.butter(..., output='sos') end to end,
+// using the sos output recorded in the Butter vectors.
 //
-// sections are compared as a set, with the overall gain taken out and compared
-// separately: when poles tie in distance from the unit circle, rounding decides
-// both the section order and which section carries the gain, and either way is
-// the same filter. bandstop_order2_wn0.01-0.99 is such a case: its edges are
-// symmetric about half Nyquist, so its pole pairs are p and -p. Order and gain
-// placement are checked exactly by zpk2sosSciPySuite, on identical inputs.
+// Sections are compared as a set, with the overall gain taken out and compared separately.
+// When poles tie in distance from the unit circle, rounding decides both the section order and which section carries the gain,
+// and either way is the same filter.
+// bandstop_order2_wn0.01-0.99 is such a case, as its edges are symmetric about half Nyquist, so its pole pairs are p and -p.
+// Order and gain placement are checked exactly by zpk2sosSciPySuite, on identical inputs.
+// It isn't checked against MATLAB, for the reason zpk2sosSciPySuite gives.
 //
-// not checked against MATLAB, for the reason given at zpk2sosSciPySuite
-//
-// measured: worst 7.3e-15 (~33 ULP), on the same vector as Butter's own worst
-// case; the conversion adds essentially nothing (see zpk2sosSciPySuite), so SOS
-// inherits the design's pole accuracy; set to match Butter
+// Measured: worst about 33 ULP, 7.3e-15, on the same vector as Butter's own worst case.
+// The conversion adds almost nothing, as zpk2sosSciPySuite shows, so SOS inherits the design's pole accuracy.
+// Tolerance: the same as Butter's.
 var butterSOSSciPySuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butter",
 	reference.Tolerance{Rel: 1e-13, Scaled: 1e-13},
 	func(v butterVector) (outputs []Output, err error) {
@@ -91,9 +88,8 @@ var butterSOSSciPySuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butte
 		return matchedSOSOutputs(f, v.Output.Sos)
 	})
 
-// normalizedSections takes the gain out of each section's b, dividing it by its
-// leading non-zero coefficient; the product of those is the overall gain, so
-// sections can be compared regardless of which one carries it
+// normalizedSections takes the gain out of each section's b, dividing it by its leading nonzero coefficient.
+// The product of those is the overall gain, so sections can be compared whichever one carries it.
 func normalizedSections(sos [][6]float64) (sections [][6]float64, gain float64) {
 	gain = 1
 	sections = slices.Clone(sos) // arrays are values, so this copies every coefficient
@@ -107,7 +103,7 @@ func normalizedSections(sos [][6]float64) (sections [][6]float64, gain float64) 
 	return
 }
 
-// leadingCoefficient is b's first non-zero coefficient, or 1 if there is none
+// leadingCoefficient is b's first nonzero coefficient, or 1 if there is none.
 func leadingCoefficient(b []float64) (lead float64) {
 	for _, c := range b {
 		if c != 0 {
@@ -117,8 +113,8 @@ func leadingCoefficient(b []float64) (lead float64) {
 	return 1
 }
 
-// matchSections reorders got so each section lines up with the closest section
-// in want; see butterSOSSciPySuite for why order can legitimately differ
+// matchSections reorders got so each section lines up with the closest section in want.
+// butterSOSSciPySuite explains why the order can rightly differ.
 func matchSections(got dsp.SOS, want [][6]float64) (matched dsp.SOS) {
 	used := make([]bool, len(got))
 	for _, w := range want {
@@ -132,7 +128,7 @@ func matchSections(got dsp.SOS, want [][6]float64) (matched dsp.SOS) {
 			}
 		}
 		if best < 0 {
-			break // more sections wanted than got; sosOutputs reports the count mismatch
+			break // more sections are wanted than got, and sosOutputs reports the count mismatch
 		}
 		used[best] = true
 		matched = append(matched, got[best])
@@ -140,7 +136,7 @@ func matchSections(got dsp.SOS, want [][6]float64) (matched dsp.SOS) {
 	return
 }
 
-// sectionDistance is the largest coefficient difference between two sections
+// sectionDistance is the largest coefficient difference between two sections.
 func sectionDistance(g, w [6]float64) (d float64) {
 	for i := range g {
 		d = math.Max(d, math.Abs(g[i]-w[i]))
@@ -148,8 +144,7 @@ func sectionDistance(g, w [6]float64) (d float64) {
 	return
 }
 
-// matchedSOSOutputs pairs f's sections with want's, matched as a set, with
-// the overall gain compared separately.
+// matchedSOSOutputs pairs f's sections with want's, matched as a set, with the overall gain compared separately.
 func matchedSOSOutputs(f dsp.ZPK, want [][6]float64) (outputs []Output, err error) {
 	sos, err := f.SOS()
 	if err != nil {

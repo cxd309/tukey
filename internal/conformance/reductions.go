@@ -21,13 +21,14 @@ type sumVector struct {
 	} `json:"output"`
 }
 
-// sum, mean and cumsum measured on both architectures: exact against SciPy, whose side is
-// summed exactly, so it's measured against each value itself and the tolerance
-// stays at 1e-14. MATLAB sums plainly, 5.1e-7 from exact on mixed_magnitudes
-// relative to the total, so it's measured against the size of what's summed,
-// sum(|x|), the scale it rounds at. Against that, sum and mean are worst at
-// 9.0e-14 (407 ULP) and cumsum at 3.6e-13 (1629 ULP), all on tenths_long, as a
-// plain running sum's error grows with its length. Set ~10x above the worst.
+// The sum, mean and cumsum suites, measured on both architectures.
+// They're exact against SciPy, whose side is summed exactly,
+// so it's measured against each value itself and the tolerance stays at 1e-14.
+// MATLAB sums plainly, 5.1e-7 from exact on mixed_magnitudes relative to the total,
+// so it's measured against the size of what's summed, Σ|x|, the scale it rounds at.
+// Against that, sum and mean are worst at 407 ULP, 9.0e-14, and cumsum at 1629 ULP, 3.6e-13, all on tenths_long,
+// as a plain running sum's error grows with its length.
+// Tolerance: about 10 times the worst.
 var (
 	sumSciPySuite     = newSuite("Sum", reference.SourceSciPy, "sum", tolerance(1e-14), sumOutputs(false))
 	sumMATLABSuite    = newSuite("Sum", reference.SourceMATLAB, "sum", tolerance(1e-12), sumOutputs(true))
@@ -37,7 +38,7 @@ var (
 	cumSumMATLABSuite = newSuite("CumSum", reference.SourceMATLAB, "cumsum", tolerance(1e-11), cumSumOutputs(true))
 )
 
-// sumOutputs pairs dsp.Sum with a vector's. scaled measures against sum(|x|).
+// sumOutputs pairs dsp.Sum with a vector's, and scaled measures against Σ|x|.
 func sumOutputs(scaled bool) func(v sumVector) ([]Output, error) {
 	return func(v sumVector) (outputs []Output, err error) {
 		outputs = []Output{{Name: "sum", Got: []float64{dsp.Sum(v.Params.X)}, Want: v.Output.Sum, Scale: sumScale(v.Params.X, scaled)}}
@@ -45,7 +46,7 @@ func sumOutputs(scaled bool) func(v sumVector) ([]Output, error) {
 	}
 }
 
-// meanOutputs pairs dsp.Mean with a vector's. scaled measures against mean(|x|).
+// meanOutputs pairs dsp.Mean with a vector's, and scaled measures against mean(|x|).
 func meanOutputs(scaled bool) func(v sumVector) ([]Output, error) {
 	return func(v sumVector) (outputs []Output, err error) {
 		m, err := dsp.Mean(v.Params.X)
@@ -58,7 +59,7 @@ func meanOutputs(scaled bool) func(v sumVector) ([]Output, error) {
 	}
 }
 
-// cumSumOutputs pairs dsp.CumSum with a vector's. scaled measures against sum(|x|).
+// cumSumOutputs pairs dsp.CumSum with a vector's, and scaled measures against Σ|x|.
 func cumSumOutputs(scaled bool) func(v sumVector) ([]Output, error) {
 	return func(v sumVector) (outputs []Output, err error) {
 		outputs = []Output{{Name: "s", Got: dsp.CumSum(v.Params.X), Want: v.Output.S, Scale: sumScale(v.Params.X, scaled)}}
@@ -76,9 +77,8 @@ type diffVector struct {
 	} `json:"output"`
 }
 
-// diff measured on both architectures: exact against both. Each difference is one
-// subtraction, the same in all three, so exact is expected, but the tolerance
-// stays at 1e-14.
+// The diff suites, measured on both architectures, are exact against both.
+// Each difference is one subtraction, the same in all three, so exact is expected, but the tolerance stays at 1e-14.
 var (
 	diffSciPySuite  = newSuite("Diff", reference.SourceSciPy, "diff", tolerance(1e-14), diffOutputs)
 	diffMATLABSuite = newSuite("Diff", reference.SourceMATLAB, "diff", tolerance(1e-14), diffOutputs)
@@ -101,10 +101,10 @@ type gradVector struct {
 	} `json:"output"`
 }
 
-// gradient measured on both architectures: exact against SciPy, as Grad's arithmetic is
-// NumPy's, so the tolerance stays at 1e-14. Worst 2.1e-14 (96 ULP) against
-// MATLAB on sine, whose dx is 0.01, as MATLAB rounds its differences
-// differently. Set ~10x above the worst.
+// The gradient suites, measured on both architectures.
+// They're exact against SciPy, as Grad's arithmetic is NumPy's, so the tolerance stays at 1e-14.
+// Against MATLAB they're worst at 96 ULP, 2.1e-14, on sine, whose dx is 0.01, as MATLAB rounds its differences differently.
+// Tolerance: about 10 times the worst.
 var (
 	gradSciPySuite  = newSuite("Grad", reference.SourceSciPy, "gradient", tolerance(1e-14), gradOutputs)
 	gradMATLABSuite = newSuite("Grad", reference.SourceMATLAB, "gradient", tolerance(1e-12), gradOutputs)
@@ -131,11 +131,11 @@ type trapzVector struct {
 	} `json:"output"`
 }
 
-// trapezoid and cumulative_trapezoid measured on both architectures: exact against SciPy,
-// whose side is summed exactly as for sum, so the tolerance stays at 1e-14.
-// MATLAB is measured against dx·sum(|y|): worst 9.0e-14 (407 ULP) for trapz and
-// 3.6e-13 (1629 ULP) for cumtrapz, both on tenths_long, as for sum and cumsum.
-// Set ~10x above the worst.
+// The trapezoid and cumulative_trapezoid suites, measured on both architectures.
+// They're exact against SciPy, whose side is summed exactly, same as for sum, so the tolerance stays at 1e-14.
+// MATLAB is measured against dx·Σ|y|, worst at 407 ULP, 9.0e-14, for trapz, and 1629 ULP, 3.6e-13, for cumtrapz,
+// both on tenths_long, same as for sum and cumsum.
+// Tolerance: about 10 times the worst.
 var (
 	trapzSciPySuite     = newSuite("Trapz", reference.SourceSciPy, "trapezoid", tolerance(1e-14), trapzOutputs(false))
 	trapzMATLABSuite    = newSuite("Trapz", reference.SourceMATLAB, "trapezoid", tolerance(1e-12), trapzOutputs(true))
@@ -143,7 +143,7 @@ var (
 	cumTrapzMATLABSuite = newSuite("CumTrapz", reference.SourceMATLAB, "cumulative_trapezoid", tolerance(1e-11), cumTrapzOutputs(true))
 )
 
-// trapzOutputs pairs dsp.Trapz with a vector's. scaled measures against dx·sum(|y|).
+// trapzOutputs pairs dsp.Trapz with a vector's, and scaled measures against dx·Σ|y|.
 func trapzOutputs(scaled bool) func(v trapzVector) ([]Output, error) {
 	return func(v trapzVector) (outputs []Output, err error) {
 		integral, err := dsp.Trapz(v.Params.Y, v.Params.DX)
@@ -156,7 +156,7 @@ func trapzOutputs(scaled bool) func(v trapzVector) ([]Output, error) {
 	}
 }
 
-// cumTrapzOutputs pairs dsp.CumTrapz with a vector's. scaled measures against dx·sum(|y|).
+// cumTrapzOutputs pairs dsp.CumTrapz with a vector's, and scaled measures against dx·Σ|y|.
 func cumTrapzOutputs(scaled bool) func(v trapzVector) ([]Output, error) {
 	return func(v trapzVector) (outputs []Output, err error) {
 		integral, err := dsp.CumTrapz(v.Params.Y, v.Params.DX)
@@ -181,10 +181,11 @@ type percentileVector struct {
 	} `json:"output"`
 }
 
-// percentile measured on both architectures: exact against SciPy, as the interpolation is
-// NumPy's, and within 1 ULP of MATLAB (worst 4.0e-17 on noise101_hazen), so the
-// tolerance stays at 1e-14. MATLAB's prctile is NumPy's "hazen", and ignores NaN
-// where tukey and NumPy give NaN, so the NaN case isn't compared against MATLAB.
+// The percentile suites, measured on both architectures.
+// They're exact against SciPy, as the interpolation is NumPy's,
+// and within 1 ULP of MATLAB, worst 4.0e-17 on noise101_hazen, so the tolerance stays at 1e-14.
+// MATLAB's prctile is NumPy's hazen, and ignores NaN where tukey and NumPy give NaN,
+// so the NaN case isn't compared against MATLAB.
 var (
 	percentileSciPySuite  = newSuite("Percentile", reference.SourceSciPy, "percentile", tolerance(1e-14), percentileOutputs)
 	percentileMATLABSuite = newSuiteOf("Percentile", reference.SourceMATLAB, "percentile", tolerance(1e-14), percentileOutputs,
@@ -211,8 +212,8 @@ func percentileOutputs(v percentileVector) (outputs []Output, err error) {
 	return
 }
 
-// sumScale is sum(|x|), the size of what's summed and so the scale a plain sum
-// rounds at, if scaled, or 0 to measure against the values themselves.
+// sumScale is Σ|x|, the size of what's summed and so the scale a plain sum rounds at, if scaled,
+// or 0 to measure against the values themselves.
 func sumScale(x []float64, scaled bool) (scale float64) {
 	if !scaled {
 		return 0

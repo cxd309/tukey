@@ -13,28 +13,29 @@ type fftOptionVector struct {
 		Transform string            `json:"transform"`
 		X         reference.Complex `json:"x"`
 		Norm      string            `json:"norm"`
-		N         *int              `json:"n"` // N for fft/ifft/rfft (null: unset); the length for irfft
+		N         *int              `json:"n"` // N for fft, ifft and rfft, or null for none, and the length for irfft
 	} `json:"params"`
 	Output struct {
 		Y reference.Complex `json:"y"`
 	} `json:"output"`
 }
 
-// fftOptionsSciPySuite checks Norm and N on each transform against scipy.fft
-// measured: worst 3 ULP (6.4e-16, ifft at n = 1009 with norm='forward'),
-// no worse than the transforms themselves, set to match them
+// fftOptionsSciPySuite checks the Norm options and N on each transform against scipy.fft.
+// Measured: worst 3 ULP, 6.4e-16, for ifft at n = 1009 with norm='forward', no worse than the transforms themselves.
+// Tolerance: the same as the transforms'.
 var fftOptionsSciPySuite = newSuite("fft options", reference.SourceSciPy, "fft_options",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	fftOptionOutputs)
 
-// fftOptionsMATLABSuite checks N on each transform against MATLAB's fft(x, n) and ifft(x, n)
-// MATLAB has no normalisation option, so only SciPy's norm='backward' cases have MATLAB vectors
-// measured: worst 3 ULP (7.2e-16, fft at n = 1009); set to match the transforms
+// fftOptionsMATLABSuite checks N on each transform against MATLAB's fft(x, n) and ifft(x, n).
+// MATLAB has no normalisation option, so only SciPy's norm='backward' cases have MATLAB vectors.
+// Measured: worst 3 ULP, 7.2e-16, for fft at n = 1009.
+// Tolerance: the same as the transforms'.
 var fftOptionsMATLABSuite = newSuite("fft options", reference.SourceMATLAB, "fft_options",
 	reference.Tolerance{Rel: 1e-14, Scaled: 1e-14},
 	fftOptionOutputs)
 
-// fftOptionOutputs pairs the output of the vector's transform, with its options, with the vector's
+// fftOptionOutputs pairs the output of the vector's transform, with its options, with the vector's.
 func fftOptionOutputs(v fftOptionVector) (outputs []Output, err error) {
 	x, err := v.Params.X.Values()
 	if err != nil {
@@ -75,7 +76,7 @@ func fftOptionOutputs(v fftOptionVector) (outputs []Output, err error) {
 	return
 }
 
-// normalisation translates SciPy's norm names to fft's options
+// normalisation translates SciPy's norm names to fft's options.
 func normalisation(name string) (norm fft.Option, err error) {
 	switch name {
 	case "backward":
@@ -90,8 +91,8 @@ func normalisation(name string) (norm fft.Option, err error) {
 	return
 }
 
-// realParts and asComplex convert between real values and complex ones with zero
-// imaginary parts, as fft_options stores real inputs and outputs
+// realParts and asComplex convert between real values and complex ones with zero imaginary parts,
+// as fft_options stores real inputs and outputs.
 func realParts(x []complex128) (r []float64) {
 	r = make([]float64, len(x))
 	for i, v := range x {
@@ -120,12 +121,12 @@ type fftFreqVector struct {
 	} `json:"output"`
 }
 
-// fftFreqSciPySuite checks fft.Freq and fft.RealFreq against scipy.fft.fftfreq and rfftfreq
-// MATLAB has no equivalent function
-// measured: exact
-// Each value is an integer times 1/(n·d), computed as NumPy does,
-// and IEEE 754 rounds a single division and multiplication identically everywhere,
-// so anything but an exact match is a bug
+// fftFreqSciPySuite checks fft.Freq and fft.RealFreq against scipy.fft.fftfreq and rfftfreq.
+// MATLAB has no equivalent function.
+// Measured: exact.
+// Each value is an integer times 1/(n·d), computed the same as NumPy,
+// and IEEE 754 rounds a single division and multiplication the same everywhere,
+// so anything but an exact match is a bug.
 var fftFreqSciPySuite = newSuite("fft.Freq", reference.SourceSciPy, "fftfreq",
 	reference.Tolerance{},
 	func(v fftFreqVector) (outputs []Output, err error) {
@@ -155,19 +156,19 @@ type fftShiftVector struct {
 	} `json:"output"`
 }
 
-// fftShiftSciPySuite checks fft.Shift and fft.InverseShift against scipy.fft.fftshift and ifftshift
-// they only reorder values, so they must match exactly
+// fftShiftSciPySuite checks fft.Shift and fft.InverseShift against scipy.fft.fftshift and ifftshift.
+// They only reorder values, so they must match exactly.
 var fftShiftSciPySuite = newSuite("fft.Shift", reference.SourceSciPy, "fftshift",
 	reference.Tolerance{},
 	fftShiftOutputs)
 
-// fftShiftMATLABSuite checks fft.Shift and fft.InverseShift against MATLAB's fftshift and ifftshift
-// exact, as for SciPy
+// fftShiftMATLABSuite checks fft.Shift and fft.InverseShift against MATLAB's fftshift and ifftshift,
+// exactly, same as against SciPy.
 var fftShiftMATLABSuite = newSuite("fft.Shift", reference.SourceMATLAB, "fftshift",
 	reference.Tolerance{},
 	fftShiftOutputs)
 
-// fftShiftOutputs pairs fft.Shift's and fft.InverseShift's outputs with a vector's
+// fftShiftOutputs pairs fft.Shift's and fft.InverseShift's outputs with a vector's.
 func fftShiftOutputs(v fftShiftVector) (outputs []Output, err error) {
 	outputs = []Output{
 		{Name: "shift", Got: fft.Shift(v.Params.X), Want: v.Output.Shift},

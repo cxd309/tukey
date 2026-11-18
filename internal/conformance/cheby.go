@@ -23,14 +23,16 @@ type chebyVector struct {
 	} `json:"output"`
 }
 
-// Cheby1 and Cheby2, measured on both architectures. Against SciPy, Cheby1 is
-// worst at 6.8e-15 on the 0.01 dB vector, where tukey computes the ripple
-// factor by Expm1 and SciPy by 10^x - 1. Cheby2 is worst at 5.7e-14 on bandstop
-// 0.01-0.99, also Butter's worst, whose wide edges make the poles
-// ill-conditioned. Against MATLAB, Cheby1 is worst at 6.8e-13 on
-// lowpass_order8_db0.5_wn0.01's tiny b, where MATLAB differs from SciPy by the
-// same amount, and Cheby2 at 1.8e-14. MATLAB's sos isn't compared, for the
-// reason at butterMATLABSuite.
+// Cheby1 and Cheby2, measured on both architectures.
+// Against SciPy:
+//   - Cheby1 is worst at 6.8e-15 on the 0.01 dB vector, where tukey computes the ripple factor by Expm1 and SciPy by 10^x - 1
+//   - Cheby2 is worst at 5.7e-14 on bandstop 0.01-0.99, also Butter's worst, whose wide edges make the poles ill-conditioned
+//
+// Against MATLAB:
+//   - Cheby1 is worst at 6.8e-13 on lowpass_order8_db0.5_wn0.01's tiny b, where MATLAB differs from SciPy by the same amount
+//   - Cheby2 is worst at 1.8e-14
+//
+// MATLAB's sos isn't compared, for the reason butterMATLABSuite gives.
 var (
 	cheby1SciPySuite    = newSuite("Cheby1", reference.SourceSciPy, "cheby1", tolerance(1e-13), chebyBAOutputs(designCheby1))
 	cheby1SOSSciPySuite = newSuite("Cheby1 (SOS)", reference.SourceSciPy, "cheby1", tolerance(1e-13), chebySOSOutputs(designCheby1))

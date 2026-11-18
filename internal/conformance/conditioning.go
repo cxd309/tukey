@@ -18,16 +18,17 @@ type detrendVector struct {
 	} `json:"output"`
 }
 
-// detrend measured: worst 5.6e-16 (2 ULP) against SciPy and 1.2e-15 (5 ULP)
-// against MATLAB, on detrending a constant, where the fitted line cancels the
-// signal almost exactly. Set ~10x above the worst.
+// The detrend suites.
+// Measured: worst 2 ULP, 5.6e-16, against SciPy, and 5 ULP, 1.2e-15, against MATLAB,
+// on detrending a constant, where the fitted line cancels the signal almost exactly.
+// Tolerance: about 10 times the worst.
 var (
 	detrendSciPySuite  = newSuite("Detrend", reference.SourceSciPy, "detrend", tolerance(1e-14), detrendOutputs)
 	detrendMATLABSuite = newSuite("Detrend", reference.SourceMATLAB, "detrend", tolerance(1e-13), detrendOutputs)
 )
 
-// detrendOutputs pairs dsp.Detrend's output with a vector's. It's scaled to the
-// input, as detrending a nearly straight signal cancels to ~0.
+// detrendOutputs pairs dsp.Detrend's output with a vector's.
+// It's scaled to the input, as detrending a nearly straight signal cancels to about 0.
 func detrendOutputs(v detrendVector) (outputs []Output, err error) {
 	mode := dsp.DetrendLinear()
 	switch v.Params.Type {
@@ -54,8 +55,10 @@ type interp1Vector struct {
 	} `json:"output"`
 }
 
-// interp1 measured: worst 1.3e-16 against SciPy and 2.2e-16 against MATLAB
-// (1 ULP), with NaN outside x's range in the same places as both. Set ~10x above.
+// The interp1 suites.
+// Measured: worst 1 ULP, 1.3e-16 against SciPy and 2.2e-16 against MATLAB,
+// with NaN outside x's range in the same places as both.
+// Tolerance: about 10 times the worst.
 var (
 	interp1SciPySuite  = newSuite("Interp1", reference.SourceSciPy, "interp1", tolerance(1e-14), interp1Outputs)
 	interp1MATLABSuite = newSuite("Interp1", reference.SourceMATLAB, "interp1", tolerance(1e-14), interp1Outputs)
@@ -83,17 +86,18 @@ type fillMissingVector struct {
 	} `json:"output"`
 }
 
-// fillmissing measured: exact against both, NaN included, on both architectures.
-// The SciPy side is MATLAB's documented definition, which MATLAB's own vectors
-// confirm. Exact here is a measurement, not a guarantee (the same line formula,
-// rounded the same way), so the tolerance stays at 1e-14.
+// The fillmissing suites.
+// Measured: exact against both, NaN included, on both architectures.
+// The SciPy side is MATLAB's documented definition, which MATLAB's own vectors confirm.
+// Exact here is a measurement, not a guarantee, as it's the same line formula rounded the same way,
+// so the tolerance stays at 1e-14.
 var (
 	fillMissingSciPySuite  = newSuite("FillMissing", reference.SourceSciPy, "fillmissing", tolerance(1e-14), fillMissingOutputs)
 	fillMissingMATLABSuite = newSuite("FillMissing", reference.SourceMATLAB, "fillmissing", tolerance(1e-14), fillMissingOutputs)
 )
 
-// fillMissingOutputs pairs dsp.FillMissing's output with a vector's. It sets no
-// Scale, because the inputs hold NaN and maxAbs would make it NaN.
+// fillMissingOutputs pairs dsp.FillMissing's output with a vector's.
+// It sets no Scale, as the inputs hold NaN and maxAbs would make it NaN.
 func fillMissingOutputs(v fillMissingVector) (outputs []Output, err error) {
 	var fill dsp.Fill
 	switch v.Params.Method {
@@ -122,8 +126,10 @@ type rmsVector struct {
 	} `json:"output"`
 }
 
-// rms measured: worst 1.4e-16 (1 ULP) against SciPy and 1.2e-16 (1 ULP) against MATLAB,
-// on both architectures, with the squares summed with compensation. Set ~10x above.
+// The rms suites.
+// Measured: worst 1 ULP, 1.4e-16 against SciPy and 1.2e-16 against MATLAB, on both architectures,
+// with the squares summed with compensation.
+// Tolerance: about 10 times the worst.
 var (
 	rmsSciPySuite  = newSuite("RMS", reference.SourceSciPy, "rms", tolerance(1e-14), rmsOutputs)
 	rmsMATLABSuite = newSuite("RMS", reference.SourceMATLAB, "rms", tolerance(1e-14), rmsOutputs)

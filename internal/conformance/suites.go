@@ -6,9 +6,9 @@ import (
 	"github.com/cxd309/tukey/internal/reference"
 )
 
-// Suites is every conformance suite, run by this package's tests and by cmd/tolerances
+// Suites is every conformance suite, run by this package's tests and by cmd/tolerances,
 // SciPy's first, then MATLAB's.
-// The window suites come from windowChecks
+// The window suites come from windowChecks.
 var Suites = slices.Concat(
 	[]Suite{
 		butterSciPySuite,
@@ -87,8 +87,8 @@ var Suites = slices.Concat(
 	},
 	windowSuites(reference.SourceSciPy),
 
-	// MATLAB, for the categories it can reproduce
-	// see each SciPy suite for why any without a MATLAB counterpart are missing
+	// MATLAB's, for the categories it can reproduce.
+	// Each SciPy suite records why any without a MATLAB counterpart are missing.
 	[]Suite{
 		butterMATLABSuite,
 		filterMATLABSuite,
