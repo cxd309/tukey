@@ -1,6 +1,6 @@
 # Roadmap
 
-What tukey has, what's next, and what's planned or not.
+What tukey has, and what's planned or not.
 
 ## Released
 
@@ -17,13 +17,7 @@ What tukey has, what's next, and what's planned or not.
 | v0.9    | Reductions             | `Sum`, `Mean`, `Diff`, `Grad`, `CumSum`, `Trapz`, `CumTrapz`, `Percentile`, with compensated sums                                                         |
 | v0.10   | Filter design breadth  | `Cheby1`, `Cheby2`, `Ellip`, `Bessel`, order selection, `IIRNotch`, `IIRPeak`, `FIRWin`, `GroupDelay`, `Convolve`, `Correlate`, `MedFilt`, `SavGolFilter` |
 | v0.11   | MATLAB compatibility   | `BySection` and `MATLABPadLen`, matching MATLAB's `filtfilt(sos, g, x)`                                                                                   |
-
-## Next
-
-| Version | Theme      | What                                                                                                         |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| v0.12   | API review | the whole API reviewed for consistency before it's frozen, with breaking changes listed in its release notes |
-| v1.0    | Stable     | the API is stable from here, and later additions are v1.x releases                                           |
+| v1.0    | Stable API             | code, documentation and API reviewed for consistency, intended to be stable from here                                                                     |
 
 ## Planned
 

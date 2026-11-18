@@ -67,7 +67,7 @@ I did consider _"just using scipy"_ but I prefer the tooling and package managem
 - [Coming from MATLAB](docs/matlab.md)
 - [Coming from SciPy](docs/scipy.md)
 - [Accuracy](docs/accuracy.md) _measured errors against SciPy, MATLAB and exact answers_
-- [Roadmap](docs/roadmap.md) _what's released, what's next, and what's planned or not_
+- [Roadmap](docs/roadmap.md) _what's released, and what's planned or not_
 - [Development](docs/development.md) _building, testing, reference vectors and conventions_
 - [Contributing](CONTRIBUTING.md)
 
@@ -90,8 +90,8 @@ Each package's full documentation is on [pkg.go.dev](https://pkg.go.dev/github.c
 
 ## Status
 
-tukey is currently in initial development and the interface will significantly change until v1.0.
-See the [roadmap](docs/roadmap.md) for what's released and what's next.
+tukey has been released as of v1.0.0 and the API should be considered as stable until v2 which is not currently planned.
+See [roadmap](docs/roadmap.md) for planned and unplanned future work.
 
 ## Licence
 
