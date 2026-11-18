@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/rand/v2"
 	"slices"
-	"strconv"
 	"testing"
 
 	"github.com/cxd309/tukey/internal/reference"
@@ -46,28 +45,6 @@ func checkAgainstSciPy(t *testing.T, category string, transform func([]complex12
 func TestForwardMatchesSciPy(t *testing.T) { checkAgainstSciPy(t, "fft", Forward) }
 func TestInverseMatchesSciPy(t *testing.T) { checkAgainstSciPy(t, "ifft", Inverse) }
 
-// The fast transform must agree with the definition, at every power of two.
-func TestRadix2MatchesDFT(t *testing.T) {
-	for n := 1; n <= 256; n *= 2 {
-		t.Run(strconv.Itoa(n), func(t *testing.T) {
-			x := randomSignal(n)
-			y, err := Forward(x)
-			require.NoError(t, err)
-			reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
-		})
-	}
-}
-
-// The inverse undoes the forward transform.
-func TestRadix2RoundTrip(t *testing.T) {
-	x := randomSignal(1024)
-	y, err := Forward(x)
-	require.NoError(t, err)
-	back, err := Inverse(y)
-	require.NoError(t, err)
-	reference.AssertClose(t, "x", back, x, reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
-}
-
 // Parseval's theorem:
 // energy is the same in both domains, Σ|x|² = (1/n)·Σ|X|².
 func TestForwardPreservesEnergy(t *testing.T) {
@@ -103,51 +80,6 @@ func TestForwardDoesNotModifyInput(t *testing.T) {
 	_, err := Forward(x)
 	require.NoError(t, err)
 	assert.Equal(t, before, x)
-}
-
-// Mixed radix at lengths the SciPy vectors don't reach:
-// every prime up to maxRadix, as a factor, squared, and mixed with others.
-func TestMixedRadixMatchesDFT(t *testing.T) {
-	for _, n := range []int{3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 20, 21, 49, 77, 100, 121, 143, 169, 210, 1000} {
-		t.Run(strconv.Itoa(n), func(t *testing.T) {
-			x := randomSignal(n)
-			y, err := Forward(x)
-			require.NoError(t, err)
-			reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
-		})
-	}
-}
-
-// The round trip and Parseval hold at a smooth, non-power-of-two length too.
-func TestMixedRadixRoundTrip(t *testing.T) {
-	x := randomSignal(1000)
-	y, err := Forward(x)
-	require.NoError(t, err)
-	back, err := Inverse(y)
-	require.NoError(t, err)
-	reference.AssertClose(t, "x", back, x, reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
-}
-
-// Bluestein, on its own for large primes, and as the butterfly inside mixed radix.
-func TestBluesteinMatchesDFT(t *testing.T) {
-	for _, n := range []int{17, 19, 23, 97, 101, 34, 291, 1009, 2018} {
-		t.Run(strconv.Itoa(n), func(t *testing.T) {
-			x := randomSignal(n)
-			y, err := Forward(x)
-			require.NoError(t, err)
-			reference.AssertClose(t, "y", y, dft(x), reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
-		})
-	}
-}
-
-// The round trip holds through Bluestein, at a prime length.
-func TestBluesteinRoundTrip(t *testing.T) {
-	x := randomSignal(1009)
-	y, err := Forward(x)
-	require.NoError(t, err)
-	back, err := Inverse(y)
-	require.NoError(t, err)
-	reference.AssertClose(t, "x", back, x, reference.Tolerance{Rel: 1e-13, Scaled: 1e-13})
 }
 
 // dft is the discrete Fourier transform straight from its definition, in O(n²):

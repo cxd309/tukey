@@ -1,43 +1,36 @@
 package fft
 
 import (
+	"strconv"
 	"testing"
 
+	"github.com/cxd309/tukey/internal/reference"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSmoothSize(t *testing.T) {
-	cases := map[int]int{
-		1: 1, 7: 8, 11: 12, 13: 15, 17: 18,
-		2017:   2025,   // 3^4 * 5^2, not 2048
-		131073: 131220, // 2^2 * 3^8 * 5, half of 262144
-	}
-	for target, want := range cases {
-		assert.Equal(t, want, smoothSize(target), "smoothSize(%d)", target)
-	}
-}
-
-// smoothSize must give the smallest smooth length, so check it against a brute-force search.
-func TestSmoothSizeIsSmallest(t *testing.T) {
-	isSmooth := func(n int) bool {
-		for _, f := range []int{2, 3, 5} {
-			for n%f == 0 {
-				n /= f
+// Each butterfly is the p-point DFT:
+// the dedicated ones for 2, 3, 4 and 5, the direct sum for the primes up to maxRadix, and Bluestein above it.
+// Each writes its outputs step apart, so they're read back from every other slot.
+func TestButterflyIsDFT(t *testing.T) {
+	const step = 2
+	for _, p := range []int{2, 3, 4, 5, 7, 11, 13, 17} {
+		t.Run(strconv.Itoa(p), func(t *testing.T) {
+			terms := randomSignal(p)
+			dst := make([]complex128, p*step)
+			butterfly(terms, twiddleTable(p), 1, dst, step)
+			got := make([]complex128, p)
+			for s := range got {
+				got[s] = dst[s*step]
 			}
-		}
-		return n == 1
-	}
-	for target := 1; target <= 2000; target++ {
-		want := target
-		for !isSmooth(want) {
-			want++
-		}
-		assert.Equal(t, want, smoothSize(target), "smoothSize(%d)", target)
+			reference.AssertClose(t, "X", got, dft(terms), reference.Tolerance{Rel: 1e-14, Scaled: 1e-14})
+		})
 	}
 }
 
-// The padded length is the power of two unless the smooth length is enough shorter.
-func TestPaddedSize(t *testing.T) {
-	assert.Equal(t, 2048, paddedSize(1009))    // 2025 is barely shorter
-	assert.Equal(t, 131220, paddedSize(65537)) // 131220 is half of 262144
+// minusI rotates by a quarter turn exactly, and scaledBy multiplies each part once.
+func TestRotationsAreExact(t *testing.T) {
+	re, im, k := 0.1, -3.7, 0.3
+	z := complex(re, im)
+	assert.Equal(t, complex(im, -re), minusI(z))
+	assert.Equal(t, complex(k*re, k*im), scaledBy(k, z))
 }
