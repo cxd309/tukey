@@ -211,7 +211,7 @@ def filtfilt_by_section(
 
 
 # sections whose order MATLAB counts differently from SciPy's tap count,
-# name -> (sos, SciPy's ntaps − 1, MATLAB's order), each asserted
+# name -> (sos, SciPy's ntaps - 1, MATLAB's order), each asserted
 ORDER_COUNT_FILTERS = {
     # b2 = 0 in one section and a2 = 0 in the other: SciPy counts one
     # first-order section, MATLAB none: order 3 against 4

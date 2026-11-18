@@ -38,7 +38,7 @@ var chebyBands = []struct {
 	{"bandstop", Bandstop(0.2, 0.5), []float64{0.2, 0.5}},
 }
 
-// A Cheby1 band edge is where the gain first drops below −ripple, not −3 dB.
+// A Cheby1 band edge is where the gain first drops below -ripple, not -3 dB.
 func TestCheby1GainAtBandEdges(t *testing.T) {
 	const ripple = 1.5
 	for _, c := range chebyBands {
@@ -52,7 +52,7 @@ func TestCheby1GainAtBandEdges(t *testing.T) {
 	}
 }
 
-// The passband's peak is 0 dB, so an even order's DC gain is −ripple, and an
+// The passband's peak is 0 dB, so an even order's DC gain is -ripple, and an
 // odd order's is 0 dB.
 func TestCheby1DCGain(t *testing.T) {
 	const ripple = 2.0
@@ -67,7 +67,7 @@ func TestCheby1DCGain(t *testing.T) {
 	}
 }
 
-// The passband ripples between 0 dB and −ripple, and never leaves that range.
+// The passband ripples between 0 dB and -ripple, and never leaves that range.
 func TestCheby1PassbandStaysWithinRipple(t *testing.T) {
 	const ripple, cutoff = 1.0, 0.3
 	f, err := Cheby1(5, ripple, Lowpass(cutoff))
@@ -88,7 +88,7 @@ func TestCheby1LowpassZerosAreAtNyquist(t *testing.T) {
 }
 
 // A Cheby2 band edge is the start of the stopband, where the gain first
-// reaches −attenuation.
+// reaches -attenuation.
 func TestCheby2GainAtBandEdges(t *testing.T) {
 	const attenuation = 40.0
 	for _, c := range chebyBands {
@@ -143,7 +143,7 @@ func TestChebyPolesAreStable(t *testing.T) {
 	}
 }
 
-// 10^x − 1 cancels almost every digit for a tiny ripple, where Expm1 keeps them.
+// 10^x - 1 cancels almost every digit for a tiny ripple, where Expm1 keeps them.
 func TestRippleFactorKeepsDigitsForSmallRipple(t *testing.T) {
 	const dB = 1e-12
 	x := dB * math.Ln10 / 10

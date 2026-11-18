@@ -165,7 +165,7 @@ func TestMedFiltOneSampleWindow(t *testing.T) {
 }
 
 // A window longer than x: truncated, every window is the whole of x;
-// zero-padded, every window holds all of x and n − 3 zeros, which outnumber
+// zero-padded, every window holds all of x and n - 3 zeros, which outnumber
 // the samples from n = 7. The padding is counted, not stored, so even the
 // largest n works.
 func TestMedFiltWindowLongerThanX(t *testing.T) {

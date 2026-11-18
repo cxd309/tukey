@@ -42,9 +42,9 @@ func TestConvolve(t *testing.T) {
 		a, v              []float64
 		full, same, valid []float64
 	}{
-		// same starts at (3 − 1)/2 = 1
+		// same starts at (3 - 1)/2 = 1
 		{"odd kernel", []float64{1, 2, 3}, []float64{0, 1, 0.5}, []float64{0, 1, 2.5, 4, 1.5}, []float64{1, 2.5, 4}, []float64{2.5}},
-		// same starts at (2 − 1)/2 = 0, where MATLAB's starts at 1
+		// same starts at (2 - 1)/2 = 0, where MATLAB's starts at 1
 		{"even kernel", []float64{1, 2, 3, 4}, []float64{1, 1}, []float64{1, 3, 5, 7, 4}, []float64{1, 3, 5, 7}, []float64{3, 5, 7}},
 		// valid swaps the inputs, where MATLAB's is empty
 		{"kernel longer", []float64{1, 1}, []float64{1, 2, 3}, []float64{1, 3, 5, 3}, []float64{3, 5}, []float64{3, 5}},
@@ -138,7 +138,7 @@ func TestConvolveAutoFallsBackOnNonFinite(t *testing.T) {
 			}
 			full, err := Convolve(a, v)
 			require.NoError(t, err)
-			// outputs bad−1 and bad+n don't include the sample, the two either side of it
+			// outputs bad-1 and bad+n don't include the sample, the two either side of it
 			assert.Equal(t, clean[bad-1], full[bad-1], "sample %g, in a: %t", sample, inA)
 			assert.Equal(t, clean[bad+n], full[bad+n], "sample %g, in a: %t", sample, inA)
 		}
@@ -188,12 +188,12 @@ func TestCorrelate(t *testing.T) {
 		values []float64
 		lags   []int
 	}{
-		// Σ a[n+k]·v[n]: lag −2 is a[0]·v[2], lag 2 is a[2]·v[0]
+		// Σ a[n+k]·v[n]: lag -2 is a[0]·v[2], lag 2 is a[2]·v[0]
 		{"full", []float64{1, 2, 3}, []float64{0, 1, 0.5}, nil, []float64{0.5, 2, 3.5, 3, 0}, []int{-2, -1, 0, 1, 2}},
 		{"same", []float64{1, 2, 3}, []float64{0, 1, 0.5}, []ConvolveOption{ConvolveSame()}, []float64{2, 3.5, 3}, []int{-1, 0, 1}},
 		{"valid", []float64{1, 2, 3}, []float64{0, 1, 0.5}, []ConvolveOption{ConvolveValid()}, []float64{3.5}, []int{0}},
 		// an odd len(a) and an even len(v), where scipy's correlation_lags
-		// labels same one lag high: same starts at (2 − 1)/2 = 0, lag −1
+		// labels same one lag high: same starts at (2 - 1)/2 = 0, lag -1
 		{"same, odd and even", []float64{1, 2, 3}, []float64{1, 1}, []ConvolveOption{ConvolveSame()}, []float64{1, 3, 5}, []int{-1, 0, 1}},
 		{"valid, kernel longer", []float64{1, 2}, []float64{1, 0, -1}, []ConvolveOption{ConvolveValid()}, []float64{-2, 1}, []int{-1, 0}},
 	}

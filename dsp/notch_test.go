@@ -81,7 +81,7 @@ func TestNotchBandwidth(t *testing.T) {
 	}
 }
 
-// The poles are inside the unit circle and multiply to (1 − β)/(1 + β): a
+// The poles are inside the unit circle and multiply to (1 - β)/(1 + β): a
 // conjugate pair while β < sin(π·w0), and two real poles from there.
 func TestNotchPoles(t *testing.T) {
 	for _, d := range notchDesigns {
@@ -104,8 +104,8 @@ func TestNotchPoles(t *testing.T) {
 	}
 }
 
-// A narrow notch's poles sit at radius √((1 − β)/(1 + β)), just inside its
-// zeros: at q = 1000, 1 − r is about 5e-4, kept to full precision.
+// A narrow notch's poles sit at radius √((1 - β)/(1 + β)), just inside its
+// zeros: at q = 1000, 1 - r is about 5e-4, kept to full precision.
 func TestNarrowNotchPoleRadius(t *testing.T) {
 	const w0, q = 0.3, 1000.0
 	f, err := IIRNotch(w0, q)
@@ -118,7 +118,7 @@ func TestNarrowNotchPoleRadius(t *testing.T) {
 	}
 }
 
-// The peak's gain is β/(1 + β); SciPy's 1 − 1/(1 + β) cancels for a narrow
+// The peak's gain is β/(1 + β); SciPy's 1 - 1/(1 + β) cancels for a narrow
 // bandwidth.
 func TestIIRPeakGainKeepsDigits(t *testing.T) {
 	const w0, q = 0.002, 30.0

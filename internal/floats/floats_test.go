@@ -40,7 +40,7 @@ func TestSum(t *testing.T) {
 // loses the small term to the large ones, and sums an infinite product as it is.
 func TestDot(t *testing.T) {
 	assert.Equal(t, 1.0, Dot([]float64{1, 1, 1}, []float64{1e16, 1, -1e16}))
-	// (1 + 2⁻³⁰)² − 1 = 2⁻²⁹ + 2⁻⁶⁰: the product's rounding error, 2⁻⁶⁰, recovered
+	// (1 + 2⁻³⁰)² - 1 = 2⁻²⁹ + 2⁻⁶⁰: the product's rounding error, 2⁻⁶⁰, recovered
 	a := 1 + 0x1p-30
 	assert.Equal(t, 0x1p-29+0x1p-60, Dot([]float64{a, -1}, []float64{a, 1}))
 	assert.Equal(t, math.Inf(1), Dot([]float64{1, 2}, []float64{math.Inf(1), 1}))
@@ -81,7 +81,7 @@ func TestMidpoint(t *testing.T) {
 			assert.Equal(t, c.want, Midpoint(c.a, c.b))
 		})
 	}
-	assert.True(t, math.IsNaN(Midpoint(math.Inf(-1), math.Inf(1))), "midpoint of −Inf and +Inf")
+	assert.True(t, math.IsNaN(Midpoint(math.Inf(-1), math.Inf(1))), "midpoint of -Inf and +Inf")
 
 	// against the exact midpoint, across magnitudes and signs
 	values := []float64{0, tiny, 3 * tiny, 0x1p-1022, 0x1.8p-1022, 0.1, 1, 1 + 0x1p-52, 3, 1e300, math.MaxFloat64}

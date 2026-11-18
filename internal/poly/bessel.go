@@ -12,7 +12,7 @@ import (
 // ReverseBesselRoots returns the roots of the reverse Bessel polynomial θ of
 // order N, scaled by scale, each rounded once from its exact value:
 //
-//	θ(s) = Σ (2N − k)! / (2^(N − k)·k!·(N − k)!) · s^k, for k = 0...N
+//	θ(s) = Σ (2N - k)! / (2^(N - k)·k!·(N - k)!) · s^k, for k = 0...N
 //
 // They're very sensitive to rounding:
 // about 1.8 bits per order, so 1e13 at order 25, and any float64 evaluation of θ,
@@ -20,7 +20,7 @@ import (
 // So they're found in big.Float, at 2 bits per order beyond float64's 53 and a margin,
 // by Aberth's method, with θ and θ′ from the recurrence
 //
-//	θ_n(s) = (2n − 1)·θ_(n−1)(s) + s²·θ_(n−2)(s),  θ_0 = 1, θ_1 = s + 1
+//	θ_n(s) = (2n - 1)·θ_(n-1)(s) + s²·θ_(n-2)(s),  θ_0 = 1, θ_1 = s + 1
 //
 // The roots come in conjugate pairs, plus one real root for an odd order,
 // sorted by imaginary part. order < 1 panics.
@@ -119,11 +119,11 @@ func (b besselSolver) theta(s *bigComplex) (p, dp *bigComplex) {
 	t := b.complex(0)
 	for n := 2; n <= b.order; n++ {
 		m := new(big.Float).SetInt64(int64(2*n - 1))
-		// θ′_n = m·θ′_(n−1) + 2s·θ_(n−2) + s²·θ′_(n−2)
+		// θ′_n = m·θ′_(n-1) + 2s·θ_(n-2) + s²·θ′_(n-2)
 		nextD := b.complex(0).mulReal(dp, m)
 		nextD.add(nextD, t.mul(twoS, prev))
 		nextD.add(nextD, t.mul(sq, prevD))
-		// θ_n = m·θ_(n−1) + s²·θ_(n−2)
+		// θ_n = m·θ_(n-1) + s²·θ_(n-2)
 		next := b.complex(0).mulReal(p, m)
 		next.add(next, t.mul(sq, prev))
 		prev, prevD, p, dp = p, dp, next, nextD
@@ -149,7 +149,7 @@ func (b besselSolver) roots() (z []*bigComplex) {
 		for k := range z {
 			p, dp := b.theta(z[k])
 			ratio := b.complex(0).quo(p, dp)
-			// step = ratio / (1 − ratio·Σ_(j≠k) 1/(z_k − z_j))
+			// step = ratio / (1 - ratio·Σ_(j≠k) 1/(z_k - z_j))
 			sum.set(b.complex(0))
 			for j := range z {
 				if j != k {
@@ -173,7 +173,7 @@ func (b besselSolver) nthRoot(x *big.Float) (r *big.Float) {
 	r = new(big.Float).SetPrec(b.prec).SetFloat64(math.Pow(estimate, 1/float64(b.order)))
 	n := new(big.Float).SetPrec(b.prec).SetInt64(int64(b.order))
 	for range besselMaxIterations {
-		// r −= (r^N − x) / (N·r^(N−1))
+		// r -= (r^N - x) / (N·r^(N-1))
 		power := b.one()
 		for range b.order - 1 {
 			power.Mul(power, r)
@@ -201,7 +201,7 @@ func (b besselSolver) halfPower() (w *big.Float) {
 		s := b.complex(0)
 		s.im.Set(w)
 		p, dp := b.theta(s)
-		// f = |θ|² − target, f′ = d/dω |θ(jω)|² = 2·Re(conj(θ)·j·θ′) = 2·(θi·θ′r − θr·θ′i)
+		// f = |θ|² - target, f′ = d/dω |θ(jω)|² = 2·Re(conj(θ)·j·θ′) = 2·(θi·θ′r - θr·θ′i)
 		f := b.absSq(p)
 		f.Sub(f, target)
 		slope := new(big.Float).SetPrec(b.prec).Mul(&p.im, &dp.re)

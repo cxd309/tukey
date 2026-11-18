@@ -275,7 +275,7 @@ func (f digitalFilter) steadyState() (zi []float64, err error) {
 
 	n := len(f.a)
 	zi = make([]float64, n-1)
-	next := 0.0 // zi[k+1]; zero past the last state, like apply's spare slot
+	next := 0.0 // zi[k+1], which is 0 past the last state, same as apply's spare slot
 	for k := n - 2; k >= 0; k-- {
 		zi[k] = f.b[k+1] - f.a[k+1]*gain + next
 		next = zi[k]

@@ -309,7 +309,7 @@ func TestWelchOneSegmentIsPeriodogram(t *testing.T) {
 }
 
 // The median of n exponentially distributed values falls below their mean by
-// 1 − 1/2 + 1/3 − … to the 1/n term for odd n, approaching ln 2 as n grows.
+// 1 - 1/2 + 1/3 - … to the 1/n term for odd n, approaching ln 2 as n grows.
 func TestMedianBias(t *testing.T) {
 	cases := []struct {
 		n    int

@@ -20,7 +20,7 @@ func byNorm(norm besselNorm) BesselOption {
 var halfPowerDB = 10 * math.Log10(0.5)
 
 // groupDelayAtDC is f's group delay at DC in samples: each pole p adds
-// Re(1/(1 − p)) and each zero z takes away Re(1/(1 − z)), the derivative of
+// Re(1/(1 - p)) and each zero z takes away Re(1/(1 - z)), the derivative of
 // their phase at ω = 0.
 func groupDelayAtDC(f ZPK) (delay float64) {
 	for _, p := range f.Poles {
@@ -95,7 +95,7 @@ func TestBesselDelayAtDC(t *testing.T) {
 // ω = 0.4. Butterworth's departs as ω², divided by about 4. Past order 5 the
 // departure at ω = 0.2 is below rounding.
 func TestBesselGroupDelayIsMaximallyFlat(t *testing.T) {
-	// the analog group delay, Σ Re(1/(jω − p))
+	// the analog group delay, Σ Re(1/(jω - p))
 	delay := func(proto analogZPK, w float64) (d float64) {
 		for _, p := range proto.Poles {
 			d += real(1 / (complex(0, w) - p))
@@ -130,7 +130,7 @@ func TestBesselPhasePrototypeMatchesButterworthAsymptote(t *testing.T) {
 	}
 }
 
-// Order 1's one pole is at −1 with the -3 dB point at 1 rad/s, as
+// Order 1's one pole is at -1 with the -3 dB point at 1 rad/s, as
 // Butterworth's, so BesselNormMagnitude gives exactly Butter's filter.
 func TestBesselOrderOneIsButter(t *testing.T) {
 	bessel, err := Bessel(1, Lowpass(0.3))

@@ -16,7 +16,7 @@ func constantDelay(t *testing.T, want float64, delay []float64, what string) {
 	}
 }
 
-// A linear-phase FIR's delay is exactly (N − 1)/2 at every frequency, its
+// A linear-phase FIR's delay is exactly (N - 1)/2 at every frequency, its
 // stopband zeros on the unit circle included.
 func TestGroupDelayOfLinearPhaseFIR(t *testing.T) {
 	for _, taps := range []int{31, 32} {
@@ -29,7 +29,7 @@ func TestGroupDelayOfLinearPhaseFIR(t *testing.T) {
 }
 
 // At a zero on the unit circle the phase jumps by π and the delay is its
-// limit from either side. A difference [1, −1] has its zero at DC, and a
+// limit from either side. A difference [1, -1] has its zero at DC, and a
 // 4-tap moving average at π/2, a grid point when n = 512: both are
 // antisymmetric or symmetric, so the limit is their constant delay.
 func TestGroupDelayLimitAtSymmetricZeros(t *testing.T) {
@@ -45,7 +45,7 @@ func TestGroupDelayLimitAtSymmetricZeros(t *testing.T) {
 // A zero on the unit circle in a polynomial that isn't symmetric takes the
 // big.Float path's limit, from F's first nonzero derivative. Each zero on the
 // circle adds half a sample, and 1 + x/2 adds Re((x/2)/(1 + x/2)) = 1/3 at
-// DC, so (1 − x)(1 + x/2) is 5/6 there and (1 − x)²(1 + x/2), a double zero,
+// DC, so (1 - x)(1 + x/2) is 5/6 there and (1 - x)²(1 + x/2), a double zero,
 // is 4/3.
 func TestGroupDelayLimitAtZerosOnTheCircle(t *testing.T) {
 	cases := []struct {
@@ -75,8 +75,8 @@ func TestGroupDelayLeadingAndTrailingZeros(t *testing.T) {
 	}
 }
 
-// A denominator (1 − r·x)^8 with r = 63/64 is exactly representable, and its
-// delay is 8 times one factor's, −Re(r·x/(1 − r·x)), well conditioned. Near
+// A denominator (1 - r·x)^8 with r = 63/64 is exactly representable, and its
+// delay is 8 times one factor's, -Re(r·x/(1 - r·x)), well conditioned. Near
 // DC its own condition number is about 1e17, past delayConditionLimit, so
 // those points take the big.Float path; float64 there would be noise. The
 // delay crosses 0 near point 29, so it's measured against its largest value.

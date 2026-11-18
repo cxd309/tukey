@@ -101,7 +101,7 @@ func TestOrderIsTheLowest(t *testing.T) {
 				continue
 			}
 
-			// the passband-matched band for order − 1, as selectOrder finds it
+			// the passband-matched band for order - 1, as selectOrder finds it
 			p, s := warpEdges(spec.pass.edges), warpEdges(spec.stop.edges)
 			if spec.pass.btype == bandstopType {
 				p = symmetricBandstop(p, s)
@@ -207,16 +207,16 @@ func TestBandEdgesInvertTheTransform(t *testing.T) {
 }
 
 // The elliptic raw order keeps its digits as nat nears 1: against the same
-// formula with 1 − 1/nat² found exactly, it agrees to 1e-14. 1 − 1/nat²
-// computed directly loses up to 9e-9 of itself near nat − 1 = 1e-9, about
+// formula with 1 - 1/nat² found exactly, it agrees to 1e-14. 1 - 1/nat²
+// computed directly loses up to 9e-9 of itself near nat - 1 = 1e-9, about
 // 2e-10 of the order, which this would catch.
 func TestEllipRawOrderNearOne(t *testing.T) {
 	gpass, gstop := math.Expm1(0.1*math.Ln10/10), math.Expm1(40*math.Ln10/10)
 	m1 := gpass / gstop
 	for i := range 400 {
-		nat := 1 + math.Pow(10, -12+8*float64(i)/399) // nat − 1 from 1e-12 to 1e-4
+		nat := 1 + math.Pow(10, -12+8*float64(i)/399) // nat - 1 from 1e-12 to 1e-4
 
-		// 1 − 1/nat² = (nat² − 1)/nat², exactly from nat as passed, then rounded
+		// 1 - 1/nat² = (nat² - 1)/nat², exactly from nat as passed, then rounded
 		exactNat := new(big.Float).SetPrec(200).SetFloat64(nat)
 		natSq := new(big.Float).SetPrec(200).Mul(exactNat, exactNat)
 		excess := new(big.Float).SetPrec(200).Sub(natSq, big.NewFloat(1))
@@ -224,7 +224,7 @@ func TestEllipRawOrderNearOne(t *testing.T) {
 
 		want := special.EllipKM1(mc) * special.EllipKM1(m1) / (special.EllipKM1(1-mc) * special.EllipKM1(1-m1))
 		got := lowpassSpec{nat: nat, gpass: gpass, gstop: gstop}.rawOrder(orderEllip)
-		assert.InEpsilon(t, want, got, 1e-14, "nat − 1 = %g", nat-1)
+		assert.InEpsilon(t, want, got, 1e-14, "nat - 1 = %g", nat-1)
 	}
 }
 
@@ -277,9 +277,9 @@ func TestOrderRejectsInvalidInput(t *testing.T) {
 	}
 }
 
-// Edges one ULP apart put nat − 1 near 1e-16. A Butterworth order grows as
-// 1/(nat − 1), past what an int holds; the others grow as 1/√(nat − 1) or
-// ln(1/(nat − 1)), and their true orders are returned.
+// Edges one ULP apart put nat - 1 near 1e-16. A Butterworth order grows as
+// 1/(nat - 1), past what an int holds; the others grow as 1/√(nat - 1) or
+// ln(1/(nat - 1)), and their true orders are returned.
 func TestOrderEdgesTooClose(t *testing.T) {
 	pass, stop := Lowpass(0.3), Lowpass(math.Nextafter(0.3, 1))
 	_, _, err := ButterOrd(pass, stop, 1, 40)

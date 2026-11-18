@@ -133,7 +133,7 @@ func ParameterFromNome(q float64) (m float64) {
 	switch {
 	case math.IsNaN(q) || q < 0 || q >= 1:
 		return math.NaN()
-	case q > nomeAtHalf: // m > ½: by the complementary nome, at most e^−π
+	case q > nomeAtHalf: // m > ½: by the complementary nome, at most e^-π
 		return 1 - parameterFromSmallNome(math.Exp(math.Pi*math.Pi/math.Log(q)))
 	}
 	m = parameterFromSmallNome(q)
@@ -172,7 +172,7 @@ func JacobiInQuarter(u, uc, m, mc float64) (sn, cn, dn float64) {
 // nomeAtHalf is e^-pi, the nome where m=1/2
 var nomeAtHalf = math.Exp(-math.Pi)
 
-// parameterFromSmallNome is ParameterFromNome for q in [0, e^−π], where the
+// parameterFromSmallNome is ParameterFromNome for q in [0, e^-π], where the
 // series converges within 4 terms.
 func parameterFromSmallNome(q float64) (m float64) {
 	numerator, denominator := 1.0, 1.0 // the n = 0 terms

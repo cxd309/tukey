@@ -12,7 +12,7 @@ import (
 // ellipSpecs are (ripple, attenuation) pairs from gentle to sharp. 0.01 dB
 // against 20 dB puts v0 past half its quarter period, through
 // special.JacobiInQuarter's complementary branch, and 6 dB against 10 dB has the
-// smallest 1 − m of the conformance cases.
+// smallest 1 - m of the conformance cases.
 var ellipSpecs = []struct{ ripple, attenuation float64 }{
 	{1, 40},
 	{0.5, 80},
@@ -20,7 +20,7 @@ var ellipSpecs = []struct{ ripple, attenuation float64 }{
 	{6, 10},
 }
 
-// An Ellip band edge is where the gain first drops below −ripple, as for Cheby1.
+// An Ellip band edge is where the gain first drops below -ripple, as for Cheby1.
 func TestEllipGainAtBandEdges(t *testing.T) {
 	for _, spec := range ellipSpecs {
 		for _, c := range chebyBands {
@@ -35,7 +35,7 @@ func TestEllipGainAtBandEdges(t *testing.T) {
 	}
 }
 
-// The passband's peak is 0 dB, so an even order's DC gain is −ripple, and an
+// The passband's peak is 0 dB, so an even order's DC gain is -ripple, and an
 // odd order's is 0 dB.
 func TestEllipDCGain(t *testing.T) {
 	for _, spec := range ellipSpecs {
@@ -51,8 +51,8 @@ func TestEllipDCGain(t *testing.T) {
 	}
 }
 
-// The passband ripples between 0 dB and −ripple. Once the gain first reaches
-// −attenuation, the stopband never rises above it, and its ripples' peaks
+// The passband ripples between 0 dB and -ripple. Once the gain first reaches
+// -attenuation, the stopband never rises above it, and its ripples' peaks
 // touch it: equal ripple in both bands.
 func TestEllipEqualRippleInBothBands(t *testing.T) {
 	const cutoff, samples = 0.3, 20000

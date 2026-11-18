@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mixedMagnitudes is 1e8, then 20,000 samples of 0.001, then −1e8: its exact
+// mixedMagnitudes is 1e8, then 20,000 samples of 0.001, then -1e8: its exact
 // total is 20, but a plain sum loses the small values' low bits against 1e8.
 func mixedMagnitudes() (x []float64) {
 	x = []float64{1e8}
@@ -152,7 +152,7 @@ func TestPercentile(t *testing.T) {
 		{"linear maximum", PercentileLinear(), 100, 4},
 		{"linear median", PercentileLinear(), 50, 2.5},
 		{"linear quartile", PercentileLinear(), 25, 1.75},
-		// Hazen: position p/100·4 − 0.5, clamped to 0 to 3
+		// Hazen: position p/100·4 - 0.5, clamped to 0 to 3
 		{"hazen median", PercentileHazen(), 50, 2.5},
 		{"hazen quartile", PercentileHazen(), 25, 1.5},
 		{"hazen clamped low", PercentileHazen(), 10, 1},

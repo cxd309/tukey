@@ -108,7 +108,7 @@ func TestCarlsonRF(t *testing.T) {
 	}
 }
 
-// RF is symmetric, RF(x, x, x) = 1/√x, and K(m) = RF(0, 1 − m, 1): an
+// RF is symmetric, RF(x, x, x) = 1/√x, and K(m) = RF(0, 1 - m, 1): an
 // independent check of EllipK by another method
 func TestCarlsonRFIdentities(t *testing.T) {
 	assert.InEpsilon(t, CarlsonRF(1, 2, 3), CarlsonRF(3, 1, 2), 4e-16)
@@ -118,7 +118,7 @@ func TestCarlsonRFIdentities(t *testing.T) {
 	}
 }
 
-// mpmath.mfrom at 60 digits; e^−π is where m = ½
+// mpmath.mfrom at 60 digits; e^-π is where m = ½
 func TestParameterFromNome(t *testing.T) {
 	cases := []struct{ q, want float64 }{
 		{1e-6, 1.5999872000703995e-05},
@@ -135,11 +135,11 @@ func TestParameterFromNome(t *testing.T) {
 	}
 }
 
-// above e^−π, m is found from the complementary nome; mpmath.mfrom at 60 digits
+// above e^-π, m is found from the complementary nome; mpmath.mfrom at 60 digits
 func TestParameterFromNomeNearOne(t *testing.T) {
 	cases := []struct{ q, want float64 }{
 		{0.5, 0.9999895221373104},
-		{0.9, 1}, // 1 − m is 3e-40
+		{0.9, 1}, // 1 - m is 3e-40
 		{0.999, 1},
 	}
 	for _, c := range cases {
@@ -147,7 +147,7 @@ func TestParameterFromNomeNearOne(t *testing.T) {
 	}
 }
 
-// either side of e^−π, the two branches meet at m = ½
+// either side of e^-π, the two branches meet at m = ½
 func TestParameterFromNomeAtHalf(t *testing.T) {
 	assert.InEpsilon(t, 0.5, ParameterFromNome(math.Nextafter(nomeAtHalf, 0)), 1e-15)
 	assert.InEpsilon(t, 0.5000000000000001, ParameterFromNome(math.Nextafter(nomeAtHalf, 1)), 1e-15)
@@ -169,7 +169,7 @@ func TestJacobiInQuarterMatchesJacobi(t *testing.T) {
 }
 
 // Near K, at a parameter near 1, cn is small: Jacobi loses its relative
-// digits there, but JacobiInQuarter keeps them. At u = K − δ, cn is
+// digits there, but JacobiInQuarter keeps them. At u = K - δ, cn is
 // √mc·sn(δ)/dn(δ) ≈ √mc·δ.
 func TestJacobiInQuarterKeepsDigitsNearK(t *testing.T) {
 	const mc, delta = 1e-6, 1e-3
@@ -191,7 +191,7 @@ var ellipticSpecs = []struct{ ripple, attenuation float64 }{
 	{6, 10},
 }
 
-// F(φ) + F(ψ) = K when tan φ · tan ψ = 1/√(1 − m), so the inverse sc and its
+// F(φ) + F(ψ) = K when tan φ · tan ψ = 1/√(1 - m), so the inverse sc and its
 // complement, found separately, sum to the quarter period.
 func TestIncompleteFComplementsSumToK(t *testing.T) {
 	for _, spec := range ellipticSpecs {

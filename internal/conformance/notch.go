@@ -26,14 +26,14 @@ type notchVector struct {
 // IIRNotch and IIRPeak, measured on both architectures. The SciPy vectors
 // are the exact design, computed with mpmath at 50 digits and rounded once,
 // rather than scipy.signal's output: its notch agrees to 3.8e-16, but its
-// peak's gain is 1 − 1/(1 + β), which cancels for a narrow bandwidth, off by
+// peak's gain is 1 - 1/(1 + β), which cancels for a narrow bandwidth, off by
 // 6.1e-13 at w0 = 0.002, Q = 30. Both are worst at 4.7e-16 (2 ULP), on
 // w00.3_q1000.0's a, whose poles are hard against the unit circle.
 //
 // MATLAB's iirnotch and iirpeak, in the DSP System Toolbox, take the
 // bandwidth w0/q, and give (b, a) only. The notch is worst at 3.8e-16 (2 ULP)
 // on w00.6_q0.8's b. The peak is worst at 6.1e-13 on w00.002_q30.0's b: MATLAB
-// forms its gain as 1 − 1/(1 + β), as SciPy does, and loses the same digits,
+// forms its gain as 1 - 1/(1 + β), as SciPy does, and loses the same digits,
 // so its suite is looser, and tukey's β/(1 + β) is the exact one.
 var (
 	iirNotchSciPySuite  = newSuite("IIRNotch", reference.SourceSciPy, "iirnotch", tolerance(1e-14), notchOutputs(dsp.IIRNotch))

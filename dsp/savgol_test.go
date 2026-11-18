@@ -12,7 +12,7 @@ import (
 
 // impulseResponse is SavGolFilter's output for a unit impulse in the middle of
 // 13 samples, far enough from the ends that only the centred fit sees it.
-// Output i is weight 8 − i of the centred window, for n = 5.
+// Output i is weight 8 - i of the centred window, for n = 5.
 func impulseResponse(t *testing.T, polyOrder int, opts ...SavGolOption) (y []float64) {
 	t.Helper()
 	x := make([]float64, 13)
@@ -23,8 +23,8 @@ func impulseResponse(t *testing.T, polyOrder int, opts ...SavGolOption) (y []flo
 }
 
 // The textbook coefficients for n = 5, polyOrder 2 (Savitzky and Golay, 1964):
-// smoothing (−3, 12, 17, 12, −3)/35, first derivative (−2, −1, 0, 1, 2)/10, and
-// second derivative (2, −1, −2, −1, 2)/7, read reversed from the impulse response.
+// smoothing (-3, 12, 17, 12, -3)/35, first derivative (-2, -1, 0, 1, 2)/10, and
+// second derivative (2, -1, -2, -1, 2)/7, read reversed from the impulse response.
 func TestSavGolFilterTextbookCoefficients(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -144,7 +144,7 @@ func TestSavGolFilterMovingAverage(t *testing.T) {
 	}
 }
 
-// polyOrder n − 1 fits a polynomial through every sample, so y is x. The
+// polyOrder n - 1 fits a polynomial through every sample, so y is x. The
 // Gram polynomials' three-term recurrence is off by 1e24 here at n = 101;
 // Arnoldi keeps it to a few ULP at any degree.
 func TestSavGolFilterThroughEverySample(t *testing.T) {
@@ -247,7 +247,7 @@ func TestSavGolFilterNaN(t *testing.T) {
 	}{
 		{"inside", 20, 17, 23},
 		{"in the first window", 1, 0, 4},   // the edge fit, 0 to 2, and centred windows to 1 + 3
-		{"in the last window", 38, 35, 39}, // centred windows from 38 − 3, and the edge fit
+		{"in the last window", 38, 35, 39}, // centred windows from 38 - 3, and the edge fit
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -308,7 +308,7 @@ func TestSavGolFilterRejectsInvalidInput(t *testing.T) {
 		assert.ErrorIs(t, err, ErrInvalidParameter, "polyOrder %d", polyOrder)
 	}
 	_, err := SavGolFilter(x, 5, 2, SavGolDeriv(-1, 1))
-	assert.ErrorIs(t, err, ErrInvalidParameter, "deriv −1")
+	assert.ErrorIs(t, err, ErrInvalidParameter, "deriv -1")
 	for _, dx := range []float64{0, -1, math.NaN(), math.Inf(1), math.Inf(-1)} {
 		_, err := SavGolFilter(x, 5, 2, SavGolDeriv(1, dx))
 		assert.ErrorIs(t, err, ErrInvalidParameter, "dx %g", dx)

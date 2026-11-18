@@ -25,7 +25,7 @@ type findSignalVector struct {
 //
 // Direct and hybrid against SciPy are measured relative to the distance itself, as both
 // sum the closest window exactly, so a perfect match must be 0. The rest are relative to
-// the window's and signal's sums of squares, as the expanded form Σd² − 2Σdt + Σt² rounds
+// the window's and signal's sums of squares, as the expanded form Σd² - 2Σdt + Σt² rounds
 // at that scale: MATLAB's perfect matches are up to 2^-29 rather than 0.
 var (
 	findSignalDirectSciPySuite  = newSuite("FindSignal (direct)", reference.SourceSciPy, "findsignal", tolerance(1e-14), findSignalOutputs(dsp.SearchDirect(), false))

@@ -214,7 +214,7 @@ func TestBySectionDiffersFromTheCascadeAtTheEnds(t *testing.T) {
 	assert.Greater(t, maxAbsDifference(bySection[:3], cascade[:3]), 1e-6, "the ends should differ")
 }
 
-// maxAbsDifference is the largest |a[i] − b[i]|
+// maxAbsDifference is the largest |a[i] - b[i]|
 func maxAbsDifference(a, b []float64) (d float64) {
 	for i := range a {
 		d = max(d, math.Abs(a[i]-b[i]))
