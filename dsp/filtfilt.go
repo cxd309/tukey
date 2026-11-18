@@ -52,7 +52,7 @@ func FiltFilt(b, a, x []float64, opts ...FiltOption) (y []float64, err error) {
 // By default the whole cascade is filtered forward then backward, same as SciPy,
 // and with BySection each section is in turn, same as MATLAB:
 //
-//	y, err := dsp.SOSFiltFilt(sos, x, dsp.BySection(), dsp.MATLABPadLen()) // MATLAB's filtfilt(sos, 1, x)
+//	y, err := dsp.SOSFiltFilt(sos, x, dsp.BySection(), dsp.MATLABPadLen()) // same as MATLAB filtfilt(sos, 1, x)
 //
 // Units:
 //   - sos is dimensionless

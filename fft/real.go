@@ -13,7 +13,7 @@ import (
 // An even n costs about half a complex transform of the same length.
 //
 //	y, err := fft.ForwardReal(x)
-//	f, err := fft.RealFreq(len(x), 1/fs) // each bin's frequency in Hz
+//	f, err := fft.RealFreq(len(x), 1/fs) // the frequency of each bin, in Hz
 //
 // Units: same as x
 //

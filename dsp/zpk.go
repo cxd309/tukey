@@ -23,8 +23,7 @@ type ZPK struct {
 
 // BA returns the filter's transfer-function coefficients, b over a, from its zeros and poles,
 // with a[0] = 1.
-// Above about order 8, or for a narrow band, b and a lose digits,
-// and SOS keeps them.
+// As the order rises or the band narrows, b and a lose digits, and SOS keeps them.
 //
 //	b, a, err := f.BA()
 //	y, err := dsp.Filter(b, a, x)

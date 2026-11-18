@@ -14,7 +14,7 @@ import (
 // The output is delayed by the filter's phase, and FiltFilt gives zero phase instead.
 // The filter must be stable, with every pole inside the unit circle.
 // That isn't checked, same as SciPy and MATLAB, and an unstable filter's output grows without bound.
-// Above about order 8, or for a narrow band, b and a lose digits, and SOSFilter keeps them.
+// As the order rises or the band narrows, b and a lose digits, and SOSFilter keeps them.
 //
 //	y, err := dsp.Filter([]float64{1, 1}, []float64{2}, x) // the mean of each sample and the one before
 //
