@@ -9,17 +9,21 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// Hilbert returns the analytic signal of x:
-// x + (i times x's hilbert transform)
-// which is x frequency shifted by -90 degrees.
-// Its magnitude is x's envelope and its angle x's instantaneous phase.
+// Hilbert returns the analytic signal of x, x + i·H(x),
+// where H(x), the Hilbert transform, is x with every frequency's phase shifted by -90°.
+// Its magnitude is x's envelope, and its angle x's instantaneous phase.
+// It works in the frequency domain, doubling the positive frequencies and zeroing the negative ones,
+// so it treats x as one period of a periodic signal.
+// An empty x gives an empty result, and the error is always nil.
 //
-// It works in the frequency domain, doubling the positive frequencies and
-// zeroing the negativeones, so it treats x as one period of a periodic signal.
+//	analytic, err := dsp.Hilbert(x)
+//	phase := cmplx.Phase(analytic[k])
 //
-// An empty x gives an empty result.
+// Units: same as x
 //
-// Equivalent to scipy.signal.hilbert(x), MATLAB hilbert(x)
+// Equivalent to:
+//   - scipy.signal.hilbert(x)
+//   - MATLAB hilbert(x)
 func Hilbert(x []float64) (analytic []complex128, err error) {
 	n := len(x)
 	if n == 0 {
@@ -36,21 +40,24 @@ func Hilbert(x []float64) (analytic []complex128, err error) {
 	}
 	if n%2 == 0 {
 		spectrum[n/2] = half[n/2]
-	} // Nyquist is its own negative frequency, so it's kept not doubled}
+	} // Nyquist is its own negative frequency, so it's kept, not doubled
 	analytic, err = fft.Inverse(spectrum)
 	return
 }
 
-// Envelope returns the upper and lower enveopes of x:
-// its mean plus and minus the envelope of x less its mean, measured according method.
-//
+// Envelope returns the upper and lower envelopes of x:
+// its mean plus and minus the envelope of x less its mean, measured by method.
 // An empty x gives empty envelopes.
 //
-// Returns:
-//   - ErrInvalidParameter for an EnvelopeRMS window below1
+//	upper, lower, err := dsp.Envelope(x, dsp.EnvelopeAnalytic())
 //
-// Equivalent to MATLAB [upper, lower] = envelope(x) and envelope(x, n, "rms").
-// scipy.signal.envelope drops the Nyquist bin from the analytic envelope, and has no RMS method.
+// Units: same as x
+//
+// Returns: ErrInvalidParameter for an EnvelopeRMS window below 1.
+//
+// Equivalent to:
+//   - scipy.signal.envelope, which drops the Nyquist bin from the analytic envelope, and has no RMS method
+//   - MATLAB [upper, lower] = envelope(x), or envelope(x, n, 'rms')
 func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err error) {
 	if method.rms && method.window < 1 {
 		return nil, nil, fmt.Errorf("%w: EnvelopeRMS window %d, must be at least 1", ErrInvalidParameter, method.window)
@@ -78,14 +85,18 @@ func Envelope(x []float64, method EnvelopeMethod) (upper, lower []float64, err e
 }
 
 // EnvelopeMethod is how Envelope measures a signal's envelope:
-// EnvelopeAnalytic (the zero EnvelopeMethod) or EnvelopeRMS.
+// EnvelopeAnalytic, the zero EnvelopeMethod, or EnvelopeRMS.
 type EnvelopeMethod struct {
 	rms    bool
 	window int
 }
 
-// EnvelopeAnalytic is the magnitude of the analytic signal (see Hilbert).
-// It follows each scillation's peaks closely, so suits a signal with one main frequency
+// EnvelopeAnalytic is the magnitude of the analytic signal, from Hilbert.
+// It follows each oscillation's peaks closely, so suits a signal with one main frequency.
+//
+// Equivalent to:
+//   - scipy.signal.envelope, except at Nyquist
+//   - MATLAB envelope(x)
 func EnvelopeAnalytic() (method EnvelopeMethod) {
 	return
 }
@@ -93,6 +104,12 @@ func EnvelopeAnalytic() (method EnvelopeMethod) {
 // EnvelopeRMS is the moving RMS over a window of n samples centred on each sample.
 // For an even n the extra sample is after, so n = 10 covers k-4 to k+5.
 // The window shrinks where it would pass either end of the signal.
+//
+// Units: n is a number of samples
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB envelope(x, n, 'rms')
 func EnvelopeRMS(n int) (method EnvelopeMethod) {
 	method = EnvelopeMethod{rms: true, window: n}
 	return
@@ -113,8 +130,7 @@ func analyticEnvelope(x []float64) (env []float64, err error) {
 
 // movingRMS is the RMS of x over a window of n samples around each one,
 // (n-1)/2 before and n/2 after, shrinking where it passes either end of x.
-// Each window's squares are summed with compensation, so one large square
-// doesn't loose the low bits in small squares
+// Each window's squares are summed with compensation, so one large square doesn't lose the low bits of small ones.
 func movingRMS(x []float64, n int) (rms []float64) {
 	before, after := (n-1)/2, n/2
 	rms = make([]float64, len(x))

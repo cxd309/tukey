@@ -9,20 +9,24 @@ import (
 )
 
 // MedFilt replaces each sample of x with the median of the n samples centred on it,
-// which removes spikes without blurring steps. n must be odd.
-// A window holding a NaN gives NaN.
+// which removes spikes without blurring steps.
+// n must be odd.
+// A window holding a NaN gives NaN, and an infinite sample is outvoted, as any outlier is.
 // A window with an even count, which only MedFiltTruncate gives near the ends,
 // takes the midpoint of its two middle values, rounded once, so y is exact.
-//
 // It keeps the window sorted as it slides, O(n) per sample.
 //
-// Returns:
-//   - ErrInvalidLength for an n that isn't odd and positive
+//	y, err := dsp.MedFilt(x, 5)
+//
+// Units:
+//   - n is a number of samples
+//   - y is in x's unit
+//
+// Returns: ErrInvalidLength for an n that isn't odd and positive.
 //
 // Equivalent to:
-//   - matlab medfilt1(x, n, 'truncate'), or medfilt1(x, n) with MedFiltZeroPad
-//   - scipy.signal.medfilt(x, n) with MedFiltZeroPad, except at NaN, where
-//     its result depends on how NaN sorts
+//   - scipy.signal.medfilt(x, n), with MedFiltZeroPad, except at a NaN, where its result depends on how NaN sorts
+//   - MATLAB medfilt1(x, n, 'truncate'), or medfilt1(x, n) with MedFiltZeroPad
 func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error) {
 	var cfg medFiltConfig
 	for _, opt := range opts {
@@ -55,35 +59,43 @@ func MedFilt(x []float64, n int, opts ...MedFiltOption) (y []float64, err error)
 	return
 }
 
-// MedFiltOption configures MedFilt
+// MedFiltOption configures MedFilt: MedFiltTruncate or MedFiltZeroPad.
 type MedFiltOption func(*medFiltConfig)
 
 // MedFiltTruncate takes the median of only the samples inside x,
-// so a window near the ends is shorter, and uneven.
-// The default: the ends stay where the signal is, wherever that is.
+// so a window near the ends is shorter, and may hold an even count.
+// It's the default, as the ends stay where the signal is, wherever that is.
+//
+// Equivalent to:
+//   - SciPy has none
+//   - MATLAB medfilt1's 'truncate'
 func MedFiltTruncate() MedFiltOption {
 	return func(c *medFiltConfig) { c.zeroPad = false }
 }
 
 // MedFiltZeroPad fills the window past the ends with zeros,
 // which pulls the ends towards 0, so it suits a signal centred on 0.
+//
+// Equivalent to:
+//   - scipy.signal.medfilt, which has no other
+//   - MATLAB medfilt1's 'zeropad', its default
 func MedFiltZeroPad() MedFiltOption {
 	return func(c *medFiltConfig) { c.zeroPad = true }
 }
 
-// medFiltConfig is MedFilt's settings, built from MedFiltOptions
+// medFiltConfig is MedFilt's settings, built from MedFiltOptions.
 type medFiltConfig struct {
 	zeroPad bool // pad past the ends with zeros, rather than truncate
 }
 
 // sortedWindow is a sliding window's samples, kept sorted,
-// with its NaNs counted apart, as they don't sort
+// with its NaNs counted apart, as they don't sort.
 type sortedWindow struct {
 	sorted []float64
 	nans   int
 }
 
-// add puts v into the window, in order
+// add puts v into the window, in order.
 func (w *sortedWindow) add(v float64) {
 	if math.IsNaN(v) {
 		w.nans++
@@ -93,7 +105,7 @@ func (w *sortedWindow) add(v float64) {
 	w.sorted = slices.Insert(w.sorted, i, v)
 }
 
-// remove takes one sample equal to v out of the window
+// remove takes one sample equal to v out of the window.
 func (w *sortedWindow) remove(v float64) {
 	if math.IsNaN(v) {
 		w.nans--
@@ -103,14 +115,14 @@ func (w *sortedWindow) remove(v float64) {
 	w.sorted = slices.Delete(w.sorted, i, i+1)
 }
 
-// count is how many samples the window holds, NaN included
+// count is how many samples the window holds, NaNs included.
 func (w *sortedWindow) count() int {
 	return len(w.sorted) + w.nans
 }
 
 // median is the median of the window with zeros extra zeros in it,
-// as MedFiltZeroPad's padding is counted rather than stored:
-// NaN if the window holds a NaN
+// as MedFiltZeroPad's padding is counted rather than stored.
+// It's NaN if the window holds a NaN.
 func (w *sortedWindow) median(zeros int) float64 {
 	if w.nans > 0 {
 		return math.NaN()
@@ -123,7 +135,7 @@ func (w *sortedWindow) median(zeros int) float64 {
 	return floats.Midpoint(w.at(middle-1, zeros), w.at(middle, zeros))
 }
 
-// at is the k-th smallest of the window's values and zeros extra zeros
+// at is the k-th smallest of the window's values and zeros extra zeros.
 func (w *sortedWindow) at(k, zeros int) float64 {
 	negatives, _ := slices.BinarySearch(w.sorted, 0)
 	switch {

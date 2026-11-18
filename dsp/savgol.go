@@ -8,28 +8,35 @@ import (
 	"github.com/cxd309/tukey/internal/poly"
 )
 
-// SavGolFilter smooths x with a Savitzky–Golay filter:
+// SavGolFilter smooths x with a Savitzky-Golay filter:
 // each sample is replaced by a polynomial of degree polyOrder,
-// fitted by least squares to the n samples centred on it, evaluated there.
+// fitted by least squares to the n samples centred on it, and evaluated there.
 // It smooths noise while keeping the height and width of peaks, which a moving average flattens.
 // Within n/2 of the ends, one polynomial is fitted to the first or last n samples and evaluated at each.
 // A window holding a NaN gives NaN.
 //
 // The fit is in polynomials orthogonal over the window's samples, built by Arnoldi iteration,
-// so it stays accurate for long windows and high degrees, up to n − 1,
+// so it stays accurate for long windows and high degrees, up to n - 1,
 // where the fit passes through every sample.
 // Each output is taken relative to its own sample, so a constant is kept exactly,
 // and a small signal on a large offset keeps its digits.
 //
+//	y, err := dsp.SavGolFilter(x, 21, 3) // noise smoothed, peaks kept
+//
+// Units:
+//   - n is a number of samples
+//   - polyOrder is the polynomial's degree
+//   - y is in x's unit, or with SavGolDeriv in x's unit per unit of dx to the derivative's order
+//
 // Returns:
-//   - ErrInvalidLength for an n that isn't odd and positive
-//   - ErrInvalidParameter for a polyOrder outside 0 to n − 1, or a
-//     SavGolDeriv with a negative order or a dx that isn't positive and finite
-//   - ErrSignalTooShort if x is shorter than n
+//   - ErrInvalidLength for an n that isn't odd and positive.
+//   - ErrInvalidParameter for a polyOrder outside 0 to n - 1,
+//     or a SavGolDeriv with a negative order or a dx that isn't positive and finite.
+//   - ErrSignalTooShort for an x shorter than n.
 //
 // Equivalent to:
-//   - scipy.signal.savgol_filter(x, n, polyOrder, deriv=order, delta=dx)
-//   - matlab sgolayfilt(x, polyOrder, n), without SavGolDeriv
+//   - scipy.signal.savgol_filter(x, n, polyOrder), and with SavGolDeriv deriv=order and delta=dx
+//   - MATLAB sgolayfilt(x, polyOrder, n), without SavGolDeriv
 func SavGolFilter(x []float64, n, polyOrder int, opts ...SavGolOption) (y []float64, err error) {
 	cfg := savGolConfig{dx: 1}
 	for _, opt := range opts {
@@ -39,7 +46,7 @@ func SavGolFilter(x []float64, n, polyOrder int, opts ...SavGolOption) (y []floa
 	case n < 1 || n%2 == 0:
 		return nil, fmt.Errorf("%w: SavGolFilter needs an odd, positive window length, got %d", ErrInvalidLength, n)
 	case polyOrder < 0 || polyOrder >= n:
-		return nil, fmt.Errorf("%w: SavGolFilter polyOrder %d, must be from 0 to n − 1 = %d", ErrInvalidParameter, polyOrder, n-1)
+		return nil, fmt.Errorf("%w: SavGolFilter polyOrder %d, must be from 0 to n - 1 = %d", ErrInvalidParameter, polyOrder, n-1)
 	case cfg.deriv < 0:
 		return nil, fmt.Errorf("%w: SavGolDeriv order %d, must be at least 0", ErrInvalidParameter, cfg.deriv)
 	case !(cfg.dx > 0) || math.IsInf(cfg.dx, 1):
@@ -66,30 +73,41 @@ func SavGolFilter(x []float64, n, polyOrder int, opts ...SavGolOption) (y []floa
 	return
 }
 
-// SavGolOption configures SavGolFilter
+// SavGolOption configures SavGolFilter: SavGolDeriv.
 type SavGolOption func(*savGolConfig)
 
 // SavGolDeriv makes SavGolFilter return the order-th derivative of each fitted polynomial,
-// for samples dx apart, rather than its value:
-// a smoothed derivative.
-// Order 0, the value, by default.
+// for samples dx apart, rather than its value, which gives a smoothed derivative.
+// Without it, the order is 0, the value.
+//
+//	v, err := dsp.SavGolFilter(position, 21, 3, dsp.SavGolDeriv(1, 1/fs)) // smoothed velocity
+//
+// Units:
+//   - order is the derivative's order
+//   - dx is the time between samples, e.g. 1/fs in seconds
+//
+// Equivalent to:
+//   - scipy.signal.savgol_filter's deriv=order and delta=dx
+//   - MATLAB has none in sgolayfilt
 func SavGolDeriv(order int, dx float64) SavGolOption {
 	return func(c *savGolConfig) { c.deriv, c.dx = order, dx }
 }
 
-// savGolConfig is SavGolFilter's settings, built from SavGolOptions
+// savGolConfig is SavGolFilter's settings, built from SavGolOptions.
 type savGolConfig struct {
 	deriv int
 	dx    float64
 }
 
 // fitted is the fit's value, or deriv-th derivative, at window[at], from its weights w:
-// c + Σ w_k·(x_k − c), with c = window[at],
+//
+//	c + Σ w_k·(x_k - c), with c = window[at]
+//
 // as the weights sum to 1, or to 0 for a derivative, which drops the c.
-// Each x_k − c is recovered exactly by TwoSum, and every term summed with compensation,
+// Each x_k - c is recovered exactly by TwoSum, and every term summed with compensation,
 // so a constant is kept exactly,
-// and the rounding scales with how far the window's samples are from c rather than with their size:
-// a small signal on a large offset keeps its digits.
+// and the rounding scales with how far the window's samples are from c rather than with their size.
+// So a small signal on a large offset keeps its digits.
 // A non-finite c is left out, as 0, and a non-finite term is summed as it is,
 // as there's no rounding error to recover from it.
 func fitted(w, window []float64, at, deriv int) float64 {
@@ -108,7 +126,7 @@ func fitted(w, window []float64, at, deriv int) float64 {
 		if math.IsInf(d, 0) || math.IsInf(product, 0) {
 			continue
 		}
-		// TwoSum: x − c = d + e exactly
+		// TwoSum: x - c = d + e exactly
 		shift := d - x
 		e := (x - (d - shift)) + (-c - shift)
 		sum.Add(math.FMA(w[k], d, -product))

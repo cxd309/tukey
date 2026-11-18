@@ -7,14 +7,18 @@ import (
 	"github.com/cxd309/tukey/internal/floats"
 )
 
-// Diff returns the difference between each sample and the next,
-// d[i] = x[i+1] - x[i], with a length one short than x.
-// Fewer than 2 samples have no differences, so return an empty slice.
+// Diff returns the difference between each sample and the next, d[i] = x[i+1] - x[i],
+// one shorter than x.
+// Fewer than 2 samples have no differences, so give an empty slice.
+// A higher order is Diff applied again, e.g. Diff(Diff(x)).
 //
-// To call a higher order use Diff(Diff(x)) etc.
+//	d := dsp.Diff([]float64{1, 4, 9}) // [3 5]
 //
-// Equivalent to numpy.diff(x).
-// Equivalent to MATLAB diff(x).
+// Units: same as x, per sample
+//
+// Equivalent to:
+//   - numpy.diff(x)
+//   - MATLAB diff(x)
 func Diff(x []float64) (d []float64) {
 	d = make([]float64, max(len(x)-1, 0))
 	for i := range d {
@@ -23,13 +27,19 @@ func Diff(x []float64) (d []float64) {
 	return
 }
 
-// Grad returns the derivative of x estimated at each sample, sampled every dx:
-// central differences inside, (x[i+1] - x[i-1]) / (2·dx), and one-sided differences at the ends.
+// Grad returns the derivative of x, sampled every dx, estimated at each sample:
+// central differences inside, (x[i+1] - x[i-1])/(2·dx), and one-sided differences at the ends.
 // Where Diff gives the slope between samples, Grad gives it at each one, the same length as x.
 //
-// Returns
-//   - ErrSignalTooShort for fewer than 2 samples
-//   - ErrInvalidParameter for a dx that isn't positive and finite
+//	v, err := dsp.Grad(position, 1/fs) // velocity, for position sampled at fs Hz
+//
+// Units:
+//   - dx is the time between samples, e.g. 1/fs in seconds
+//   - g is in x's unit per unit of dx
+//
+// Returns:
+//   - ErrSignalTooShort for fewer than 2 samples.
+//   - ErrInvalidParameter for a dx that isn't positive and finite.
 //
 // Equivalent to:
 //   - numpy.gradient(x, dx)
@@ -52,13 +62,15 @@ func Grad(x []float64, dx float64) (g []float64, err error) {
 }
 
 // CumSum returns the running total of x, s[i] = x[0] + ... + x[i], the same length as x.
-// It's summed with compensation, so its error doesn't grow with the signal's length as a plain running sum's does.
+// It's summed with compensation, so its error doesn't grow with the signal's length, as a plain running sum's does.
+//
+//	s := dsp.CumSum([]float64{1, 2, 3}) // [1 3 6]
+//
+// Units: same as x
 //
 // Equivalent to:
-//   - numpy.cumsum(x)
-//   - MATLAB cumsum(x)
-//
-// both of which sum plainly
+//   - numpy.cumsum(x), which sums plainly
+//   - MATLAB cumsum(x), which sums plainly
 func CumSum(x []float64) (s []float64) {
 	s = make([]float64, len(x))
 	var sum floats.Sum
@@ -69,16 +81,24 @@ func CumSum(x []float64) (s []float64) {
 	return
 }
 
-// Trapz returns the trapezoidal integral of y sampled every dx,
-// over the whole signal: dx·(y[0]/2 + y[1] + ... + y[n-1]/2), summed with compensation.
+// Trapz returns the trapezoidal integral of y, sampled every dx, over the whole signal,
+// summed with compensation:
+//
+//	dx·(y[0]/2 + y[1] + ... + y[n-2] + y[n-1]/2)
+//
 // Fewer than 2 samples have no interval to integrate over, so give 0.
 //
-// Returns ErrInvalidParameter for a dx that isn't positive and finite.
+//	distance, err := dsp.Trapz(speed, 1/fs)
+//
+// Units:
+//   - dx is the time between samples, e.g. 1/fs in seconds
+//   - integral is in y's unit times dx's
+//
+// Returns: ErrInvalidParameter for a dx that isn't positive and finite.
 //
 // Equivalent to:
+//   - scipy.integrate.trapezoid(y, dx=dx), and numpy.trapezoid, called trapz before NumPy 2
 //   - MATLAB trapz(dx, y)
-//   - scipy.integrate.trapezoid(y, dx=0)
-//   - numpy.trapezoid (renamed from trapz in NumPy 2)
 func Trapz(y []float64, dx float64) (integral float64, err error) {
 	if err = checkSpacing(dx); err != nil {
 		return
@@ -96,15 +116,21 @@ func Trapz(y []float64, dx float64) (integral float64, err error) {
 	return
 }
 
-// CumTrapz returns the running trapezoidal integral of y sampled every dx:
+// CumTrapz returns the running trapezoidal integral of y, sampled every dx:
 // the integral up to each sample, starting at 0, the same length as y, so it lines up with y and its time axis.
-// Summed with compensation, same as Trapz.
+// It's summed with compensation, same as Trapz.
 //
-// Returns ErrInvalidParameter for a dx that isn't positive and finite
+//	velocity, err := dsp.CumTrapz(acceleration, 1/fs)
+//
+// Units:
+//   - dx is the time between samples, e.g. 1/fs in seconds
+//   - integral is in y's unit times dx's
+//
+// Returns: ErrInvalidParameter for a dx that isn't positive and finite.
 //
 // Equivalent to:
-//   - MATLAB cumtrapz(dx, y)
 //   - scipy.integrate.cumulative_trapezoid(y, dx=dx, initial=0)
+//   - MATLAB cumtrapz(dx, y)
 func CumTrapz(y []float64, dx float64) (integral []float64, err error) {
 	if err = checkSpacing(dx); err != nil {
 		return nil, err
@@ -119,7 +145,7 @@ func CumTrapz(y []float64, dx float64) (integral []float64, err error) {
 	return
 }
 
-// checkSpacing returns ErrInvalidParameter for a sample spacing dx that isn't positive and finite
+// checkSpacing returns ErrInvalidParameter for a sample spacing dx that isn't positive and finite.
 func checkSpacing(dx float64) (err error) {
 	if !(dx > 0) {
 		err = fmt.Errorf("%w: dx %g, must be positive", ErrInvalidParameter, dx)

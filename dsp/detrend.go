@@ -5,10 +5,16 @@ import (
 )
 
 // Detrend returns x with its trend removed:
-// the least-squares line for DetrendLinear, the mean for DetrendConstant,
-// empty x returns empty, and a single sample returns [0]
+// the least-squares line for DetrendLinear, or the mean for DetrendConstant.
+// An empty x gives an empty result, and a single sample gives [0].
 //
-// equivalent to scipy.signal.detrend(x, type) and MATLAB's detrend(x, type)
+//	y := dsp.Detrend(x, dsp.DetrendLinear())
+//
+// Units: same as x
+//
+// Equivalent to:
+//   - scipy.signal.detrend(x, type='linear'), or type='constant'
+//   - MATLAB detrend(x), or detrend(x, 0)
 func Detrend(x []float64, mode DetrendMode) (y []float64) {
 	if mode.constant {
 		y = detrendConstant(x)
@@ -25,18 +31,26 @@ type DetrendMode struct {
 }
 
 // DetrendLinear removes the least-squares straight line.
-// The default, same as SciPy and MATLAB.
+// It's DetrendMode's zero value.
+//
+// Equivalent to:
+//   - scipy.signal.detrend's type='linear', its default
+//   - MATLAB detrend(x), or detrend(x, 1)
 func DetrendLinear() (mode DetrendMode) {
 	return
 }
 
-// DetrendConstant removes the mean
+// DetrendConstant removes the mean.
+//
+// Equivalent to:
+//   - scipy.signal.detrend's type='constant'
+//   - MATLAB detrend(x, 0)
 func DetrendConstant() (mode DetrendMode) {
 	mode.constant = true
 	return
 }
 
-// detrendConstant subtracts the mean
+// detrendConstant subtracts the mean.
 func detrendConstant(x []float64) (y []float64) {
 	m := mean(x)
 	y = make([]float64, len(x))
@@ -46,8 +60,8 @@ func detrendConstant(x []float64) (y []float64) {
 	return
 }
 
-// detrendLinear subtracts the least-squares line, fitted about the centre
-// (n-1)/2 so the intercept is just the mean and the sums stay small
+// detrendLinear subtracts the least-squares line, fitted about the centre (n-1)/2,
+// so the intercept is just the mean and the sums stay small.
 func detrendLinear(x []float64) (y []float64) {
 	centre := float64(len(x)-1) / 2
 	m := mean(x)
