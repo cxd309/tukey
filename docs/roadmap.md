@@ -1,3 +1,5 @@
+<a href="../README.md"><img src="../images/logo.svg" alt="tukey" width="120" align="right"></a>
+
 # Roadmap
 
 What tukey has, and what's planned or not.

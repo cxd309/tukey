@@ -32,4 +32,8 @@ go.work.sum
 # temp
 **/temp
 
+# fonts the image build downloads, and the PNGs it renders
+images/fonts
+images/png
+
 **/.DS_Store

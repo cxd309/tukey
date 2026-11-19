@@ -1,3 +1,5 @@
+<a href="../README.md"><img src="../images/logo.svg" alt="tukey" width="120" align="right"></a>
+
 # Coming from MATLAB
 
 How to port existing applications from MATLAB or how to use tukey for engineers familiar with matlab. Some of these functions are inside the DSP System Toolbox or Signal Processing Toolbox add-ons.

@@ -1,4 +1,4 @@
-# tukey
+<h1 align="center"><img src="images/logo.svg" alt="tukey" width="320"></h1>
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/cxd309/tukey.svg)](https://pkg.go.dev/github.com/cxd309/tukey)
 [![Test](https://github.com/cxd309/tukey/actions/workflows/test.yaml/badge.svg)](https://github.com/cxd309/tukey/actions/workflows/test.yaml)

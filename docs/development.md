@@ -1,3 +1,5 @@
+<a href="../README.md"><img src="../images/logo.svg" alt="tukey" width="120" align="right"></a>
+
 # Development
 
 How tukey is built and tested, and the conventions its code follows.

@@ -1,3 +1,5 @@
+<a href="../README.md"><img src="../images/logo.svg" alt="tukey" width="120" align="right"></a>
+
 # Coming from SciPy
 
 How to port existing applications from SciPy, or how to use tukey for engineers familiar with SciPy and NumPy.

@@ -1,5 +1,6 @@
 testdata := justfile_directory() / "testdata"
 scipy_reference_dir := "reference/scipy"
+images_dir := "images"
 # MATLAB on the PATH, or set MATLAB to its full path
 matlab := env("MATLAB", "matlab")
 # architectures to run on. each is skipped where this machine not able to run
@@ -26,6 +27,8 @@ lint:
     go run ./cmd/doccomments
     cd {{scipy_reference_dir}} && uv run ruff format --check .
     cd {{scipy_reference_dir}} && uv run ruff check .
+    cd {{images_dir}} && uv run ruff format --check .
+    cd {{images_dir}} && uv run ruff check .
     uvx --from {{miss_hit}} mh_style reference/matlab
 
 fmt:
@@ -33,7 +36,17 @@ fmt:
     go fmt ./...
     cd {{scipy_reference_dir}} && uv run ruff format .
     cd {{scipy_reference_dir}} && uv run ruff check --fix .
+    cd {{images_dir}} && uv run ruff format .
+    cd {{images_dir}} && uv run ruff check --fix .
     uvx --from {{miss_hit}} mh_style --fix reference/matlab
+
+# the logo, icons and social images, as SVGs in images/
+images:
+    cd {{images_dir}} && uv run build.py
+
+# the images as PNGs in images/png/, e.g. just images-png social --width 640
+images-png *args:
+    cd {{images_dir}} && uv run render.py {{args}}
 
 # run command once per architecture in all goarchs that can be run on this machine
 # result can differ between them (FMA, math assembly), so each is worth checking

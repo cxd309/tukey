@@ -1,3 +1,5 @@
+<a href="../README.md"><img src="../images/logo.svg" alt="tukey" width="120" align="right"></a>
+
 # Accuracy
 
 How closely tukey's results match SciPy, MATLAB and the exact answer.

@@ -1,3 +1,5 @@
+<a href="README.md"><img src="images/logo.svg" alt="tukey" width="120" align="right"></a>
+
 # Contributing
 
 Thanks for your interest in tukey.
