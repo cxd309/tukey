@@ -29,7 +29,8 @@ jobs:
           go-version-file: ${{ matrix.go == 'minimum' && 'go.mod' || '' }}
           go-version: ${{ matrix.go == 'stable' && 'stable' || '' }}
       - run: go vet ./...
-      - run: go test -coverpkg=./dsp/...,./fft/...,./window/...,./internal/floats/...,./internal/poly/...,./internal/special/... -coverprofile=coverage.out ./...
+      - shell: bash # PowerShell, the Windows default, splits the -coverpkg list
+        run: go test -coverpkg=./dsp/...,./fft/...,./window/...,./internal/floats/...,./internal/poly/...,./internal/special/... -coverprofile=coverage.out ./...
       - name: Upload coverage reports to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.go == 'stable'
         uses: codecov/codecov-action@v5
