@@ -74,17 +74,6 @@ var butterSOSSciPySuite = newSuite("Butter (SOS)", reference.SourceSciPy, "butte
 		if err != nil {
 			return nil, err
 		}
-		sos, err := f.SOS()
-		if err != nil {
-			return nil, err
-		}
-		gotSections, gotGain := normalizedSections(sos)
-		wantSections, wantGain := normalizedSections(v.Output.Sos)
-		outputs, err = sosOutputs(matchSections(gotSections, wantSections), wantSections)
-		if err != nil {
-			return nil, err
-		}
-		outputs = append(outputs, Output{Name: "gain", Got: []float64{gotGain}, Want: []float64{wantGain}})
 		return matchedSOSOutputs(f, v.Output.Sos)
 	})
 

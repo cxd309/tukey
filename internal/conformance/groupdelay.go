@@ -90,9 +90,7 @@ func groupDelayOutputs(v groupDelayVector) (outputs []Output, err error) {
 // sosGroupDelayOutputs pairs dsp.SOSGroupDelay's frequencies and delay with a vector's.
 func sosGroupDelayOutputs(v sosGroupDelayVector) (outputs []Output, err error) {
 	sos := make(dsp.SOS, len(v.Params.Sos))
-	for i, section := range v.Params.Sos {
-		sos[i] = section
-	}
+	copy(sos, v.Params.Sos)
 	w, delay, err := dsp.SOSGroupDelay(sos, v.Params.N)
 	if err != nil {
 		return nil, err

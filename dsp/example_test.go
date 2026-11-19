@@ -18,6 +18,9 @@ func ExampleButter() {
 		log.Fatal(err)
 	}
 	b, a, err := f.BA()
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Printf("b = %.4f\na = %.4f\n", b, a)
 	// Output:
 	// b = [0.1311 0.2622 0.1311]

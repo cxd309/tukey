@@ -16,7 +16,7 @@ import (
 
 func main() {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "SUITE\tSOURCE\tVECTORS\tFAILING\tWORST\tULPS\tTOLERANCE\tHEADROOM\tWORST CASE")
+	_, _ = fmt.Fprintln(w, "SUITE\tSOURCE\tVECTORS\tFAILING\tWORST\tULPS\tTOLERANCE\tHEADROOM\tWORST CASE")
 
 	failed := false
 	for _, suite := range conformance.Suites {
@@ -27,7 +27,7 @@ func main() {
 			continue
 		}
 		failed = failed || s.failing > 0
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"%s\t%s\t%d\t%d\t%.1e\t%.0f\t%.0e\t%s\t%s\n",
 			suite.Name,
@@ -41,7 +41,11 @@ func main() {
 			s.worstCase,
 		)
 	}
-	w.Flush()
+	// The writes above only fill tabwriter's buffer, so a failure to write the table shows up here.
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "writing the table: %v\n", err)
+		failed = true
+	}
 
 	if failed {
 		os.Exit(1)

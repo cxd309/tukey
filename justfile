@@ -22,6 +22,7 @@ lint:
     dprint check
     test -z "$(gofmt -l .)"
     go vet ./...
+    golangci-lint run ./...
     go run ./cmd/doccomments
     cd {{scipy_reference_dir}} && uv run ruff format --check .
     cd {{scipy_reference_dir}} && uv run ruff check .

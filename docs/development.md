@@ -9,7 +9,7 @@ The tests need nothing else, as the reference vectors are committed.
 
 ```sh
 just test         # run every test, on each architecture this machine can run
-just lint         # check formatting, go vet, and the comment style
+just lint         # check formatting, go vet, golangci-lint, and the comment style
 just fmt          # format everything
 just tolerances   # print each function's measured error against SciPy and MATLAB
 just bench        # run the FFT benchmarks, six runs each, for benchstat

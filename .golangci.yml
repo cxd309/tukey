@@ -1,0 +1,18 @@
+version: "2"
+
+linters:
+  settings:
+    staticcheck:
+      # Setting checks replaces staticcheck's defaults, so the ST exclusions repeat them.
+      # QF1001 (De Morgan) and QF1005 (expand math.Pow) are style suggestions.
+      # Expanding math.Pow can change the last bit of a window, which the reference vectors pin.
+      checks:
+        - all
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        - -QF1001
+        - -QF1005
