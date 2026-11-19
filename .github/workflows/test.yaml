@@ -29,5 +29,11 @@ jobs:
           go-version-file: ${{ matrix.go == 'minimum' && 'go.mod' || '' }}
           go-version: ${{ matrix.go == 'stable' && 'stable' || '' }}
       - run: go vet ./...
-      - run: go test ./...
+      - run: go test -coverpkg=./dsp/...,./fft/...,./window/...,./internal/floats/...,./internal/poly/...,./internal/special/... -coverprofile=coverage.out ./...
+      - name: Upload coverage reports to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.go == 'stable'
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
       - run: go run ./cmd/tolerances

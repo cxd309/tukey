@@ -1,5 +1,11 @@
 # tukey
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/cxd309/tukey.svg)](https://pkg.go.dev/github.com/cxd309/tukey)
+[![Test](https://github.com/cxd309/tukey/actions/workflows/test.yaml/badge.svg)](https://github.com/cxd309/tukey/actions/workflows/test.yaml)
+[![Lint](https://github.com/cxd309/tukey/actions/workflows/lint.yaml/badge.svg)](https://github.com/cxd309/tukey/actions/workflows/lint.yaml)
+[![Coverage](https://codecov.io/gh/cxd309/tukey/graph/badge.svg)](https://codecov.io/gh/cxd309/tukey)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Digital Signal Processing (DSP) library for Go engineers, checked against SciPy and MATLAB.
 
 Named after [John Tukey](https://en.wikipedia.org/wiki/John_Tukey), co-inventor of the FFT and considered by some as the father of Data Science.
@@ -87,6 +93,9 @@ Each package's full documentation is on [pkg.go.dev](https://pkg.go.dev/github.c
 - Stability checking
   - Filtering functions assume the filter is stable
   - Same as SciPy and MATLAB
+- Checked on every change
+  - Tests against SciPy and MATLAB reference vectors, on Linux, macOS and Windows
+  - `go vet` and `golangci-lint`
 
 ## Status
 
