@@ -6,11 +6,16 @@ Thanks for your interest in tukey.
 
 ## Issues
 
-Bug reports and feature requests are welcome as issues.
+Bug reports and feature requests are welcome as issues, [choose a form](https://github.com/cxd309/tukey/issues/new/choose) and it will ask for what's needed.
 
 A good bug report says what you ran, what you expected, and what you got.
 
 If it's an accuracy question, it helps to include the SciPy or MATLAB call you're comparing against.
+
+### Labels
+
+- `scipy`, `numpy` and `matlab` mark a feature ported from that library, and `original` marks one that's new to tukey.
+- `good first issue` marks a well-scoped issue that's a good place to start.
 
 ## Pull requests
 
