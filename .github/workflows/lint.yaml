@@ -16,12 +16,12 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: stable
+          go-version: "1.27.4" # pinned with golangci-lint below, which can't read packages from a newer Go than it knows
       - uses: astral-sh/setup-uv@v10.3.0 # uv, for ruff and MISS_HIT; no major tag, so the release
       - uses: extractions/setup-just@v4
         with:
           just-version: "1.58.0" # pinned, as dprint is: "latest" depends on a GitHub release lookup
       - run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.64.1
       - run: echo "$HOME/.dprint/bin" >> "$GITHUB_PATH"
-      - run: curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.13.2 # pinned, as dprint is
+      - run: curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.15.0 # pinned, same as dprint
       - run: just lint
