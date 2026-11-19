@@ -1,0 +1,68 @@
+name: Bug report
+description: A wrong result, an accuracy issue, a panic or an error
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include what you ran, what you expected and what you got.
+
+        Differences from SciPy or MATLAB aren't always bugs. [Accuracy](https://github.com/cxd309/tukey/blob/main/docs/accuracy.md) documents expected differences between tukey and other tools.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of bug
+      options:
+        - Wrong result, clearly incorrect values, length or shape
+        - Accuracy, close but outside the documented tolerance
+        - Panic or unexpected error
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: What you ran
+      description: A small Go snippet that shows the problem.
+      render: go
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Input data
+      description: If the input is too long for the snippet, attach it as a file or say how to generate it.
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What you got
+      description: The output, or the full error or panic message.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: SciPy, NumPy or MATLAB comparison
+      description: If you're comparing against another library, give the call you made, its output and the library version.
+  - type: input
+    id: tukey-version
+    attributes:
+      label: tukey version
+      description: Output of `go list -m github.com/cxd309/tukey`
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version and platform
+      description: Output of `go version`, which includes the OS and architecture
+      placeholder: go version go1.23.4 darwin/arm64
+    validations:
+      required: true
