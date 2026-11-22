@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "tukey"
+version: "1.0.0"
+license: MIT
+repository-code: "https://github.com/cxd309/tukey"
+description: "Signal processing for Go: filter design and zero-phase filtering, FFTs of any length, windows, spectral analysis and peak finding, checked against SciPy and MATLAB."
+authors:
+  - family-names: "Davis"
+    given-names: "Chris"
+    email: "chris.davis.ee@gmail.com"
