@@ -49,12 +49,7 @@ func Chirp(t []float64, f0, t1, f1 float64, opts ...Option) (x []float64, err er
 	if err = checkChirp(cfg, f0, t1, f1); err != nil {
 		return nil, err
 	}
-	cycles := chirpCycles(cfg, f0, t1, f1)
-	offset := special.Exact(cfg.phase).Div(special.Exact(360))
-	x = make([]float64, len(t))
-	for i, ti := range t {
-		x[i] = cosCycles(cycles(ti).Add(offset))
-	}
+	x = cosines(t, cfg.phase, chirpCycles(cfg, f0, t1, f1))
 	return
 }
 
@@ -140,13 +135,5 @@ func chirpCycles(cfg config, f0, t1, f1 float64) (cycles func(t float64) special
 // cube is d³.
 func cube(d special.DoubleDouble) (cubed special.DoubleDouble) {
 	cubed = d.Mul(d).Mul(d)
-	return
-}
-
-// cosCycles is cos(2π·c), with c's whole cycles removed first, which is exact,
-// so only the fraction left is rounded to a float64.
-func cosCycles(c special.DoubleDouble) (cos float64) {
-	fraction := (c.Hi - math.Round(c.Hi)) + c.Lo
-	_, cos = special.SinCosPi(2 * fraction)
 	return
 }

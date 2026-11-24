@@ -85,6 +85,7 @@ var Suites = slices.Concat(
 		medFiltSciPySuite,
 		savGolSciPySuite,
 		chirpSciPySuite,
+		sweepPolySciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 

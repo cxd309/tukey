@@ -76,3 +76,34 @@ func chirpOutputs(v chirpVector) (outputs []Output, err error) {
 	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
 	return
 }
+
+type sweepPolyVector struct {
+	reference.Meta
+	Params struct {
+		T    []float64 `json:"t"`
+		Poly []float64 `json:"poly"`
+		Phi  float64   `json:"phi"`
+	} `json:"params"`
+	Output struct {
+		X []float64 `json:"x"`
+	} `json:"output"`
+}
+
+// SweepPoly, measured on both architectures.
+// The SciPy vectors are the exact sweep, computed with mpmath at 50 digits and rounded once, rather than scipy.signal's output,
+// tukey is within 1 ULP of them on every vector, worst on audio,
+// where scipy.signal is up to 1.2e-10 away, for the same reason as Chirp.
+// Tolerance: about 10 times the worst.
+// MATLAB has none.
+var sweepPolySciPySuite = newSuite("SweepPoly", reference.SourceSciPy, "waveform/sweep_poly", tolerance(2e-15), sweepPolyOutputs)
+
+// sweepPolyOutputs pairs SweepPoly's output with a vector's.
+func sweepPolyOutputs(v sweepPolyVector) (outputs []Output, err error) {
+	x, err := waveform.SweepPoly(v.Params.T, v.Params.Poly, waveform.Phase(v.Params.Phi))
+	if err != nil {
+		return nil, err
+	}
+	// Scale 1, same as Chirp
+	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
+	return
+}
