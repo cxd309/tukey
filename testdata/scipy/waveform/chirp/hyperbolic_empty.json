@@ -1,0 +1,19 @@
+{
+  "description": "scipy.signal.chirp(t, 1, 1, 80, 'hyperbolic', 0, vertex_zero=True), exact",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "t": [],
+    "f0": 1.0,
+    "t1": 1.0,
+    "f1": 80.0,
+    "method": "hyperbolic",
+    "phi": 0.0,
+    "vertex_zero": true
+  },
+  "output": {
+    "x": []
+  }
+}
