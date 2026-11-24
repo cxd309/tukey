@@ -11,6 +11,11 @@ function g = generators()
     %   vertex_zero=True
     % - logarithmic is SciPy's formula
     %
+    % square, from MATLAB's square.m in R2025a:
+    % - duty is a percentage, so SciPy's duty is multiplied by 100
+    % - mod(t, 2*pi) rounds near whole multiples of 2*pi, where SciPy's % is
+    %   exact, so the two may differ at edges
+    %
     % not reproduced:
     % - hyperbolic: no MATLAB method
     % - quadratic with its vertex at t1: MATLAB's other shape evaluates the
@@ -18,8 +23,8 @@ function g = generators()
     %   t's span, order and orientation. On a row vector from 0 to t1 it is
     %   SciPy's sweep less a constant phase, and on a column it's reversed
     % - logarithmic with f0 = f1: MATLAB divides by log(f1/f0) = 0
-    categories = {"waveform/chirp"};
-    runs = {@chirpVector};
+    categories = {"waveform/chirp", "waveform/square"};
+    runs = {@chirpVector, @squareVector};
     g = struct("category", categories, "run", runs);
 end
 
@@ -36,4 +41,12 @@ function [output, description] = chirpVector(params)
     description = sprintf("chirp(t, %.17g, %.17g, %.17g, ""%s"", %.17g)", ...
                           params.f0, params.t1, params.f1, params.method, ...
                           params.phi);
+end
+
+function [output, description] = squareVector(params)
+    % square takes its duty cycle as a percentage, where SciPy's is a fraction
+    duty = 100 * params.duty;
+    x = square(params.t, duty);
+    output = struct("x", encode.vec(x));
+    description = sprintf("square(t, %.17g)", duty);
 end

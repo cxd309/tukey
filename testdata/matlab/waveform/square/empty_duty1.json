@@ -1,0 +1,4 @@
+{"description": "square(t, 100)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "t": [],
+    "duty": 1.0
+  }, "output": {"x": []}}

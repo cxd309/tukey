@@ -1,0 +1,14 @@
+{
+  "description": "scipy.signal.square(t, 0)",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "t": [],
+    "duty": 0.0
+  },
+  "output": {
+    "x": []
+  }
+}
