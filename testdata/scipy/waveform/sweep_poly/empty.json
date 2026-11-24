@@ -1,0 +1,18 @@
+{
+  "description": "scipy.signal.sweep_poly(t, [79.0, 1.0], 0), exact",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "t": [],
+    "poly": [
+      79.0,
+      1.0
+    ],
+    "phi": 0.0
+  },
+  "output": {
+    "x": []
+  }
+}
