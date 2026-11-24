@@ -84,6 +84,7 @@ var Suites = slices.Concat(
 		ellipOrdSciPySuite,
 		medFiltSciPySuite,
 		savGolSciPySuite,
+		chirpSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -156,6 +157,8 @@ var Suites = slices.Concat(
 		medFiltMATLABSuite,
 		savGolMATLABSuite,
 		savGolLongMATLABSuite,
+		chirpMATLABSuite,
+		chirpLongMATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )

@@ -1,0 +1,78 @@
+package conformance
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/cxd309/tukey/internal/reference"
+	"github.com/cxd309/tukey/waveform"
+)
+
+type chirpVector struct {
+	reference.Meta
+	Params struct {
+		T          []float64 `json:"t"`
+		F0         float64   `json:"f0"`
+		T1         float64   `json:"t1"`
+		F1         float64   `json:"f1"`
+		Method     string    `json:"method"`
+		Phi        float64   `json:"phi"`
+		VertexZero bool      `json:"vertex_zero"`
+	} `json:"params"`
+	Output struct {
+		X []float64 `json:"x"`
+	} `json:"output"`
+}
+
+// Chirp, measured on both architectures.
+// The SciPy vectors are the exact chirp, computed with mpmath at 50 digits and rounded once, rather than scipy.signal's output.
+// tukey is within 1 ULP of them on every vector, where scipy.signal is up to 1.8e-10 away on the audio grid,
+// as it takes the cosine of the phase in radians, which loses digits as the phase grows.
+//
+// MATLAB's chirp does the same, and its vectors skip the sweeps it doesn't have:
+// hyperbolic, the quadratic with its vertex at t1, and the logarithmic at f0 = f1.
+// Over the unit grid it's worst at 8.0e-14, on linear_unit_down.
+// Where the phase runs to many cycles, on the beyond and audio grids, it's worst at 1.3e-10, on linear_audio,
+// so those vectors have a looser suite of their own.
+// Tolerance: about 10 times the worst.
+var (
+	chirpSciPySuite  = newSuite("Chirp", reference.SourceSciPy, "waveform/chirp", tolerance(2e-15), chirpOutputs)
+	chirpMATLABSuite = newSuiteOf("Chirp", reference.SourceMATLAB, "waveform/chirp", tolerance(1e-12), chirpOutputs,
+		func(file string) bool { return !isLongChirp(file) })
+	chirpLongMATLABSuite = newSuiteOf("Chirp (long)", reference.SourceMATLAB, "waveform/chirp", tolerance(2e-9),
+		chirpOutputs, isLongChirp)
+)
+
+// isLongChirp reports whether a vector's phase runs to many cycles:
+// the beyond grid, out to 3·t1, and the audio grid, ten seconds from 20 Hz to 20 kHz.
+func isLongChirp(file string) (ok bool) {
+	ok = strings.Contains(file, "_beyond") || strings.Contains(file, "_audio")
+	return
+}
+
+// chirpMethods is each SciPy method's Option.
+var chirpMethods = map[string]func() waveform.Option{
+	"linear":      waveform.Linear,
+	"quadratic":   waveform.Quadratic,
+	"logarithmic": waveform.Logarithmic,
+	"hyperbolic":  waveform.Hyperbolic,
+}
+
+// chirpOutputs pairs Chirp's output with a vector's.
+func chirpOutputs(v chirpVector) (outputs []Output, err error) {
+	method, ok := chirpMethods[v.Params.Method]
+	if !ok {
+		return nil, fmt.Errorf("unknown chirp method %q", v.Params.Method)
+	}
+	opts := []waveform.Option{method(), waveform.Phase(v.Params.Phi)}
+	if !v.Params.VertexZero {
+		opts = append(opts, waveform.VertexAtT1())
+	}
+	x, err := waveform.Chirp(v.Params.T, v.Params.F0, v.Params.T1, v.Params.F1, opts...)
+	if err != nil {
+		return nil, err
+	}
+	// Scale 1, as a chirp swings between -1 and 1, and its zero crossings would otherwise have to match exactly
+	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
+	return
+}
