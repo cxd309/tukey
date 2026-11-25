@@ -16,6 +16,12 @@ function g = generators()
     % - mod(t, 2*pi) rounds near whole multiples of 2*pi, where SciPy's % is
     %   exact, so the two may differ at edges
     %
+    % sawtooth, from MATLAB's sawtooth.m in R2025a:
+    % - width is a fraction of the period, as SciPy's
+    % - t is reduced with rem, which keeps t's sign, then scaled to a fraction
+    %   of a cycle, so a tiny negative t at width 1 gives 1, where SciPy's %
+    %   rounds it up to 2*pi and gives NaN
+    %
     % not reproduced:
     % - hyperbolic: no MATLAB method
     % - quadratic with its vertex at t1: MATLAB's other shape evaluates the
@@ -23,8 +29,8 @@ function g = generators()
     %   t's span, order and orientation. On a row vector from 0 to t1 it is
     %   SciPy's sweep less a constant phase, and on a column it's reversed
     % - logarithmic with f0 = f1: MATLAB divides by log(f1/f0) = 0
-    categories = {"waveform/chirp", "waveform/square"};
-    runs = {@chirpVector, @squareVector};
+    categories = {"waveform/chirp", "waveform/square", "waveform/sawtooth"};
+    runs = {@chirpVector, @squareVector, @sawtoothVector};
     g = struct("category", categories, "run", runs);
 end
 
@@ -49,4 +55,10 @@ function [output, description] = squareVector(params)
     x = square(params.t, duty);
     output = struct("x", encode.vec(x));
     description = sprintf("square(t, %.17g)", duty);
+end
+
+function [output, description] = sawtoothVector(params)
+    x = sawtooth(params.t, params.duty);
+    output = struct("x", encode.vec(x));
+    description = sprintf("sawtooth(t, %.17g)", params.duty);
 end

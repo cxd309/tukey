@@ -142,3 +142,39 @@ func squareOutputs(v squareVector) (outputs []Output, err error) {
 	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
 	return
 }
+
+type sawtoothVector struct {
+	reference.Meta
+	Params struct {
+		T    []float64 `json:"t"`
+		Duty float64   `json:"duty"`
+	} `json:"params"`
+	Output struct {
+		X []float64 `json:"x"`
+	} `json:"output"`
+}
+
+// Sawtooth, measured on both architectures.
+// The SciPy vectors are exact, from mpmath, reducing t by the float64 2π, same as tukey,
+// and tukey is within an ULP of them.
+//
+// MATLAB's rem puts a t within round-off of 2π·k at the start of a cycle,
+// so at duty 0 and 1, where the wave jumps by 2 at the start of a cycle,
+// it's on the other side of the jump at the 2 samples on the steps grid one ULP beyond -4π and -2π.
+// Those vectors are left out of its suite.
+// On the rest MATLAB is 9.0e-15 from tukey, from scaling t to a fraction of a cycle before its ramps.
+var (
+	sawtoothSciPySuite  = newSuite("Sawtooth", reference.SourceSciPy, "waveform/sawtooth", tolerance(2e-15), sawtoothOutputs)
+	sawtoothMATLABSuite = newSuiteOf("Sawtooth", reference.SourceMATLAB, "waveform/sawtooth", tolerance(1e-13), sawtoothOutputs,
+		func(file string) bool { return file != "steps_duty0.json" && file != "steps_duty1.json" })
+)
+
+// sawtoothOutputs pairs Sawtooth's output with a vector's.
+func sawtoothOutputs(v sawtoothVector) (outputs []Output, err error) {
+	x, err := waveform.Sawtooth(v.Params.T, waveform.Duty(v.Params.Duty))
+	if err != nil {
+		return nil, err
+	}
+	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
+	return
+}
