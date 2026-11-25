@@ -107,3 +107,38 @@ func sweepPolyOutputs(v sweepPolyVector) (outputs []Output, err error) {
 	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
 	return
 }
+
+type squareVector struct {
+	reference.Meta
+	Params struct {
+		T    []float64 `json:"t"`
+		Duty float64   `json:"duty"`
+	} `json:"params"`
+	Output struct {
+		X []float64 `json:"x"`
+	} `json:"output"`
+}
+
+// Square, measured on both architectures.
+// The SciPy vectors are scipy.signal's own output, which reduces t by the float64 2π, same as tukey,
+// so every sample matches exactly.
+//
+// MATLAB's mod puts a t within round-off of 2π·k at the start of a cycle,
+// so it's +1 where SciPy and tukey are -1 at the 2 samples on the steps grid
+// one ULP beyond -4π and -2π, at every duty but 0 and 1.
+// Those vectors are left out of its suite, and it matches exactly on the rest.
+var (
+	squareSciPySuite  = newSuite("Square", reference.SourceSciPy, "waveform/square", reference.Tolerance{}, squareOutputs)
+	squareMATLABSuite = newSuiteOf("Square", reference.SourceMATLAB, "waveform/square", reference.Tolerance{}, squareOutputs,
+		func(file string) bool { return !strings.HasPrefix(file, "steps_") })
+)
+
+// squareOutputs pairs Square's output with a vector's.
+func squareOutputs(v squareVector) (outputs []Output, err error) {
+	x, err := waveform.Square(v.Params.T, waveform.Duty(v.Params.Duty))
+	if err != nil {
+		return nil, err
+	}
+	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
+	return
+}

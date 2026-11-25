@@ -15,8 +15,8 @@ type Option func(*config)
 // It's the default.
 //
 // Equivalent to:
-//   - scipy.signal.chirp's method='linear', its default
-//   - MATLAB chirp's "linear", its default
+//   - scipy.signal.chirp method='linear', its default
+//   - MATLAB chirp "linear", its default
 func Linear() (option Option) {
 	option = func(c *config) {
 		c.sweep = sweepLinear
@@ -30,8 +30,8 @@ func Linear() (option Option) {
 // or with VertexAtT1 at t = t1, f(t) = f1 - (f1 - f0)·(1 - t/t1)².
 //
 // Equivalent to:
-//   - scipy.signal.chirp's method='quadratic'
-//   - MATLAB chirp's "quadratic", with its default shape, for the vertex at t = 0
+//   - scipy.signal.chirp method='quadratic'
+//   - MATLAB chirp "quadratic", with its default shape, for the vertex at t = 0
 func Quadratic() (option Option) {
 	option = func(c *config) {
 		c.sweep = sweepQuadratic
@@ -45,8 +45,8 @@ func Quadratic() (option Option) {
 // f0 and f1 must be non-zero and of the same sign.
 //
 // Equivalent to:
-//   - scipy.signal.chirp's method='logarithmic'
-//   - MATLAB chirp's "logarithmic", except at f0 = f1, where MATLAB divides by 0
+//   - scipy.signal.chirp method='logarithmic'
+//   - MATLAB chirp "logarithmic", except at f0 = f1, where MATLAB divides by 0
 func Logarithmic() (option Option) {
 	option = func(c *config) {
 		c.sweep = sweepLogarithmic
@@ -61,7 +61,7 @@ func Logarithmic() (option Option) {
 // The frequency is infinite at t = f1·t1/(f1 - f0), which for an upward sweep is after t1.
 //
 // Equivalent to:
-//   - scipy.signal.chirp's method='hyperbolic'
+//   - scipy.signal.chirp method='hyperbolic'
 //   - MATLAB has none
 func Hyperbolic() (option Option) {
 	option = func(c *config) {
@@ -76,7 +76,7 @@ func Hyperbolic() (option Option) {
 // It needs Quadratic.
 //
 // Equivalent to:
-//   - scipy.signal.chirp's vertex_zero=False
+//   - scipy.signal.chirp vertex_zero=False
 //   - MATLAB has none, as its other shape evaluates the sweep at fliplr(-t),
 //     which depends on how t is laid out
 func VertexAtT1() (option Option) {
@@ -92,12 +92,29 @@ func VertexAtT1() (option Option) {
 // Units: phi is in degrees
 //
 // Equivalent to:
-//   - scipy.signal.chirp's phi
-//   - MATLAB chirp's phi
+//   - scipy.signal.chirp phi
+//   - MATLAB chirp phi
 func Phase(phi float64) (option Option) {
 	option = func(c *config) {
 		c.phase = phi
 		c.given[optionPhase] = true
+	}
+	return
+}
+
+// Duty sets the fraction of each period a waveform spends in the first part of its cycle:
+// Square's high part, 0.5 by default.
+// It must be between 0 and 1, where 0 is never high and 1 always.
+//
+// Units: duty is a fraction of the period
+//
+// Equivalnet to:
+//   - scipy.signal.square duty
+//   - MATLAB square's duty, which is a percentage, so Duty(0.25) is MATLAB 25
+func Duty(duty float64) (option Option) {
+	option = func(c *config) {
+		c.duty = duty
+		c.given[optionDuty] = true
 	}
 	return
 }
@@ -112,6 +129,7 @@ const (
 	optionHyperbolic
 	optionVertexAtT1
 	optionPhase
+	optionDuty
 	optionCount // the number of options, keep last
 )
 
@@ -123,6 +141,7 @@ var optionNames = [optionCount]string{
 	optionHyperbolic:  "Hyperbolic",
 	optionVertexAtT1:  "VertexAtT1",
 	optionPhase:       "Phase",
+	optionDuty:        "Duty",
 }
 
 // optionSet is a set of options, where optionSet[o] is whether o is in it.
@@ -153,6 +172,7 @@ type config struct {
 	sweep      sweep
 	vertexAtT1 bool
 	phase      float64   // in degrees
+	duty       float64   // a fraction of the period, given only with duty
 	given      optionSet // which options were passed, so a waveform can reject the rest
 }
 
