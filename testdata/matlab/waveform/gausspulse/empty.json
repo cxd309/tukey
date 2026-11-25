@@ -1,0 +1,6 @@
+{"description": "[yi, yq, ye] = gauspuls(t, 1000, 0.5, -6)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "t": [],
+    "fc": 1000.0,
+    "bw": 0.5,
+    "bwr": -6.0
+  }, "output": {"in_phase": [], "quadrature": [], "envelope": []}}

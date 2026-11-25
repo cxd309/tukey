@@ -1,0 +1,18 @@
+{
+  "description": "exact, mpmath at 50 digits",
+  "versions": {
+    "scipy_version": "1.18.1",
+    "numpy_version": "2.5.3"
+  },
+  "params": {
+    "fc": 50000.0,
+    "bw": 0.6,
+    "bwr": -6.0,
+    "tpr": -40.0
+  },
+  "output": {
+    "tc": [
+      3.784863157736778e-05
+    ]
+  }
+}

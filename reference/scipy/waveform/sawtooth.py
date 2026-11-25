@@ -71,7 +71,9 @@ def is_scipy_nan(t: float, duty: float) -> bool:
 
 def check_scipy(t, duty: float, x) -> None:
     """asserts scipy's sawtooth is within SCIPY_ACCURACY of x, the exact wave"""
-    y = sc.signal.sawtooth(t, duty)
+    # scipy's 0/0 at width 1 is expected, and checked below
+    with np.errstate(invalid="ignore"):
+        y = sc.signal.sawtooth(t, duty)
     for ti, xi, yi in zip(t, x, y, strict=True):
         if is_scipy_nan(ti, duty):
             assert np.isnan(yi), (ti, duty, yi)

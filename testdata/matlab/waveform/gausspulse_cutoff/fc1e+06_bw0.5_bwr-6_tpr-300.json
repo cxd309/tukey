@@ -1,0 +1,6 @@
+{"description": "gauspuls(\"cutoff\", 1000000, 0.5, -6, -300)", "versions": {"matlab":"25.1.0.2973910 (R2025a) Update 1","signal":"25.1"}, "params": {
+    "fc": 1000000.0,
+    "bw": 0.5,
+    "bwr": -6.0,
+    "tpr": -300.0
+  }, "output": {"tc": [6.219164785688001e-06]}}

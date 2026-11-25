@@ -22,6 +22,14 @@ function g = generators()
     %   of a cycle, so a tiny negative t at width 1 gives 1, where SciPy's %
     %   rounds it up to 2*pi and gives NaN
     %
+    % gausspulse, from MATLAB's gauspuls.m in R2025a:
+    % - the envelope is exp(-t^2/(2*tv)), with its variance tv from the same
+    %   bandwidth as SciPy's a, but rounded differently
+    % - the carrier is cospi(2*fc*t) and sinpi(2*fc*t), where SciPy rounds
+    %   2*pi*fc*t first
+    % - the cutoff is gauspuls("cutoff", fc, bw, bwr, tpr), where the envelope
+    %   falls to tpr dB, sqrt(-2*tv*log(10^(tpr/20)))
+    %
     % not reproduced:
     % - hyperbolic: no MATLAB method
     % - quadratic with its vertex at t1: MATLAB's other shape evaluates the
@@ -29,8 +37,10 @@ function g = generators()
     %   t's span, order and orientation. On a row vector from 0 to t1 it is
     %   SciPy's sweep less a constant phase, and on a column it's reversed
     % - logarithmic with f0 = f1: MATLAB divides by log(f1/f0) = 0
-    categories = {"waveform/chirp", "waveform/square", "waveform/sawtooth"};
-    runs = {@chirpVector, @squareVector, @sawtoothVector};
+    categories = {"waveform/chirp", "waveform/square", "waveform/sawtooth", ...
+                  "waveform/gausspulse", "waveform/gausspulse_cutoff"};
+    runs = {@chirpVector, @squareVector, @sawtoothVector, ...
+            @gaussPulseVector, @gaussPulseCutoffVector};
     g = struct("category", categories, "run", runs);
 end
 
@@ -61,4 +71,22 @@ function [output, description] = sawtoothVector(params)
     x = sawtooth(params.t, params.duty);
     output = struct("x", encode.vec(x));
     description = sprintf("sawtooth(t, %.17g)", params.duty);
+end
+
+function [output, description] = gaussPulseVector(params)
+    [inPhase, quadrature, envelope] = gauspuls(params.t, params.fc, ...
+                                               params.bw, params.bwr);
+    output = struct("in_phase", encode.vec(inPhase), ...
+                    "quadrature", encode.vec(quadrature), ...
+                    "envelope", encode.vec(envelope));
+    description = sprintf("[yi, yq, ye] = gauspuls(t, %.17g, %.17g, %.17g)", ...
+                          params.fc, params.bw, params.bwr);
+end
+
+function [output, description] = gaussPulseCutoffVector(params)
+    tc = gauspuls("cutoff", params.fc, params.bw, params.bwr, params.tpr);
+    output = struct("tc", encode.vec(tc));
+    format = "gauspuls(""cutoff"", %.17g, %.17g, %.17g, %.17g)";
+    description = sprintf(format, params.fc, params.bw, params.bwr, ...
+                          params.tpr);
 end
