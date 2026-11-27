@@ -119,6 +119,55 @@ func Duty(duty float64) (option Option) {
 	return
 }
 
+// Bandwidth sets GaussPulse's bandwidth as a fraction of its centre frequency fc:
+// its spectrum falls to BandwidthLevel at fc·(1 ± bw/2).
+// It's 0.5 by default, and must be above 0.
+//
+// Units: bw is a fraction of fc
+//
+// Equivalent to:
+//   - scipy.signal.gausspulse bw
+//   - MATLAB gauspuls bw
+func Bandwidth(bw float64) (option Option) {
+	option = func(c *config) {
+		c.bandwidth = bw
+		c.given[optionBandwidth] = true
+	}
+	return
+}
+
+// BandwidthLevel sets the level below its peak where GaussPulse's spectrum is Bandwidth wide.
+// It's -6 dB by default, and must be below 0.
+//
+// Units: levelDB is in dB, negative
+//
+// Equivalent to:
+//   - scipy.signal.gausspulse bwr
+//   - MATLAB gauspuls bwr
+func BandwidthLevel(levelDB float64) (option Option) {
+	option = func(c *config) {
+		c.bandwidthLevel = levelDB
+		c.given[optionBandwidthLevel] = true
+	}
+	return
+}
+
+// CutoffLevel sets the level below its peak where GaussPulseCutoff finds the envelope.
+// It's -60 dB by default, and must be below 0.
+//
+// Units: levelDB is in dB, negative
+//
+// Equivalent to:
+//   - scipy.signal.gausspulse tpr
+//   - MATLAB gauspuls tpr
+func CutoffLevel(levelDB float64) (option Option) {
+	option = func(c *config) {
+		c.cutoffLevel = levelDB
+		c.given[optionCutoffLevel] = true
+	}
+	return
+}
+
 // optionKind identifies an Option, for checking which apply to a waveform.
 type optionKind int
 
@@ -130,6 +179,9 @@ const (
 	optionVertexAtT1
 	optionPhase
 	optionDuty
+	optionBandwidth
+	optionBandwidthLevel
+	optionCutoffLevel
 	optionCount // the number of options, keep last
 )
 
@@ -142,6 +194,8 @@ var optionNames = [optionCount]string{
 	optionVertexAtT1:  "VertexAtT1",
 	optionPhase:       "Phase",
 	optionDuty:        "Duty",
+	optionBandwidth:   "BandwidthLevel",
+	optionCutoffLevel: "CutoffLevel",
 }
 
 // optionSet is a set of options, where optionSet[o] is whether o is in it.
@@ -169,11 +223,14 @@ const (
 
 // config is a waveform's settings, built from Options.
 type config struct {
-	sweep      sweep
-	vertexAtT1 bool
-	phase      float64   // in degrees
-	duty       float64   // a fraction of the period, given only with duty
-	given      optionSet // which options were passed, so a waveform can reject the rest
+	sweep          sweep
+	vertexAtT1     bool
+	phase          float64   // in degrees
+	duty           float64   // a fraction of the period, given only with duty
+	bandwidth      float64   // a fraction of fc, given only with Bandwidth
+	bandwidthLevel float64   // in dB, given only with BandwidthLevel
+	cutoffLevel    float64   // in dB, given only with CutoffLevel
+	given          optionSet // which options were passed, so a waveform can reject the rest
 }
 
 // newConfig builds a waveform's settings from opts,

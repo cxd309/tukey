@@ -18,9 +18,15 @@ func cosines(t []float64, phi float64, cycles func(t float64) special.DoubleDoub
 }
 
 // cosCycles is cos(2π·c), with c's whole cycles removed first, which is exact,
-// so only the fraction left is rounded to a float64.
+// so only the fraction left is rounded to a float64
 func cosCycles(c special.DoubleDouble) (cos float64) {
+	_, cos = sinCosCycles(c)
+	return
+}
+
+// sinCosCycles is sin(2π·c) and cos(2π·c), with c's whole cycles removed first, same as cosCycles
+func sinCosCycles(c special.DoubleDouble) (sin, cos float64) {
 	fraction := (c.Hi - math.Round(c.Hi)) + c.Lo
-	_, cos = special.SinCosPi(2 * fraction)
+	sin, cos = special.SinCosPi(2 * fraction)
 	return
 }

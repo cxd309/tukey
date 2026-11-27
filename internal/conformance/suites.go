@@ -88,6 +88,8 @@ var Suites = slices.Concat(
 		sweepPolySciPySuite,
 		squareSciPySuite,
 		sawtoothSciPySuite,
+		gaussPulseSciPySuite,
+		gaussPulseCutoffSciPySuite,
 	},
 	windowSuites(reference.SourceSciPy),
 
@@ -164,6 +166,8 @@ var Suites = slices.Concat(
 		chirpLongMATLABSuite,
 		squareMATLABSuite,
 		sawtoothMATLABSuite,
+		gaussPulseMATLABSuite,
+		gaussPulseCutoffMATLABSuite,
 	},
 	windowSuites(reference.SourceMATLAB),
 )

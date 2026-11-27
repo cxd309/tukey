@@ -178,3 +178,77 @@ func sawtoothOutputs(v sawtoothVector) (outputs []Output, err error) {
 	outputs = []Output{{Name: "x", Got: x, Want: v.Output.X, Scale: 1}}
 	return
 }
+
+type gaussPulseVector struct {
+	reference.Meta
+	Params struct {
+		T   []float64 `json:"t"`
+		Fc  float64   `json:"fc"`
+		Bw  float64   `json:"bw"`
+		Bwr float64   `json:"bwr"`
+	} `json:"params"`
+	Output struct {
+		InPhase    []float64 `json:"in_phase"`
+		Quadrature []float64 `json:"quadrature"`
+		Envelope   []float64 `json:"envelope"`
+	} `json:"output"`
+}
+
+type gaussPulseCutoffVector struct {
+	reference.Meta
+	Params struct {
+		Fc  float64 `json:"fc"`
+		Bw  float64 `json:"bw"`
+		Bwr float64 `json:"bwr"`
+		Tpr float64 `json:"tpr"`
+	} `json:"params"`
+	Output struct {
+		Tc []float64 `json:"tc"`
+	} `json:"output"`
+}
+
+// GaussPulse and GaussPulseCutoff, measured on both architectures.
+// The SciPy vectors are exact, from mpmath.
+// tukey's pulse is within an ULP of 1 of them, at a zero of the carrier, where its phase is rounded to a float64,
+// and its cutoff matches exactly.
+//
+// MATLAB is 1.1e-15 from tukey's pulse, on the narrow grid's quadrature part,
+// as it rounds its envelope's variance and its carrier's 2·fc·t before cospi and sinpi,
+// and 2.5e-16 relative from its cutoff.
+var (
+	gaussPulseSciPySuite = newSuite("GaussPulse", reference.SourceSciPy, "waveform/gausspulse",
+		tolerance(2e-15), gaussPulseOutputs)
+	gaussPulseCutoffSciPySuite = newSuite("GaussPulseCutoff", reference.SourceSciPy, "waveform/gausspulse_cutoff",
+		tolerance(2e-15), gaussPulseCutoffOutputs)
+	gaussPulseMATLABSuite = newSuite("GaussPulse", reference.SourceMATLAB, "waveform/gausspulse",
+		tolerance(1e-14), gaussPulseOutputs)
+	gaussPulseCutoffMATLABSuite = newSuite("GaussPulseCutoff", reference.SourceMATLAB, "waveform/gausspulse_cutoff",
+		tolerance(2e-15), gaussPulseCutoffOutputs)
+)
+
+// gaussPulseOutputs pairs GaussPulse's output with a vector's.
+func gaussPulseOutputs(v gaussPulseVector) (outputs []Output, err error) {
+	pulse, err := waveform.GaussPulse(v.Params.T, v.Params.Fc,
+		waveform.Bandwidth(v.Params.Bw), waveform.BandwidthLevel(v.Params.Bwr))
+	if err != nil {
+		return nil, err
+	}
+	// Scale 1, the pulse's peak, so samples near a zero of the carrier or out in the tails are measured against it
+	outputs = []Output{
+		{Name: "in_phase", Got: pulse.InPhase, Want: v.Output.InPhase, Scale: 1},
+		{Name: "quadrature", Got: pulse.Quadrature, Want: v.Output.Quadrature, Scale: 1},
+		{Name: "envelope", Got: pulse.Envelope, Want: v.Output.Envelope, Scale: 1},
+	}
+	return
+}
+
+// gaussPulseCutoffOutputs pairs GaussPulseCutoff's output with a vector's.
+func gaussPulseCutoffOutputs(v gaussPulseCutoffVector) (outputs []Output, err error) {
+	tc, err := waveform.GaussPulseCutoff(v.Params.Fc, waveform.Bandwidth(v.Params.Bw),
+		waveform.BandwidthLevel(v.Params.Bwr), waveform.CutoffLevel(v.Params.Tpr))
+	if err != nil {
+		return nil, err
+	}
+	outputs = []Output{{Name: "tc", Got: []float64{tc}, Want: v.Output.Tc}}
+	return
+}
